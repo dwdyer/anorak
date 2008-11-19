@@ -1,5 +1,5 @@
 -- | A module for passing RLT files as used by the Football Statistics Applet <https://fsa.dev.java.net>
-module RLTParser (Team, Result, parseResults) where
+module Anorak.RLTParser (Team, Result, parseResults) where
 
 import Text.ParserCombinators.Parsec
 
