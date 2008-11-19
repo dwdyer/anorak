@@ -1,5 +1,5 @@
 -- | Core data types used by the Anorak system.
-module Anorak.Types (Team, Result(Result)) where
+module Anorak.Types (Team, Result(Result), Adjustment(Adjustment)) where
 
 -- | A team is represented simply by its name.
 type Team = String
@@ -14,4 +14,7 @@ instance Show Result where
                   show (homeGoals result) ++ " - " ++
                   show (awayGoals result) ++ " " ++
                   awayTeam result
+
+data Adjustment = Adjustment {team :: Team,
+                              amount :: Int}
 

@@ -1,4 +1,4 @@
--- | A module for passing RLT files as used by the Football Statistics Applet <https://fsa.dev.java.net>
+-- | A module for parsing RLT data files (as used by the Football Statistics Applet <https://fsa.dev.java.net>).
 module Anorak.RLTParser (parseResults) where
 
 import Anorak.Types
@@ -6,9 +6,10 @@ import Text.ParserCombinators.Parsec
 
 -- | An RLT file consists of many items (results, metadata and comments).
 data Item = Fixture Result    -- ^ The result of a single football match.
+          | Points Adjustment -- ^ A number of points awarded to or deducted from an individual team.
           | Metadata [String] -- ^ Data about the league, such as which positions are promoted or relegated.
           | Comment String    -- ^ Comments about the data.
-    deriving Show
+    --deriving Show
 
 -- | Parse results, discard meta-data and comments.
 results :: Parser [Result]
@@ -25,6 +26,8 @@ record = do fields <- sepBy field (char '|')
             newline
             case fields of
                 (date:hTeam:hGoals:aTeam:aGoals:_) -> return (Fixture (Result hTeam (read hGoals) aTeam (read aGoals)))
+                ("AWARDED":team:points:[])         -> return (Points (Adjustment team (read points)))
+                ("DEDUCTED":team:points:[])        -> return (Points (Adjustment team (-read points)))
                 otherwise                          -> return (Metadata fields)
 
 field = many (noneOf "|\n")
