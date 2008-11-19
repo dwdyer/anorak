@@ -1,21 +1,8 @@
 -- | A module for passing RLT files as used by the Football Statistics Applet <https://fsa.dev.java.net>
-module Anorak.RLTParser (Team, Result, parseResults) where
+module Anorak.RLTParser (parseResults) where
 
+import Anorak.Types
 import Text.ParserCombinators.Parsec
-
--- | A team is represented simply by its name.
-type Team = String
-
--- | A match result consists of two teams and the goals scored by each.
-data Result = Result {homeTeam :: Team,
-                      homeGoals :: Int,
-                      awayTeam :: Team,
-                      awayGoals :: Int}
-instance Show Result where
-    show result = homeTeam result ++ " " ++
-                  show (homeGoals result) ++ " - " ++
-                  show (awayGoals result) ++ " " ++
-                  awayTeam result
 
 -- | An RLT file consists of many items (results, metadata and comments).
 data Item = Fixture Result    -- ^ The result of a single football match.
