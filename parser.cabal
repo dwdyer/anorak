@@ -1,0 +1,14 @@
+Name:           RLTParser
+Version:        0.1
+Cabal-Version:  >= 1.2
+Synopsis:       Parser for football results data files.
+Description:    Parses the .rlt files used by the Football Statistics Applet
+                (see https://fsa.dev.java.net)
+License:        AllRightsReserved
+Author:         Daniel W. Dyer
+
+Library
+    Exposed-Modules:    RLTParser
+    Build-Depends:      base, parsec
+    Hs-Source-Dirs:     parser
+
