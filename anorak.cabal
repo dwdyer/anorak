@@ -13,6 +13,6 @@ Author:         Daniel W. Dyer
 Library
     Exposed-Modules:    Anorak
     Other-Modules:      Anorak.Types, Anorak.RLTParser
-    Build-Depends:      base, parsec
+    Build-Depends:      base, parsec, time
     Hs-Source-Dirs:     src
 

@@ -2,6 +2,9 @@
 module Anorak.RLTParser (parseResults) where
 
 import Anorak.Types
+import Data.Time.Calendar(Day)
+import Data.Time.Format(readTime)
+import System.Locale(defaultTimeLocale)
 import Text.ParserCombinators.Parsec
 
 -- | An RLT file consists of many items (results, metadata and comments).
@@ -9,14 +12,13 @@ data Item = Fixture Result    -- ^ The result of a single football match.
           | Points Adjustment -- ^ A number of points awarded to or deducted from an individual team.
           | Metadata [String] -- ^ Data about the league, such as which positions are promoted or relegated.
           | Comment String    -- ^ Comments about the data.
-    --deriving Show
 
 -- | Parse results, discard meta-data and comments.
 results :: Parser [Result]
 results = do list <- items
              return (keepResults list)
 
--- | Each line of a data file is either a record (a match result or metadata) or a comment.
+-- | Each line of a data file is either a record (match result or metadata) or it is a comment.
 items :: Parser [Item]
 items = many (comment <|> record)
 
@@ -25,12 +27,14 @@ record :: Parser Item
 record = do fields <- sepBy field (char '|')
             newline
             case fields of
-                (date:hTeam:hGoals:aTeam:aGoals:_) -> return (Fixture (Result hTeam (read hGoals) aTeam (read aGoals)))
+                (date:hTeam:hGoals:aTeam:aGoals:_) -> return (Fixture (Result day hTeam (read hGoals) aTeam (read aGoals)))
+                                                      -- RLT dates are 8-character strings in DDMMYYYY format.
+                                                      where day = readTime defaultTimeLocale "%d%m%Y" date
                 ("AWARDED":team:points:[])         -> return (Points (Adjustment team (read points)))
                 ("DEDUCTED":team:points:[])        -> return (Points (Adjustment team (-read points)))
                 otherwise                          -> return (Metadata fields)
 
-field = many (noneOf "|\n")
+field = many1 (noneOf "|\n")
 
 -- | A comment starts with a hash and continues to the end of the line.
 comment :: Parser Item
