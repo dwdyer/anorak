@@ -5,7 +5,7 @@ import Anorak.Types
 import Anorak.RLTParser
 import Text.ParserCombinators.Parsec(ParseError)
 
-parseFile :: FilePath -> IO (Either ParseError [Result])
+parseFile :: FilePath -> IO (Either ParseError ([Result], [Adjustment]))
 parseFile path = do contents <- readFile path
                     return (parseResults contents)
 

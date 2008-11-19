@@ -4,6 +4,7 @@ module Anorak.RLTParser (parseResults) where
 import Anorak.Types
 import Data.Time.Calendar(Day)
 import Data.Time.Format(readTime)
+import List(sort)
 import System.Locale(defaultTimeLocale)
 import Text.ParserCombinators.Parsec
 
@@ -14,11 +15,11 @@ data Item = Fixture Result    -- ^ The result of a single football match.
           | Comment String    -- ^ Comments about the data.
 
 -- | Parse results, discard meta-data and comments.
-results :: Parser [Result]
+results :: Parser ([Result], [Adjustment])
 results = do list <- items
-             return (keepResults list)
+             return (extractData list ([], []))
 
--- | Each line of a data file is either a record (match result or metadata) or it is a comment.
+-- | Each line of a data file is either a record (a match result or some metadata) or it is a comment.
 items :: Parser [Item]
 items = many (comment <|> record)
 
@@ -42,13 +43,15 @@ comment = do char '#'
              text <- manyTill anyChar newline
              return (Comment text)
 
--- | Take a list of parsed items and discard comments and meta-data.
-keepResults :: [Item] -> [Result]
-keepResults []                  = []
-keepResults (Fixture result:xs) = result:(keepResults xs)
-keepResults (_:xs)              = keepResults xs
+-- | Takes a list of parsed items and discards comments and meta-data.  The remaining items are divided
+--   into two lists - match results and points adjustments.
+extractData :: [Item] -> ([Result], [Adjustment]) -> ([Result], [Adjustment])
+extractData [] (r, a)                        = (sort r, a) -- Sort results as the final operation because otherwise they are backwards.
+extractData (Fixture result:items) (r, a)    = extractData items (result:r, a)
+extractData (Points adjustment:items) (r, a) = extractData items (r, adjustment:a)
+extractData (_:items) (r, a)                 = extractData items (r, a)
 
 -- | Parses the given string (the content of an RLT file) and returns a list of football results.
-parseResults :: String -> Either ParseError [Result]
+parseResults :: String -> Either ParseError ([Result], [Adjustment])
 parseResults input = parse results "(unknown)" input
 
