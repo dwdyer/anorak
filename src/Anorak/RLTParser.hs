@@ -11,10 +11,10 @@ import System.Locale(defaultTimeLocale)
 import Text.ParserCombinators.Parsec
 
 -- | An RLT file consists of many items (results, metadata and comments).
-data Item = Fixture Result    -- ^ The result of a single football match.
-          | Points Adjustment -- ^ A number of points awarded to or deducted from an individual team.
-          | Metadata [String] -- ^ Data about the league, such as which positions are promoted or relegated.
-          | Comment String    -- ^ Comments about the data.
+data Item = Fixture Result        -- ^ The result of a single football match.
+          | Adjustment Team Int   -- ^ A number of points awarded to or deducted from an individual team.
+          | Metadata [String]     -- ^ Data about the league, such as which positions are promoted or relegated.
+          | Comment String        -- ^ Comments about the data.
 
 -- | Parse results, discard meta-data and comments.
 results :: Parser ([Result], Map Team Int)
@@ -33,8 +33,8 @@ record = do fields <- sepBy field (char '|')
                 (date:hTeam:hGoals:aTeam:aGoals:_) -> return (Fixture (Result day hTeam (read hGoals) aTeam (read aGoals)))
                                                       -- RLT dates are 8-character strings in DDMMYYYY format.
                                                       where day = readTime defaultTimeLocale "%d%m%Y" date
-                ("AWARDED":team:points:[])         -> return (Points (Adjustment team (read points)))
-                ("DEDUCTED":team:points:[])        -> return (Points (Adjustment team (-read points)))
+                ("AWARDED":team:points:[])         -> return (Adjustment team (read points))
+                ("DEDUCTED":team:points:[])        -> return (Adjustment team (-read points))
                 otherwise                          -> return (Metadata fields)
 
 field = many1 (noneOf "|\n")
@@ -48,16 +48,16 @@ comment = do char '#'
 -- | Takes a list of parsed items and discards comments and meta-data.  The remaining items are separated into a list
 --   of results and a map of net points adjustments by team.
 extractData :: [Item] -> ([Result], Map Team Int) -> ([Result], Map Team Int)
-extractData [] (r, a)                        = (sort r, a) -- Sort results as the final operation because otherwise they are backwards.
-extractData (Fixture result:items) (r, a)    = extractData items (result:r, a)
-extractData (Points adjustment:items) (r, a) = extractData items (r, addAdjustment adjustment a)
-extractData (_:items) (r, a)                 = extractData items (r, a)
+extractData [] (r, a)                             = (sort r, a) -- Sort results as the final operation because otherwise they are backwards.
+extractData (Fixture result:items) (r, a)         = extractData items (result:r, a)
+extractData (Adjustment team amount:items) (r, a) = extractData items (r, addAdjustment team amount a)
+extractData (_:items) (r, a)                      = extractData items (r, a)
 
 -- | Adds a points adjustment to a map of existing points adjustments.  All adjustments for an individual team are
 --   collated into a single entry.
-addAdjustment :: Adjustment -> Map Team Int -> Map Team Int
-addAdjustment adjustment map = Map.insert (team adjustment) total map
-                               where total = (amount adjustment) + Map.findWithDefault 0 (team adjustment) map 
+addAdjustment :: Team -> Int -> Map Team Int -> Map Team Int
+addAdjustment team amount  map = Map.insert team total map
+                                 where total = amount + Map.findWithDefault 0 team map 
 
 -- | Parses the given string (the content of an RLT file) and returns a list of football results.
 parseRLT :: String -> Either ParseError ([Result], Map Team Int)
