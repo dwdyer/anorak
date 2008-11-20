@@ -1,5 +1,5 @@
 -- | Core data types used by the Anorak system.
-module Anorak.Types (Team, Result(Result), Adjustment(Adjustment)) where
+module Anorak.Types (Team, Result(Result), Adjustment(Adjustment, team, amount)) where
 
 import Data.Time.Calendar(Day)
 import Data.Time.Format(formatTime)

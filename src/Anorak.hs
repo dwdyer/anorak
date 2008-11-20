@@ -1,11 +1,12 @@
 -- | Main module for the Anorak system.
-module Anorak (Team, Result(Result), parseFile) where
+module Anorak (Team, Result(Result), parseRLTFile) where
 
 import Anorak.Types
 import Anorak.RLTParser
+import Data.Map(Map)
 import Text.ParserCombinators.Parsec(ParseError)
 
-parseFile :: FilePath -> IO (Either ParseError ([Result], [Adjustment]))
-parseFile path = do contents <- readFile path
-                    return (parseResults contents)
+parseRLTFile :: FilePath -> IO (Either ParseError ([Result], Map Team Int))
+parseRLTFile path = do contents <- readFile path
+                       return (parseRLT contents)
 

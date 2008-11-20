@@ -1,7 +1,9 @@
 -- | A module for parsing RLT data files (as used by the Football Statistics Applet <https://fsa.dev.java.net>).
-module Anorak.RLTParser (parseResults) where
+module Anorak.RLTParser (parseRLT) where
 
 import Anorak.Types
+import Data.Map(Map)
+import qualified Data.Map as Map
 import Data.Time.Calendar(Day)
 import Data.Time.Format(readTime)
 import List(sort)
@@ -15,9 +17,9 @@ data Item = Fixture Result    -- ^ The result of a single football match.
           | Comment String    -- ^ Comments about the data.
 
 -- | Parse results, discard meta-data and comments.
-results :: Parser ([Result], [Adjustment])
+results :: Parser ([Result], Map Team Int)
 results = do list <- items
-             return (extractData list ([], []))
+             return (extractData list ([], Map.empty))
 
 -- | Each line of a data file is either a record (a match result or some metadata) or it is a comment.
 items :: Parser [Item]
@@ -43,15 +45,21 @@ comment = do char '#'
              text <- manyTill anyChar newline
              return (Comment text)
 
--- | Takes a list of parsed items and discards comments and meta-data.  The remaining items are divided
---   into two lists - match results and points adjustments.
-extractData :: [Item] -> ([Result], [Adjustment]) -> ([Result], [Adjustment])
+-- | Takes a list of parsed items and discards comments and meta-data.  The remaining items are separated into a list
+--   of results and a map of net points adjustments by team.
+extractData :: [Item] -> ([Result], Map Team Int) -> ([Result], Map Team Int)
 extractData [] (r, a)                        = (sort r, a) -- Sort results as the final operation because otherwise they are backwards.
 extractData (Fixture result:items) (r, a)    = extractData items (result:r, a)
-extractData (Points adjustment:items) (r, a) = extractData items (r, adjustment:a)
+extractData (Points adjustment:items) (r, a) = extractData items (r, addAdjustment adjustment a)
 extractData (_:items) (r, a)                 = extractData items (r, a)
 
+-- | Adds a points adjustment to a map of existing points adjustments.  All adjustments for an individual team are
+--   collated into a single entry.
+addAdjustment :: Adjustment -> Map Team Int -> Map Team Int
+addAdjustment adjustment map = Map.insert (team adjustment) total map
+                               where total = (amount adjustment) + Map.findWithDefault 0 (team adjustment) map 
+
 -- | Parses the given string (the content of an RLT file) and returns a list of football results.
-parseResults :: String -> Either ParseError ([Result], [Adjustment])
-parseResults input = parse results "(unknown)" input
+parseRLT :: String -> Either ParseError ([Result], Map Team Int)
+parseRLT input = parse results "(unknown)" input
 
