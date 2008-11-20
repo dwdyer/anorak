@@ -6,7 +6,20 @@ import Anorak.RLTParser
 import Data.Map(Map)
 import Text.ParserCombinators.Parsec(ParseError)
 
-parseRLTFile :: FilePath -> IO (Either ParseError ([Result], Map Team Int))
-parseRLTFile path = do contents <- readFile path
-                       return (parseRLT contents)
+-- | Builds a LeagueRecord for the specified team, including all of the results (from those provided) in which that
+--   team was involved.
+buildRecord :: [Result] -> Team -> LeagueRecord
+buildRecord results team = foldl (addResultToRecord team) (LeagueRecord team 0 0 0 0 0) results
+
+addResultToRecord :: Team -> LeagueRecord -> Result -> LeagueRecord
+addResultToRecord team record result 
+    | team == (homeTeam result) = addScoreToRecord record (homeGoals result) (awayGoals result)
+    | team == (awayTeam result) = addScoreToRecord record (awayGoals result) (homeGoals result)
+    | otherwise                 = record
+
+addScoreToRecord :: LeagueRecord -> Int -> Int -> LeagueRecord
+addScoreToRecord (LeagueRecord team won drawn lost for against) scored conceded
+    | scored > conceded  = (LeagueRecord team (won + 1) drawn lost (for + scored) (against + conceded))
+    | scored == conceded = (LeagueRecord team won (drawn + 1) lost (for + scored) (against + conceded))
+    | otherwise          = (LeagueRecord team won drawn (lost + 1) (for + scored) (against + conceded))
 
