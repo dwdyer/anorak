@@ -7,13 +7,12 @@ Description:    Generates HTML pages containing league tables, form tables,
                 sequences and other statistics for one or more football
                 leagues.  Input data is provided in the form of the  .rlt files
                 used by the Football Statistics Applet
-                (see https://fsa.dev.java.net)
+                (see <https://fsa.dev.java.net>)
 License:        AllRightsReserved
 Author:         Daniel W. Dyer
 
 Library
-    Exposed-Modules:    Anorak
-    Other-Modules:      Anorak.Types, Anorak.RLTParser
+    Exposed-Modules:    Anorak, Anorak.Types, Anorak.RLTParser
     Build-Depends:      base, containers, haskell98, old-locale, parsec, time
     Hs-Source-Dirs:     src
 

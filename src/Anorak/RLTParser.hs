@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 
--- | A module for parsing RLT data files (as used by the Football Statistics Applet <https://fsa.dev.java.net>).
+-- | A module for parsing RLT data files as used by the Football Statistics Applet (see <https://fsa.dev.java.net>).
 module Anorak.RLTParser (parseRLTFile, RLTException) where
 
 import Anorak.Types
@@ -44,13 +44,15 @@ record = do fields <- sepBy1 field (char '|')
                 (date:hTeam:hGoals:aTeam:aGoals:_) -> return (Fixture (Result day hTeam (read hGoals) aTeam (read aGoals)))
                                                       -- RLT dates are 8-character strings in DDMMYYYY format.
                                                       where day = readTime defaultTimeLocale "%d%m%Y" date
-                ("AWARDED":team:points:[])         -> return (Adjustment team (read points))
-                ("DEDUCTED":team:points:[])        -> return (Adjustment team (-read points))
+                ("AWARDED":team:points:[])         -> return (Adjustment team $ read points)
+                ("DEDUCTED":team:points:[])        -> return (Adjustment team $ -read points)
                 ("PRIZE":_)                        -> return (Metadata fields)
                 ("RELEGATION":_)                   -> return (Metadata fields)
                 ("RULES":_)                        -> return (Metadata fields)
                 otherwise                          -> fail ("Unexpected input: " ++ (concat $ intersperse "|" fields))
 
+-- | A field is one or more characters (not including pipes and newlines).
+field :: Parser String
 field = many1 (noneOf "|\n")
 
 -- | A comment starts with a hash and continues to the end of the line.
@@ -64,27 +66,15 @@ comment = do char '#'
 extractData :: [Item] -> (Set Team, [Result], Map Team Int) -> (Set Team, [Result], Map Team Int)
 extractData [] (t, r, a)                             = (t, sort r, a) -- Sort results as the final operation because otherwise they are backwards.
 extractData (Fixture result:items) (t, r, a)         = extractData items (addTeams result t, result:r, a)
-extractData (Adjustment team amount:items) (t, r, a) = extractData items (t, r, addAdjustment team amount a)
-extractData (_:items) (t, r, a)                      = extractData items (t, r, a)
+extractData (Adjustment team amount:items) (t, r, a) = extractData items (t, r, Map.insertWith (+) team amount a) -- Insert new adjustment for team or add to existing.
+extractData (_:items) (t, r, a)                      = extractData items (t, r, a) -- Discard metadata.
 
 -- | Adds the home team and away team from a match to the set of all teams (if they are not already present).
 addTeams :: Result -> Set Team -> Set Team
 addTeams result set = Set.insert (awayTeam result) (Set.insert (homeTeam result) set)
 
--- | Adds a points adjustment to a map of existing points adjustments.  All adjustments for an individual team are
---   collated into a single entry.
-addAdjustment :: Team -> Int -> Map Team Int -> Map Team Int
-addAdjustment team amount map = Map.insert team total map
-                                where total = amount + Map.findWithDefault 0 team map 
-
--- | Parses the given string (the content of an RLT file) and returns a list of football results and a map of any points
---   adjustments included in the data.
-parseRLT :: String -> ([Team], [Result], Map Team Int)
-parseRLT input = case parse results "(unknown)" input of
-                     Left error      -> throw (RLTException error)
-                     Right (t, r, a) -> (t, r, a)
-
 -- | Parses the specified RLT file and returns a list of the results it contains and a map of any points adjustments.
+--   Throws an RLTException if there is a problem parsing the file.
 parseRLTFile :: FilePath -> IO ([Team], [Result], Map Team Int)
 parseRLTFile path = do contents <- parseFromFile results path
                        case contents of
