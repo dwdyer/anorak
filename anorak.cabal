@@ -1,6 +1,7 @@
 Name:           Anorak
 Version:        0.1
 Cabal-Version:  >= 1.2
+Build-Type:     Simple
 Synopsis:       A football statistics package.
 Description:    Generates HTML pages containing league tables, form tables,
                 sequences and other statistics for one or more football

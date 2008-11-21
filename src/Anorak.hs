@@ -5,6 +5,7 @@ import Anorak.Types
 import Anorak.RLTParser
 import Data.Map(Map)
 import Text.ParserCombinators.Parsec(ParseError)
+import System(getArgs)
 
 -- | Builds a LeagueRecord for the specified team, including all of the results (from those provided) in which that
 --   team was involved.
@@ -23,3 +24,7 @@ addScoreToRecord (LeagueRecord team won drawn lost for against) scored conceded
     | scored == conceded = (LeagueRecord team won (drawn + 1) lost (for + scored) (against + conceded))
     | otherwise          = (LeagueRecord team won drawn (lost + 1) (for + scored) (against + conceded))
 
+main :: IO()
+main = do file:_ <- getArgs
+          (teams, results, adjustments) <- parseRLTFile file
+          print teams
