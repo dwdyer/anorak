@@ -8,6 +8,19 @@ import qualified Data.Map as Map
 import List(sort)
 import System(getArgs)
 import Text.ParserCombinators.Parsec(ParseError)
+import Text.StringTemplate
+import Text.StringTemplate.Classes
+
+instance ToSElem LeagueRecord where
+    toSElem record = (LI [STR $ team record,
+                          STR $ show $ played record,
+                          STR $ show $ won record,
+                          STR $ show $ drawn record,
+                          STR $ show $ lost record,
+                          STR $ show $ for record,
+                          STR $ show $ against record,
+                          STR $ show $ goalDiff record,
+                          STR $ show $ points record])
 
 -- | Builds a LeagueRecord for the specified team, including all of the results (from those provided) in which that
 --   team was involved.
@@ -44,8 +57,16 @@ leagueTable teamResults adjustments  = sort $ map (adjust adjustments) table
 adjust :: Map Team Int -> LeagueRecord -> LeagueRecord
 adjust adjustments (LeagueRecord t w d l f a adj) = (LeagueRecord t w d l f a (adj + Map.findWithDefault 0 t adjustments))
 
+htmlLeagueTable :: [LeagueRecord] -> StringTemplate String -> String
+htmlLeagueTable table template = toString $ setAttribute "table" table template
+
 main :: IO()
-main = do file:_ <- getArgs
-          (teams, results, adjustments) <- parseRLTFile file
-          print $ leagueTable (resultsByTeam results Map.empty) adjustments
+main = do dataFile:templateDir:_ <- getArgs
+          (teams, results, adjustments) <- parseRLTFile dataFile
+          group <- directoryGroup templateDir :: IO (STGroup String)
+          case getStringTemplate "leaguetable.html" group of
+              Nothing       -> print "Error"
+              Just template -> print $ htmlLeagueTable table template
+                               where table = leagueTable (resultsByTeam results Map.empty) adjustments
+          
 
