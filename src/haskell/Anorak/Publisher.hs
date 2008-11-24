@@ -1,5 +1,5 @@
 -- | Main module for the Anorak system.
-module Anorak where
+module Anorak.Publisher where
 
 import Anorak.Core
 import Anorak.Types
