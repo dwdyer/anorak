@@ -9,7 +9,7 @@ import qualified Data.Map as Map
 import List(isPrefixOf, isSuffixOf)
 import Monad(filterM)
 import System(getArgs)
-import System.Directory(copyFile, doesFileExist, getDirectoryContents)
+import System.Directory(createDirectoryIfMissing, copyFile, doesFileExist, getDirectoryContents)
 import System.FilePath(combine, replaceDirectory, takeFileName)
 import Text.ParserCombinators.Parsec(ParseError)
 import Text.StringTemplate
@@ -53,6 +53,7 @@ main :: IO ()
 main = do dataFile:templateDir:outputDir:_ <- getArgs
           (teams, results, adjustments) <- parseRLTFile dataFile
           group <- directoryGroup templateDir :: IO (STGroup String)
+          createDirectoryIfMissing True outputDir
           case getStringTemplate "leaguetable.html" group of
               Nothing       -> print "Could not find league table template."
               Just template -> writeFile (outputDir ++ "/leaguetable.html") $ htmlLeagueTable table template
