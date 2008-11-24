@@ -1,4 +1,4 @@
--- | Main module for the Anorak system.
+-- | HTML publishing module for the Anorak system.
 module Anorak.Publisher where
 
 import Anorak.Core
@@ -23,9 +23,12 @@ instance ToSElem LeagueRecord where
                                         ("lost", toSElem $ lost record),
                                         ("for", toSElem $ for record),
                                         ("against", toSElem $ against record),
-                                        ("goalDiff", toSElem $ goalDiff record),
+                                        ("positiveGD", (if gd > 0 then toSElem gd else SNull)),
+                                        ("negativeGD", (if gd < 0 then toSElem gd else SNull)),
                                         ("points", toSElem $ points record)]
+                     where gd = goalDiff record
 
+-- | Renders a league table as an HTML page using the specified template.
 htmlLeagueTable :: [LeagueRecord] -> StringTemplate String -> String
 htmlLeagueTable table template = toString $ setAttribute "table" table template
 
@@ -49,14 +52,16 @@ isResourceFile path = do ordinaryFile <- doesFileExist path
 copyToDirectory :: FilePath -> FilePath -> IO()
 copyToDirectory dir file = copyFile file (replaceDirectory file dir)
 
+-- | Expects three arguments - the path to the RLT data file, the path to the templates directory and the path to the
+--   output directory.
 main :: IO ()
 main = do dataFile:templateDir:outputDir:_ <- getArgs
           (teams, results, adjustments) <- parseRLTFile dataFile
           group <- directoryGroup templateDir :: IO (STGroup String)
           createDirectoryIfMissing True outputDir
+          copyResources templateDir outputDir          
           case getStringTemplate "leaguetable.html" group of
               Nothing       -> print "Could not find league table template."
-              Just template -> writeFile (outputDir ++ "/leaguetable.html") $ htmlLeagueTable table template
+              Just template -> writeFile (combine outputDir "leaguetable.html") $ htmlLeagueTable table template
                                where table = leagueTable (resultsByTeam results Map.empty) adjustments
-          copyResources templateDir outputDir          
 
