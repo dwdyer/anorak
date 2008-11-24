@@ -13,6 +13,6 @@ Author:         Daniel W. Dyer
 
 Library
     Exposed-Modules:    Anorak, Anorak.Types, Anorak.RLTParser
-    Build-Depends:      base, containers, haskell98, old-locale, parsec, time
+    Build-Depends:      base, containers, directory, filepath, haskell98, HStringTemplate, old-locale, parsec, time
     Hs-Source-Dirs:     src/haskell
 
