@@ -5,7 +5,7 @@ import Anorak.Core
 import Anorak.Types
 import Anorak.RLTParser
 import Data.Map(Map)
-import qualified Data.Map as Map(empty, fromAscList)
+import qualified Data.Map as Map(empty, fromAscList, map)
 import List(isPrefixOf, isSuffixOf)
 import Monad(filterM)
 import System(getArgs)
@@ -53,6 +53,16 @@ isResourceFile path = do ordinaryFile <- doesFileExist path
 copyToDirectory :: FilePath -> FilePath -> IO()
 copyToDirectory dir file = copyFile file (replaceDirectory file dir)
 
+-- | Generates home, away and overall HTML league tables.
+generateLeagueTables :: StringTemplate String -> FilePath -> Map Team [Result] -> Map Team Int -> IO ()
+generateLeagueTables template dir results adjustments = do let splitResults = splitHomeAndAway results
+                                                               table = leagueTable results adjustments
+                                                               homeTable = leagueTable (Map.map fst splitResults) Map.empty -- Don't apply adjustments to home table.
+                                                               awayTable = leagueTable (Map.map snd splitResults) Map.empty -- Don't apply adjustments to away table.
+                                                           writeFile (combine dir "leagueTable.html") $ htmlLeagueTable table template
+                                                           writeFile (combine dir "homeTable.html") $ htmlLeagueTable homeTable template
+                                                           writeFile (combine dir "awayTable.html") $ htmlLeagueTable awayTable template
+
 -- | Expects three arguments - the path to the RLT data file, the path to the templates directory and the path to the
 --   output directory.
 main :: IO ()
@@ -63,6 +73,5 @@ main = do dataFile:templateDir:outputDir:_ <- getArgs
           copyResources templateDir outputDir          
           case getStringTemplate "leaguetable.html" group of
               Nothing       -> print "Could not find league table template."
-              Just template -> writeFile (combine outputDir "leaguetable.html") $ htmlLeagueTable table template
-                               where table = leagueTable (resultsByTeam results Map.empty) adjustments
+              Just template -> generateLeagueTables template outputDir (resultsByTeam results Map.empty) adjustments
 
