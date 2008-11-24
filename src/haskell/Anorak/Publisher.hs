@@ -12,11 +12,12 @@ import System(getArgs)
 import System.Directory(createDirectoryIfMissing, copyFile, doesFileExist, getDirectoryContents)
 import System.FilePath(combine, replaceDirectory, takeFileName)
 import Text.ParserCombinators.Parsec(ParseError)
-import Text.StringTemplate(directoryGroup, getStringTemplate, setAttribute, STGroup, StringTemplate, toString)
+import Text.StringTemplate(directoryGroup, getStringTemplate, setAttribute, STGroup, StringTemplate, stShowsToSE, toString)
 import Text.StringTemplate.Classes(ToSElem(toSElem), SElem(SM))
 
 instance ToSElem LeagueRecord where
     toSElem record = SM $ Map.fromAscList [("against", toSElem $ against record),
+                                           ("average", stShowsToSE $ pointsPerGame record),
                                            ("drawn", toSElem $ drawn record),
                                            ("for", toSElem $ for record),
                                            ("goalDiff", toSElem $ goalDiff record),

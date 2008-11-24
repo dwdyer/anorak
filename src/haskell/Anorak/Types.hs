@@ -79,3 +79,6 @@ points record = (won record) * 3 + (drawn record) + (adjustment record)
 goalDiff :: LeagueRecord -> Int
 goalDiff record = (for record) - (against record)
 
+pointsPerGame :: LeagueRecord -> Double
+pointsPerGame record = (fromIntegral $ points record) / (fromIntegral $ played record)
+
