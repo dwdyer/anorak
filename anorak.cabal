@@ -12,7 +12,7 @@ License:        AllRightsReserved
 Author:         Daniel W. Dyer
 
 Library
-    Exposed-Modules:    Anorak, Anorak.Types, Anorak.RLTParser
+    Exposed-Modules:    Anorak, Anorak.Types, Anorak.Core, Anorak.RLTParser
     Build-Depends:      base, containers, directory, filepath, haskell98, HStringTemplate, old-locale, parsec, time
     Hs-Source-Dirs:     src/haskell
 
