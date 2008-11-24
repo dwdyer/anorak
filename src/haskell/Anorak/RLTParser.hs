@@ -4,17 +4,17 @@
 module Anorak.RLTParser (parseRLTFile, RLTException) where
 
 import Anorak.Types
-import Control.Exception
+import Control.Exception(Exception, throw)
 import Data.Map(Map)
-import qualified Data.Map as Map
+import qualified Data.Map as Map(empty, insertWith)
 import Data.Set(Set)
-import qualified Data.Set as Set
+import qualified Data.Set as Set(elems, empty, insert)
 import Data.Time.Calendar(Day)
 import Data.Time.Format(readTime)
 import Data.Typeable(Typeable)
 import List(concat, intersperse, sort)
 import System.Locale(defaultTimeLocale)
-import Text.ParserCombinators.Parsec
+import Text.ParserCombinators.Parsec((<|>), anyChar, char, eof, many1, manyTill, newline, noneOf, ParseError, parseFromFile, Parser, sepBy1)
 
 -- | An RLT file consists of many items (results, metadata and comments).
 data Item = Fixture Result        -- ^ The result of a single football match.

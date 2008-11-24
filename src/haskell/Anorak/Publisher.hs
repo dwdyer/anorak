@@ -5,28 +5,28 @@ import Anorak.Core
 import Anorak.Types
 import Anorak.RLTParser
 import Data.Map(Map)
-import qualified Data.Map as Map
+import qualified Data.Map as Map(empty, fromAscList)
 import List(isPrefixOf, isSuffixOf)
 import Monad(filterM)
 import System(getArgs)
 import System.Directory(createDirectoryIfMissing, copyFile, doesFileExist, getDirectoryContents)
 import System.FilePath(combine, replaceDirectory, takeFileName)
 import Text.ParserCombinators.Parsec(ParseError)
-import Text.StringTemplate
-import Text.StringTemplate.Classes
+import Text.StringTemplate(directoryGroup, getStringTemplate, setAttribute, STGroup, StringTemplate, toString)
+import Text.StringTemplate.Classes(ToSElem(toSElem), SElem(SM))
 
 instance ToSElem LeagueRecord where
-    toSElem record = SM $ Map.fromList [("team", toSElem $ team record),
-                                        ("played", toSElem $ played record),
-                                        ("won", toSElem $ won record),
-                                        ("drawn", toSElem $ drawn record),
-                                        ("lost", toSElem $ lost record),
-                                        ("for", toSElem $ for record),
-                                        ("against", toSElem $ against record),
-                                        ("positiveGD", (if gd > 0 then toSElem gd else SNull)),
-                                        ("negativeGD", (if gd < 0 then toSElem gd else SNull)),
-                                        ("points", toSElem $ points record)]
-                     where gd = goalDiff record
+    toSElem record = SM $ Map.fromAscList [("against", toSElem $ against record),
+                                           ("drawn", toSElem $ drawn record),
+                                           ("for", toSElem $ for record),
+                                           ("goalDiff", toSElem $ goalDiff record),
+                                           ("lost", toSElem $ lost record),
+                                           ("negativeGD", toSElem $ goalDiff record < 0), -- Goal difference could be neither +ve or -ve (i.e. zero).
+                                           ("played", toSElem $ played record),
+                                           ("points", toSElem $ points record),
+                                           ("positiveGD", toSElem $ goalDiff record > 0), -- Goal difference could be neither +ve or -ve (i.e. zero).
+                                           ("team", toSElem $ team record),
+                                           ("won", toSElem $ won record)]
 
 -- | Renders a league table as an HTML page using the specified template.
 htmlLeagueTable :: [LeagueRecord] -> StringTemplate String -> String

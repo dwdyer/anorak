@@ -3,7 +3,7 @@ module Anorak.Core (leagueTable, resultsByTeam) where
 
 import Anorak.Types
 import Data.Map(Map)
-import qualified Data.Map as Map
+import qualified Data.Map as Map(elems, findWithDefault, insertWith, mapWithKey)
 import List(sort)
 
 -- | Builds a LeagueRecord for the specified team, including all of the results (from those provided) in which that
