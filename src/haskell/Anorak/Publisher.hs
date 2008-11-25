@@ -29,17 +29,15 @@ instance ToSElem LeagueRecord where
                                            ("team", toSElem $ team record),
                                            ("won", toSElem $ won record)]
 
--- | Renders a league table as an HTML page using the specified template.
-htmlLeagueTable :: [LeagueRecord] -> StringTemplate String -> String
-htmlLeagueTable table template = toString $ setAttribute "table" table template
-
 -- | Copies all non-template files from the source directory to the target directory.  Used for making sure that CSS
---   files and images (if any) are deployed with the generated HTML.
+--   files and images (if any) are deployed with the generated HTML.  If the target directory does not exist it is
+--   created.
 copyResources :: FilePath -> FilePath -> IO ()
 copyResources from to = do files <- getDirectoryContents from
                            let absoluteFiles = map (combine from) files -- Convert file names into absolute paths.
                            resources <- filterM (isResourceFile) absoluteFiles
                            print resources
+                           createDirectoryIfMissing True to
                            mapM_ (copyToDirectory to) resources
 
 -- | Predicate for filtering.  Accepts files that are not templates, not directories and not hidden files.
@@ -54,14 +52,18 @@ copyToDirectory :: FilePath -> FilePath -> IO()
 copyToDirectory dir file = copyFile file (replaceDirectory file dir)
 
 -- | Generates home, away and overall HTML league tables.
-generateLeagueTables :: StringTemplate String -> FilePath -> Map Team [Result] -> Map Team Int -> IO ()
-generateLeagueTables template dir results adjustments = do let splitResults = splitHomeAndAway results
-                                                               table = leagueTable results adjustments
-                                                               homeTable = leagueTable (Map.map fst splitResults) Map.empty -- Don't apply adjustments to home table.
-                                                               awayTable = leagueTable (Map.map snd splitResults) Map.empty -- Don't apply adjustments to away table.
-                                                           writeFile (combine dir "leagueTable.html") $ htmlLeagueTable table template
-                                                           writeFile (combine dir "homeTable.html") $ htmlLeagueTable homeTable template
-                                                           writeFile (combine dir "awayTable.html") $ htmlLeagueTable awayTable template
+generateLeagueTables :: STGroup String -> FilePath -> Map Team [Result] -> Map Team Int -> IO ()
+generateLeagueTables group dir results adjustments = do generateLeagueTable group "overalltable.html" dir $ leagueTable results adjustments
+                                                        let splitResults = splitHomeAndAway results
+                                                        generateLeagueTable group "hometable.html" dir $ leagueTable (Map.map fst splitResults) Map.empty
+                                                        generateLeagueTable group "awaytable.html" dir $ leagueTable (Map.map snd splitResults) Map.empty
+
+-- | Renders a league table as an HTML page using the named template from the specified template group.
+generateLeagueTable :: STGroup String -> FilePath -> FilePath -> [LeagueRecord] -> IO ()
+generateLeagueTable group templateName dir table = case getStringTemplate templateName group of
+                                                       Nothing       -> print $ "Could not find template for " ++ templateName
+                                                       Just template -> writeFile (combine dir templateName) html
+                                                                        where html = toString $ setAttribute "table" table template
 
 -- | Expects three arguments - the path to the RLT data file, the path to the templates directory and the path to the
 --   output directory.
@@ -69,9 +71,6 @@ main :: IO ()
 main = do dataFile:templateDir:outputDir:_ <- getArgs
           (teams, results, adjustments) <- parseRLTFile dataFile
           group <- directoryGroup templateDir :: IO (STGroup String)
-          createDirectoryIfMissing True outputDir
           copyResources templateDir outputDir          
-          case getStringTemplate "leaguetable.html" group of
-              Nothing       -> print "Could not find league table template."
-              Just template -> generateLeagueTables template outputDir (resultsByTeam results Map.empty) adjustments
+          generateLeagueTables group outputDir (resultsByTeam results Map.empty) adjustments
 
