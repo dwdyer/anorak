@@ -61,6 +61,7 @@ formTable :: Map Team [Result] -> Int -> [(LeagueRecord, Form)]
 formTable teamResults n = map (\x -> (x, form (team x) $ Map.findWithDefault [] (team x) formResults)) (leagueTable formResults Map.empty)
                           where formResults = Map.map (keep n) teamResults
 
+-- | Generates a form string (e.g. 'WDLLWW') from a list of results for a particular team.
 form :: Team -> [Result] -> Form
 form team [] = ""
 form team (result:rs)
