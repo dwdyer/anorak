@@ -12,7 +12,7 @@ import qualified Data.Set as Set(elems, empty, insert)
 import Data.Time.Calendar(Day)
 import Data.Time.Format(readTime)
 import Data.Typeable(Typeable)
-import List(concat, intersperse, sort)
+import List(concat, intersperse)
 import System.Locale(defaultTimeLocale)
 import Text.ParserCombinators.Parsec((<|>), anyChar, char, eof, many1, manyTill, newline, noneOf, ParseError, parseFromFile, Parser, sepBy1)
 
@@ -29,7 +29,7 @@ instance Exception RLTException
 -- | Parse results and points adjustments, discard meta-data and comments.
 results :: Parser ([Team], [Result], Map Team Int)
 results = do list <- items
-             let (teams, results, adjustments) = extractData list (Set.empty, [], Map.empty) in
+             let (teams, results, adjustments) = extractData list in
                  return (Set.elems teams, results, adjustments)
 
 -- | Each line of a data file is either a record (a match result or some metadata) or it is a comment.
@@ -63,11 +63,11 @@ comment = do char '#'
 
 -- | Takes a list of parsed items and discards comments and meta-data.  The remaining items are separated into a list
 --   of results and a map of net points adjustments by team.
-extractData :: [Item] -> (Set Team, [Result], Map Team Int) -> (Set Team, [Result], Map Team Int)
-extractData [] (t, r, a)                             = (t, sort r, a) -- Sort results as the final operation because otherwise they are backwards.
-extractData (Fixture result:items) (t, r, a)         = extractData items (addTeams result t, result:r, a)
-extractData (Adjustment team amount:items) (t, r, a) = extractData items (t, r, Map.insertWith (+) team amount a) -- Insert new adjustment for team or add to existing.
-extractData (_:items) (t, r, a)                      = extractData items (t, r, a) -- Discard metadata.
+extractData :: [Item] -> (Set Team, [Result], Map Team Int)
+extractData []                             = (Set.empty, [], Map.empty) 
+extractData (Fixture result:items)         = (addTeams result t, result:r, a) where (t, r, a) = extractData items
+extractData (Adjustment team amount:items) = (t, r, Map.insertWith (+) team amount a) where (t, r, a) = extractData items
+extractData (_:items)                      = extractData items -- Discard metadata.
 
 -- | Adds the home team and away team from a match to the set of all teams (if they are not already present).
 addTeams :: Result -> Set Team -> Set Team

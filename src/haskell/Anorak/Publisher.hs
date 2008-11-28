@@ -86,6 +86,6 @@ main = do dataFile:templateDir:outputDir:_ <- getArgs
           (teams, results, adjustments) <- parseRLTFile dataFile
           group <- directoryGroup templateDir :: IO (STGroup String)
           copyResources templateDir outputDir          
-          generateLeagueTables group outputDir (resultsByTeam results Map.empty) adjustments
-          generateResultsList group outputDir (resultsByDate results Map.empty)
+          generateLeagueTables group outputDir (resultsByTeam results) adjustments
+          generateResultsList group outputDir (resultsByDate results)
 
