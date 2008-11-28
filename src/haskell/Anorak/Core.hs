@@ -1,8 +1,9 @@
 -- | Core functionality for the Anorak system.
-module Anorak.Core (leagueTable, resultsByTeam, splitHomeAndAway) where
+module Anorak.Core (leagueTable, resultsByDate, resultsByTeam, splitHomeAndAway) where
 
 import Anorak.Types
 import Data.Map(Map)
+import Data.Time.Calendar(Day)
 import qualified Data.Map as Map(elems, findWithDefault, insertWith, mapWithKey)
 import List(partition, sort)
 
@@ -28,8 +29,16 @@ addScoreToRecord (LeagueRecord team won drawn lost for against adjustment) score
 -- | Convert a flat list of results into a mapping from team to list of results that that team was involved in.
 resultsByTeam :: [Result] -> Map Team [Result] -> Map Team [Result]
 resultsByTeam [] map          = map
-resultsByTeam (result:rs) map = resultsByTeam rs (Map.insertWith (++) (awayTeam result) [result] map')
-                                where map' = Map.insertWith (++) (homeTeam result) [result] map
+resultsByTeam (result:rs) map = resultsByTeam rs (addResultToMap (addResultToMap map homeTeam result) awayTeam result)
+
+-- | Convert a flat list of results into a mapping from date to list of matches played on that date.
+resultsByDate :: [Result] -> Map Day [Result] -> Map Day [Result]
+resultsByDate [] map          = map
+resultsByDate (result:rs) map = resultsByDate rs (addResultToMap map date result)
+
+-- | Helper function for adding a result to a map that maps an aribtrary key type to a list of results.
+addResultToMap :: Ord k => Map k [Result] -> (Result -> k) -> Result -> Map k [Result]
+addResultToMap map keyFunction result = Map.insertWith (flip (++)) (keyFunction result) [result] map
 
 -- | Splits each team's results into home results and away results.  The first item in the mapped tuple is the team's
 --   home results, the second is their away results.

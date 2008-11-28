@@ -5,7 +5,8 @@ import Anorak.Core
 import Anorak.Types
 import Anorak.RLTParser
 import Data.Map(Map)
-import qualified Data.Map as Map(empty, fromAscList, map)
+import Data.Time.Calendar(Day)
+import qualified Data.Map as Map(empty, fromAscList, map, toList)
 import List(isPrefixOf, isSuffixOf)
 import Monad(filterM)
 import System(getArgs)
@@ -28,6 +29,13 @@ instance ToSElem LeagueRecord where
                                            ("positiveGD", toSElem $ goalDiff record > 0), -- Goal difference could be neither +ve or -ve (i.e. zero).
                                            ("team", toSElem $ team record),
                                            ("won", toSElem $ won record)]
+
+instance ToSElem Result where
+    toSElem result = SM $ Map.fromAscList [("awayGoals", toSElem $ awayGoals result),
+                                           ("awayTeam", toSElem $ awayTeam result),
+                                           ("date", toSElem $ date result),
+                                           ("homeGoals", toSElem $ homeGoals result),
+                                           ("homeTeam", toSElem $ homeTeam result)]
 
 -- | Copies all non-template files from the source directory to the target directory.  Used for making sure that CSS
 --   files and images (if any) are deployed with the generated HTML.  If the target directory does not exist it is
@@ -65,6 +73,12 @@ generateLeagueTable group templateName dir table = case getStringTemplate templa
                                                        Just template -> writeFile (combine dir templateName) html
                                                                         where html = toString $ setAttribute "table" table template
 
+generateResultsList :: STGroup String -> FilePath -> Map Day [Result] -> IO ()
+generateResultsList group dir results = case getStringTemplate "results.html" group of
+                                            Nothing       -> print "Could not find template for results.html"
+                                            Just template -> writeFile (combine dir "results.html") html
+                                                             where html = toString $ setAttribute "results" (Map.toList results) template
+
 -- | Expects three arguments - the path to the RLT data file, the path to the templates directory and the path to the
 --   output directory.
 main :: IO ()
@@ -73,4 +87,5 @@ main = do dataFile:templateDir:outputDir:_ <- getArgs
           group <- directoryGroup templateDir :: IO (STGroup String)
           copyResources templateDir outputDir          
           generateLeagueTables group outputDir (resultsByTeam results Map.empty) adjustments
+          generateResultsList group outputDir (resultsByDate results Map.empty)
 
