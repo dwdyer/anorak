@@ -58,11 +58,8 @@ leagueTable teamResults adjustments = sort $ map (adjust adjustments) table
 
 -- | Produces a form table with teams ordered in descending order of points.
 formTable :: Map Team [Result] -> Int -> [(LeagueRecord, Form)]
-formTable teamResults n = map (attachForm formResults) (leagueTable formResults Map.empty)
+formTable teamResults n = map (\x -> (x, form (team x) $ Map.findWithDefault [] (team x) formResults)) (leagueTable formResults Map.empty)
                           where formResults = Map.map (keep n) teamResults
-
-attachForm :: Map Team [Result] -> LeagueRecord -> (LeagueRecord, Form)
-attachForm results record = (record, form (team record) $ Map.findWithDefault [] (team record) results)
 
 form :: Team -> [Result] -> Form
 form team [] = ""
