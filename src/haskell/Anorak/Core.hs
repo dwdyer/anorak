@@ -1,10 +1,10 @@
 -- | Core functionality for the Anorak system.
-module Anorak.Core (leagueTable, resultsByDate, resultsByTeam, splitHomeAndAway) where
+module Anorak.Core (formTable, leagueTable, resultsByDate, resultsByTeam, splitHomeAndAway) where
 
 import Anorak.Types
 import Data.Map(Map)
 import Data.Time.Calendar(Day)
-import qualified Data.Map as Map(elems, empty, findWithDefault, insertWith, mapWithKey)
+import qualified Data.Map as Map(elems, empty, findWithDefault, insertWith, map, mapWithKey)
 import List(partition, sort)
 
 -- | Builds a LeagueRecord for the specified team, including all of the results (from those provided) in which that
@@ -53,8 +53,28 @@ partitionResults team results = partition (\x -> team == homeTeam x) results
 -- | Produces a standard league table with teams ordered in descending order of points.  Takes a map of teams to
 --   results and a map of points adjustments and returns a sorted list of league records.
 leagueTable :: Map Team [Result] -> Map Team Int -> [LeagueRecord]
-leagueTable teamResults adjustments  = sort $ map (adjust adjustments) table
-                                       where table = Map.elems $ Map.mapWithKey (buildRecord) teamResults
+leagueTable teamResults adjustments = sort $ map (adjust adjustments) table
+                                      where table = Map.elems $ Map.mapWithKey (buildRecord) teamResults
+
+-- | Produces a form table with teams ordered in descending order of points.
+formTable :: Map Team [Result] -> Int -> [(LeagueRecord, Form)]
+formTable teamResults n = map (attachForm formResults) (leagueTable formResults Map.empty)
+                          where formResults = Map.map (keep n) teamResults
+
+attachForm :: Map Team [Result] -> LeagueRecord -> (LeagueRecord, Form)
+attachForm results record = (record, form (team record) $ Map.findWithDefault [] (team record) results)
+
+form :: Team -> [Result] -> Form
+form team [] = ""
+form team (result:rs)
+    | (homeGoals result) == (awayGoals result)                            = 'D':form team rs
+    | (homeTeam result == team && homeGoals result > awayGoals result)
+      || (awayTeam result == team && awayGoals result > homeGoals result) = 'W':form team rs
+    | otherwise                                                           = 'L':form team rs
+
+-- | Retains the last n elements in a list.
+keep :: Int -> [a] -> [a]
+keep n x = drop ((length x) - n) x
 
 -- | Looks up the points adjustment for a team (if any) and applies it to their league record.
 adjust :: Map Team Int -> LeagueRecord -> LeagueRecord

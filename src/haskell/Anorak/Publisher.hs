@@ -13,7 +13,7 @@ import System(getArgs)
 import System.Directory(createDirectoryIfMissing, copyFile, doesFileExist, getDirectoryContents)
 import System.FilePath(combine, replaceDirectory, takeFileName)
 import Text.ParserCombinators.Parsec(ParseError)
-import Text.StringTemplate(directoryGroup, getStringTemplate, setAttribute, STGroup, StringTemplate, stShowsToSE, toString)
+import Text.StringTemplate(directoryGroup, getStringTemplate, setAttribute, setManyAttrib, STGroup, StringTemplate, stShowsToSE, toString)
 import Text.StringTemplate.Classes(ToSElem(toSElem), SElem(SM))
 
 instance ToSElem LeagueRecord where
@@ -59,25 +59,28 @@ isResourceFile path = do ordinaryFile <- doesFileExist path
 copyToDirectory :: FilePath -> FilePath -> IO()
 copyToDirectory dir file = copyFile file (replaceDirectory file dir)
 
+-- | Generates an output file by applying a template with one or more attributes set.
+applyTemplate :: ToSElem a => STGroup String -> FilePath -> FilePath -> [(String, a)] -> IO ()
+applyTemplate group templateName dir attributes = case getStringTemplate templateName group of
+                                                      Nothing       -> print $ "Could not find template for " ++ templateName
+                                                      Just template -> writeFile (combine dir templateName) html
+                                                                       where html = toString $ setManyAttrib attributes template
+
 -- | Generates home, away and overall HTML league tables.
 generateLeagueTables :: STGroup String -> FilePath -> Map Team [Result] -> Map Team Int -> IO ()
-generateLeagueTables group dir results adjustments = do generateLeagueTable group "overalltable.html" dir $ leagueTable results adjustments
+generateLeagueTables group dir results adjustments = do applyTemplate group "overalltable.html" dir [("table", leagueTable results adjustments)]
                                                         let splitResults = splitHomeAndAway results
-                                                        generateLeagueTable group "hometable.html" dir $ leagueTable (Map.map fst splitResults) Map.empty
-                                                        generateLeagueTable group "awaytable.html" dir $ leagueTable (Map.map snd splitResults) Map.empty
+                                                        applyTemplate group "hometable.html" dir [("table", leagueTable (Map.map fst splitResults) Map.empty)]
+                                                        applyTemplate group "awaytable.html" dir [("table", leagueTable (Map.map snd splitResults) Map.empty)]
 
--- | Renders a league table as an HTML page using the named template from the specified template group.
-generateLeagueTable :: STGroup String -> FilePath -> FilePath -> [LeagueRecord] -> IO ()
-generateLeagueTable group templateName dir table = case getStringTemplate templateName group of
-                                                       Nothing       -> print $ "Could not find template for " ++ templateName
-                                                       Just template -> writeFile (combine dir templateName) html
-                                                                        where html = toString $ setAttribute "table" table template
+generateFormTables :: STGroup String -> FilePath -> Map Team [Result] -> IO ()
+generateFormTables group dir results = do applyTemplate group "overallformtable.html" dir [("table", formTable results 6)]
+                                          let splitResults = splitHomeAndAway results
+                                          applyTemplate group "homeformtable.html" dir [("table", formTable (Map.map fst splitResults) 4)]
+                                          applyTemplate group "awayformtable.html" dir [("table", formTable (Map.map snd splitResults) 4)]
 
 generateResultsList :: STGroup String -> FilePath -> Map Day [Result] -> IO ()
-generateResultsList group dir results = case getStringTemplate "results.html" group of
-                                            Nothing       -> print "Could not find template for results.html"
-                                            Just template -> writeFile (combine dir "results.html") html
-                                                             where html = toString $ setAttribute "results" (Map.toList results) template
+generateResultsList group dir results = applyTemplate group "results.html" dir [("results", Map.toList results)]
 
 -- | Expects three arguments - the path to the RLT data file, the path to the templates directory and the path to the
 --   output directory.
@@ -85,7 +88,9 @@ main :: IO ()
 main = do dataFile:templateDir:outputDir:_ <- getArgs
           (teams, results, adjustments) <- parseRLTFile dataFile
           group <- directoryGroup templateDir :: IO (STGroup String)
-          copyResources templateDir outputDir          
-          generateLeagueTables group outputDir (resultsByTeam results) adjustments
+          copyResources templateDir outputDir
+          let teamResults = resultsByTeam results
+          generateLeagueTables group outputDir teamResults adjustments
+          generateFormTables group outputDir teamResults
           generateResultsList group outputDir (resultsByDate results)
 

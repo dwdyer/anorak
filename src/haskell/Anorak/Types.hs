@@ -79,6 +79,10 @@ points record = (won record) * 3 + (drawn record) + (adjustment record)
 goalDiff :: LeagueRecord -> Int
 goalDiff record = (for record) - (against record)
 
+-- | Calculates average number of league points earned per game.
 pointsPerGame :: LeagueRecord -> Double
 pointsPerGame record = (fromIntegral $ points record) / (fromIntegral $ played record)
+
+-- | Form is expressed as a String of 'W', 'D' and 'L' characters.
+type Form = String
 
