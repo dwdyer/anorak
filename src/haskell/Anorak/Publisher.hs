@@ -75,21 +75,19 @@ applyTemplate group templateName dir attributes = case getStringTemplate templat
 
 -- | Generates home, away and overall HTML league tables.
 generateLeagueTables :: STGroup String -> FilePath -> Map Team [Result] -> Map Team Int -> IO ()
-generateLeagueTables group dir results adjustments = do let tab = [("tabtable", AV $ True)] -- Set an attribute to determine which tab is selected on the HTML page.
-                                                        applyTemplate group "overalltable.html" dir $ ("table", AV $ leagueTable results adjustments):tab
+generateLeagueTables group dir results adjustments = do applyTemplate group "overalltable.html" dir [("table", AV $ leagueTable results adjustments)]
                                                         let splitResults = splitHomeAndAway results
-                                                        applyTemplate group "hometable.html" dir $ ("table", AV $ leagueTable (Map.map fst splitResults) Map.empty):tab
-                                                        applyTemplate group "awaytable.html" dir $ ("table", AV $ leagueTable (Map.map snd splitResults) Map.empty):tab
+                                                        applyTemplate group "hometable.html" dir [("table", AV $ leagueTable (Map.map fst splitResults) Map.empty)]
+                                                        applyTemplate group "awaytable.html" dir [("table", AV $ leagueTable (Map.map snd splitResults) Map.empty)]
 
 generateFormTables :: STGroup String -> FilePath -> Map Team [Result] -> IO ()
-generateFormTables group dir results = do let tab = [("tabform", AV $ True)] -- Set an attribute to determine which tab is selected on the HTML page.
-                                          applyTemplate group "overallformtable.html" dir $ ("table", AV $ formTable results 6):tab
+generateFormTables group dir results = do applyTemplate group "overallformtable.html" dir [("table", AV $ formTable results 6)]
                                           let splitResults = splitHomeAndAway results
-                                          applyTemplate group "homeformtable.html" dir $ ("table", AV $ formTable (Map.map fst splitResults) 4):tab
-                                          applyTemplate group "awayformtable.html" dir $ ("table", AV $ formTable (Map.map snd splitResults) 4):tab
+                                          applyTemplate group "homeformtable.html" dir [("table", AV $ formTable (Map.map fst splitResults) 4)]
+                                          applyTemplate group "awayformtable.html" dir [("table", AV $ formTable (Map.map snd splitResults) 4)]
 
 generateResultsList :: STGroup String -> FilePath -> Map Day [Result] -> IO ()
-generateResultsList group dir results = applyTemplate group "results.html" dir [("results", AV $ Map.toList results), ("tabresults", AV $ True)]
+generateResultsList group dir results = applyTemplate group "results.html" dir [("results", AV $ Map.toList results)]
 
 -- | Expects three arguments - the path to the RLT data file, the path to the templates directory and the path to the
 --   output directory.
