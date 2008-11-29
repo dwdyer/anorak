@@ -1,3 +1,5 @@
+{-# LANGUAGE ExistentialQuantification #-}
+
 -- | HTML publishing module for the Anorak system.
 module Anorak.Publisher where
 
@@ -37,6 +39,11 @@ instance ToSElem Result where
                                            ("homeGoals", toSElem $ homeGoals result),
                                            ("homeTeam", toSElem $ homeTeam result)]
 
+-- | Existential quantified type for template values so that we can set multiple heterogenous attributes simultanteously.
+data AttributeValue = forall a.(ToSElem a) => AV a
+instance ToSElem AttributeValue where
+    toSElem (AV a) = toSElem a
+
 -- | Copies all non-template files from the source directory to the target directory.  Used for making sure that CSS
 --   files and images (if any) are deployed with the generated HTML.  If the target directory does not exist it is
 --   created.
@@ -60,7 +67,7 @@ copyToDirectory :: FilePath -> FilePath -> IO()
 copyToDirectory dir file = copyFile file (replaceDirectory file dir)
 
 -- | Generates an output file by applying a template with one or more attributes set.
-applyTemplate :: ToSElem a => STGroup String -> FilePath -> FilePath -> [(String, a)] -> IO ()
+applyTemplate :: STGroup String -> FilePath -> FilePath -> [(String, AttributeValue)] -> IO ()
 applyTemplate group templateName dir attributes = case getStringTemplate templateName group of
                                                       Nothing       -> print $ "Could not find template for " ++ templateName
                                                       Just template -> writeFile (combine dir templateName) html
@@ -68,19 +75,21 @@ applyTemplate group templateName dir attributes = case getStringTemplate templat
 
 -- | Generates home, away and overall HTML league tables.
 generateLeagueTables :: STGroup String -> FilePath -> Map Team [Result] -> Map Team Int -> IO ()
-generateLeagueTables group dir results adjustments = do applyTemplate group "overalltable.html" dir [("table", leagueTable results adjustments)]
+generateLeagueTables group dir results adjustments = do let tab = [("tabtable", AV $ True)] -- Set an attribute to determine which tab is selected on the HTML page.
+                                                        applyTemplate group "overalltable.html" dir $ ("table", AV $ leagueTable results adjustments):tab
                                                         let splitResults = splitHomeAndAway results
-                                                        applyTemplate group "hometable.html" dir [("table", leagueTable (Map.map fst splitResults) Map.empty)]
-                                                        applyTemplate group "awaytable.html" dir [("table", leagueTable (Map.map snd splitResults) Map.empty)]
+                                                        applyTemplate group "hometable.html" dir $ ("table", AV $ leagueTable (Map.map fst splitResults) Map.empty):tab
+                                                        applyTemplate group "awaytable.html" dir $ ("table", AV $ leagueTable (Map.map snd splitResults) Map.empty):tab
 
 generateFormTables :: STGroup String -> FilePath -> Map Team [Result] -> IO ()
-generateFormTables group dir results = do applyTemplate group "overallformtable.html" dir [("table", formTable results 6)]
+generateFormTables group dir results = do let tab = [("tabform", AV $ True)] -- Set an attribute to determine which tab is selected on the HTML page.
+                                          applyTemplate group "overallformtable.html" dir $ ("table", AV $ formTable results 6):tab
                                           let splitResults = splitHomeAndAway results
-                                          applyTemplate group "homeformtable.html" dir [("table", formTable (Map.map fst splitResults) 4)]
-                                          applyTemplate group "awayformtable.html" dir [("table", formTable (Map.map snd splitResults) 4)]
+                                          applyTemplate group "homeformtable.html" dir $ ("table", AV $ formTable (Map.map fst splitResults) 4):tab
+                                          applyTemplate group "awayformtable.html" dir $ ("table", AV $ formTable (Map.map snd splitResults) 4):tab
 
 generateResultsList :: STGroup String -> FilePath -> Map Day [Result] -> IO ()
-generateResultsList group dir results = applyTemplate group "results.html" dir [("results", Map.toList results)]
+generateResultsList group dir results = applyTemplate group "results.html" dir [("results", AV $ Map.toList results), ("tabresults", AV $ True)]
 
 -- | Expects three arguments - the path to the RLT data file, the path to the templates directory and the path to the
 --   output directory.
