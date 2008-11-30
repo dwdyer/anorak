@@ -57,18 +57,21 @@ leagueTable teamResults adjustments = sort $ map (adjust adjustments) table
                                       where table = Map.elems $ Map.mapWithKey (buildRecord) teamResults
 
 -- | Produces a form table with teams ordered in descending order of points.
-formTable :: Map Team [Result] -> Int -> [(LeagueRecord, Form)]
-formTable teamResults n = map (\x -> (x, form (team x) $ Map.findWithDefault [] (team x) formResults)) (leagueTable formResults Map.empty)
+formTable :: Map Team [Result] -> Int -> [(LeagueRecord, [TeamResult])]
+formTable teamResults n = map (attachForm formResults) $ leagueTable formResults Map.empty
                           where formResults = Map.map (keep n) teamResults
 
--- | Generates a form string (e.g. 'WDLLWW') from a list of results for a particular team.
-form :: Team -> [Result] -> Form
-form team [] = ""
-form team (result:rs)
-    | (homeGoals result) == (awayGoals result)                            = 'D':form team rs
+attachForm :: Map Team [Result] -> LeagueRecord -> (LeagueRecord, [TeamResult])
+attachForm results record = (record, map (convertResult (team record)) formResults)
+                            where formResults = Map.findWithDefault [] (team record) results
+
+-- | Maps a single result for a particular team to a character ('W', 'D' or 'L').
+form :: Team -> Result -> Char
+form team result
+    | (homeGoals result) == (awayGoals result)                            = 'D'
     | (homeTeam result == team && homeGoals result > awayGoals result)
-      || (awayTeam result == team && awayGoals result > homeGoals result) = 'W':form team rs
-    | otherwise                                                           = 'L':form team rs
+      || (awayTeam result == team && awayGoals result > homeGoals result) = 'W'
+    | otherwise                                                           = 'L'
 
 -- | Retains the last n elements in a list.
 keep :: Int -> [a] -> [a]
@@ -77,3 +80,10 @@ keep n x = drop ((length x) - n) x
 -- | Looks up the points adjustment for a team (if any) and applies it to their league record.
 adjust :: Map Team Int -> LeagueRecord -> LeagueRecord
 adjust adjustments (LeagueRecord t w d l f a adj) = (LeagueRecord t w d l f a (adj + Map.findWithDefault 0 t adjustments))
+
+-- | Converts a Result into a TeamResult for the specified team.
+convertResult :: Team -> Result -> TeamResult
+convertResult team result
+    | team == (homeTeam result) = (TeamResult (date result) (awayTeam result) 'H' (homeGoals result) (awayGoals result) (form team result))
+    | otherwise                 = (TeamResult (date result) (homeTeam result) 'A' (awayGoals result) (homeGoals result) (form team result))
+

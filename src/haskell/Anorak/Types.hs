@@ -30,8 +30,17 @@ instance Ord Result where
         | (date result1) == (date result2) = compare (homeTeam result1) (homeTeam result2)
         | otherwise                        = compare (date result1) (date result2)
 
--- A LeagueRecord contains data about the league performance of a single team.  It
--- includes total number of wins, draws, defeats, goals scored and goals conceded.
+-- | A TeamResult is another way of organising information about the result of the match, relative to
+--   a particular team.
+data TeamResult = TeamResult {day :: Day,
+                              opposition :: Team,
+                              venue :: Char,
+                              scored :: Int,
+                              conceded :: Int,
+                              outcome :: Char}
+
+-- | A LeagueRecord contains data about the league performance of a single team.  It
+--   includes total number of wins, draws, defeats, goals scored and goals conceded.
 data LeagueRecord = LeagueRecord {team :: Team,      -- ^ The team that this record relates to.
                                   won :: Int,        -- ^ The number of matches won by this team.
                                   drawn :: Int,      -- ^ The number of matches drawn by this team.
@@ -82,7 +91,4 @@ goalDiff record = (for record) - (against record)
 -- | Calculates average number of league points earned per game.
 pointsPerGame :: LeagueRecord -> Double
 pointsPerGame record = (fromIntegral $ points record) / (fromIntegral $ played record)
-
--- | Form is expressed as a String of 'W', 'D' and 'L' characters.
-type Form = String
 

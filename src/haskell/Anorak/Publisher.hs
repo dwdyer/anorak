@@ -39,6 +39,14 @@ instance ToSElem Result where
                                            ("homeGoals", toSElem $ homeGoals result),
                                            ("homeTeam", toSElem $ homeTeam result)]
 
+instance ToSElem TeamResult where
+    toSElem result = SM $ Map.fromAscList[("conceded", toSElem $ conceded result),
+                                          ("day", toSElem $ day result),
+                                          ("opposition", toSElem $ opposition result),
+                                          ("outcome", toSElem $ outcome result),
+                                          ("scored", toSElem $ scored result),
+                                          ("venue", toSElem $ venue result)]
+
 -- | Existential quantified type for template values so that we can set multiple heterogenous attributes simultanteously.
 data AttributeValue = forall a.(ToSElem a) => AV a
 instance ToSElem AttributeValue where
