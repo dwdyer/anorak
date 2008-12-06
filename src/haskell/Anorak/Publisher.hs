@@ -108,13 +108,12 @@ generateResultsList group dir results = applyTemplate group "results.html" dir [
 
 -- | Generates all stats pages for a given data file.  First parameter is a template group, second parameter is a pair of paths,
 --   the first is the path to the data file, the second is the path to the directory in which the pages will be created.
-generateStatsPages :: STGroup String -> (FilePath, FilePath) -> IO ()
-generateStatsPages templateGroup (dataFile, targetDir) = do (teams, results, adjustments) <- parseRLTFile dataFile
-                                                            let teamResults = resultsByTeam results
-                                                            createDirectoryIfMissing True targetDir
-                                                            generateLeagueTables templateGroup targetDir teamResults adjustments
-                                                            generateFormTables templateGroup targetDir teamResults
-                                                            generateResultsList templateGroup targetDir (resultsByDate results)
+generateStatsPages :: STGroup String -> FilePath -> [Result] -> Map Team Int  -> IO ()
+generateStatsPages templateGroup targetDir results adjustments = do let teamResults = resultsByTeam results
+                                                                    createDirectoryIfMissing True targetDir
+                                                                    generateLeagueTables templateGroup targetDir teamResults adjustments
+                                                                    generateFormTables templateGroup targetDir teamResults
+                                                                    generateResultsList templateGroup targetDir (resultsByDate results)
 
 -- Searches a directory and all of its sub-directories for data files.
 findDataFiles :: FilePath -> IO [FilePath]
@@ -124,17 +123,17 @@ findDataFiles dir = do files <- getFiles dir
                        subFiles <- mapM (findDataFiles) directories
                        return (dataFiles ++ concat subFiles)
 
-mapInputToOutput :: FilePath -> FilePath -> FilePath -> (FilePath, FilePath)
-mapInputToOutput dataDir outputDir dataFile = (dataFile, outputPath)
-                                              where outputPath = combine outputDir (dropExtension $ makeRelative dataDir dataFile)
+processDataFile :: FilePath -> FilePath -> STGroup String -> FilePath -> IO ()
+processDataFile dataDir outputDir templateGroup dataFile = do (teams, results, adjustments) <- parseRLTFile dataFile
+                                                              let targetDir = combine outputDir (dropExtension $ makeRelative dataDir dataFile)
+                                                              generateStatsPages templateGroup targetDir results adjustments
 
 -- | Expects three arguments - the path to the RLT data files, the path to the templates directory and the path to the
 --   output directory.
 main :: IO ()
 main = do dataDir:templateDir:outputDir:_ <- getArgs
           dataFiles <- findDataFiles dataDir
-          let mappings = map (mapInputToOutput dataDir outputDir) dataFiles
           group <- directoryGroup templateDir :: IO (STGroup String)
           copyResources templateDir outputDir
-          mapM_ (generateStatsPages group) mappings 
+          mapM_ (processDataFile dataDir outputDir group) dataFiles
 
