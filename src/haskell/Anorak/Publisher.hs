@@ -12,10 +12,10 @@ import qualified Data.Map as Map(empty, fromAscList, map, toList)
 import List(isPrefixOf, isSuffixOf)
 import Monad(filterM)
 import System(getArgs)
-import System.Directory(createDirectoryIfMissing, copyFile, doesFileExist, getDirectoryContents)
-import System.FilePath(combine, replaceDirectory, takeFileName)
+import System.Directory(createDirectoryIfMissing, copyFile, doesDirectoryExist, doesFileExist, getDirectoryContents)
+import System.FilePath(combine, dropExtension, makeRelative, replaceDirectory)
 import Text.ParserCombinators.Parsec(ParseError)
-import Text.StringTemplate(directoryGroup, getStringTemplate, setAttribute, setManyAttrib, STGroup, StringTemplate, stShowsToSE, toString)
+import Text.StringTemplate(directoryGroup, getStringTemplate, setManyAttrib, STGroup, StringTemplate, stShowsToSE, toString)
 import Text.StringTemplate.Classes(ToSElem(toSElem), SElem(SM))
 
 instance ToSElem LeagueRecord where
@@ -52,23 +52,32 @@ data AttributeValue = forall a.(ToSElem a) => AV a
 instance ToSElem AttributeValue where
     toSElem (AV a) = toSElem a
 
+-- | Returns a list of files (excluding sub-directories and hidden files)  in the specified directory.  The returned paths
+--   are fully-qualified.
+getFiles :: FilePath -> IO [FilePath]
+getFiles dir = do contents <- getDirectoryContents dir
+                  let visible = filter (not . isPrefixOf ".") contents -- Exclude hidden files/directories.
+                      absolute = map (combine dir) visible -- Use qualified paths.
+                  files <- filterM (doesFileExist) absolute -- Exclude directories.
+                  return files
+
+-- | Returns a list of sub-directories (excluding those that are hidden)  in the specified directory.  The returned paths
+--   are fully-qualified.
+getSubDirectories :: FilePath -> IO [FilePath]
+getSubDirectories dir = do contents <- getDirectoryContents dir
+                           let visible = filter (not . isPrefixOf ".") contents -- Exclude hidden files/directories.
+                               absolute = map (combine dir) visible -- Use qualified paths.
+                           directories <- filterM (doesDirectoryExist) absolute -- Exclude files (non-directories).
+                           return directories
+
 -- | Copies all non-template files from the source directory to the target directory.  Used for making sure that CSS
 --   files and images (if any) are deployed with the generated HTML.  If the target directory does not exist it is
 --   created.
 copyResources :: FilePath -> FilePath -> IO ()
-copyResources from to = do files <- getDirectoryContents from
-                           let absoluteFiles = map (combine from) files -- Convert file names into absolute paths.
-                           resources <- filterM (isResourceFile) absoluteFiles
-                           print resources
+copyResources from to = do files <- getFiles from
+                           let resources = filter (not . isSuffixOf ".st") files
                            createDirectoryIfMissing True to
                            mapM_ (copyToDirectory to) resources
-
--- | Predicate for filtering.  Accepts files that are not templates, not directories and not hidden files.
-isResourceFile :: FilePath -> IO Bool
-isResourceFile path = do ordinaryFile <- doesFileExist path
-                         return (ordinaryFile
-                                 && (not $ isSuffixOf ".st" path) -- File name does not have the template extension.
-                                 && (not $ isPrefixOf "." $ takeFileName path)) -- File is not a hidden file.
 
 -- | Copies an individual file to a new directory, retaining the original file name.
 copyToDirectory :: FilePath -> FilePath -> IO()
@@ -97,15 +106,35 @@ generateFormTables group dir results = do applyTemplate group "overallformtable.
 generateResultsList :: STGroup String -> FilePath -> Map Day [Result] -> IO ()
 generateResultsList group dir results = applyTemplate group "results.html" dir [("results", AV $ Map.toList results)]
 
--- | Expects three arguments - the path to the RLT data file, the path to the templates directory and the path to the
+-- | Generates all stats pages for a given data file.  First parameter is a template group, second parameter is a pair of paths,
+--   the first is the path to the data file, the second is the path to the directory in which the pages will be created.
+generateStatsPages :: STGroup String -> (FilePath, FilePath) -> IO ()
+generateStatsPages templateGroup (dataFile, targetDir) = do (teams, results, adjustments) <- parseRLTFile dataFile
+                                                            let teamResults = resultsByTeam results
+                                                            createDirectoryIfMissing True targetDir
+                                                            generateLeagueTables templateGroup targetDir teamResults adjustments
+                                                            generateFormTables templateGroup targetDir teamResults
+                                                            generateResultsList templateGroup targetDir (resultsByDate results)
+
+-- Searches a directory and all of its sub-directories for data files.
+findDataFiles :: FilePath -> IO [FilePath]
+findDataFiles dir = do files <- getFiles dir
+                       let dataFiles = filter (isSuffixOf ".rlt") files
+                       directories <- getSubDirectories dir
+                       subFiles <- mapM (findDataFiles) directories
+                       return (dataFiles ++ concat subFiles)
+
+mapInputToOutput :: FilePath -> FilePath -> FilePath -> (FilePath, FilePath)
+mapInputToOutput dataDir outputDir dataFile = (dataFile, outputPath)
+                                              where outputPath = combine outputDir (dropExtension $ makeRelative dataDir dataFile)
+
+-- | Expects three arguments - the path to the RLT data files, the path to the templates directory and the path to the
 --   output directory.
 main :: IO ()
-main = do dataFile:templateDir:outputDir:_ <- getArgs
-          (teams, results, adjustments) <- parseRLTFile dataFile
+main = do dataDir:templateDir:outputDir:_ <- getArgs
+          dataFiles <- findDataFiles dataDir
+          let mappings = map (mapInputToOutput dataDir outputDir) dataFiles
           group <- directoryGroup templateDir :: IO (STGroup String)
           copyResources templateDir outputDir
-          let teamResults = resultsByTeam results
-          generateLeagueTables group outputDir teamResults adjustments
-          generateFormTables group outputDir teamResults
-          generateResultsList group outputDir (resultsByDate results)
+          mapM_ (generateStatsPages group) mappings 
 
