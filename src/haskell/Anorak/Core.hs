@@ -3,8 +3,10 @@ module Anorak.Core (formTable, leagueTable, resultsByDate, resultsByTeam, splitH
 
 import Anorak.Types
 import Data.Map(Map)
-import Data.Time.Calendar(Day)
 import qualified Data.Map as Map(elems, empty, findWithDefault, insertWith, map, mapWithKey)
+import Data.Sequence(Seq, (|>))
+import qualified Data.Sequence as Seq(empty, length)
+import Data.Time.Calendar(Day)
 import List(partition, sort)
 
 -- | Builds a LeagueRecord for the specified team, including all of the results (from those provided) in which that
@@ -14,39 +16,48 @@ buildRecord team results = foldl (addResultToRecord team) (emptyRecord team) res
 
 -- | Returns a blank team record.
 emptyRecord :: Team -> LeagueRecord
-emptyRecord team = LeagueRecord team 0 0 0 0 0 0 (Sequences 0 0 0 0 0 0 0 0, Sequences 0 0 0 0 0 0 0 0)
+emptyRecord team = LeagueRecord team 0 0 0 0 0 0 (emptySequences, emptySequences)
+
+emptySequences :: Sequences
+emptySequences = (Sequences Seq.empty Seq.empty Seq.empty Seq.empty Seq.empty Seq.empty Seq.empty Seq.empty)
 
 -- | Adds a single match result to a particular team's league record.  If the specified team was not involved in that
 --   match, the match is ignored.
 addResultToRecord :: Team -> LeagueRecord -> Result -> LeagueRecord
 addResultToRecord team record result 
-    | team == (homeTeam result) = addScoreToRecord record (homeGoals result) (awayGoals result)
-    | team == (awayTeam result) = addScoreToRecord record (awayGoals result) (homeGoals result)
+    | team == (homeTeam result) = addScoreToRecord record (homeGoals result) (awayGoals result) result
+    | team == (awayTeam result) = addScoreToRecord record (awayGoals result) (homeGoals result) result
     | otherwise                 = record
 
-addScoreToRecord :: LeagueRecord -> Int -> Int -> LeagueRecord
-addScoreToRecord (LeagueRecord team won drawn lost for against adjustment sequences) scored conceded
+addScoreToRecord :: LeagueRecord -> Int -> Int -> Result -> LeagueRecord
+addScoreToRecord (LeagueRecord team won drawn lost for against adjustment sequences) scored conceded result
     | scored > conceded  = (LeagueRecord team (won + 1) drawn lost (for + scored) (against + conceded) adjustment updatedSequences)
     | scored == conceded = (LeagueRecord team won (drawn + 1) lost (for + scored) (against + conceded) adjustment updatedSequences)
     | otherwise          = (LeagueRecord team won drawn (lost + 1) (for + scored) (against + conceded) adjustment updatedSequences)
-    where updatedSequences = updateSequencesWithScore sequences scored conceded
+    where updatedSequences = updateSequencesWithScore sequences scored conceded result
 
 -- | Updates the current and overall sequences with the specified score.
-updateSequencesWithScore :: (Sequences, Sequences) -> Int -> Int -> (Sequences, Sequences)
-updateSequencesWithScore (current, overall) scored conceded = (updated, maxSequences updated overall)
-                                                              where updated = addScoreToSequences current scored conceded
+updateSequencesWithScore :: (Sequences, Sequences) -> Int -> Int -> Result -> (Sequences, Sequences)
+updateSequencesWithScore (current, overall) scored conceded result = (updated, maxSequences updated overall)
+                                                                     where updated = addScoreToSequences current scored conceded result
 
 -- | Updates a set of sequences with a new result.
-addScoreToSequences :: Sequences -> Int -> Int -> Sequences
-addScoreToSequences (Sequences wins draws losses unbeaten noWin cleansheets scoredGoal noGoal) scored conceded 
-    | scored > conceded            = (Sequences (wins + 1) 0 0 (unbeaten + 1) 0 (if conceded == 0 then (cleansheets + 1) else 0) (scoredGoal + 1) 0)
-    | scored == 0 && conceded == 0 = (Sequences 0 (draws + 1) 0 (unbeaten + 1) (noWin + 1) (cleansheets + 1) 0 (noGoal + 1))
-    | scored == conceded           = (Sequences 0 (draws + 1) 0 (unbeaten + 1) (noWin + 1) 0 (scoredGoal + 1) 0)
-    | otherwise                    = (Sequences 0 0 (losses + 1) 0 (noWin + 1) 0 (if scored > 0 then scoredGoal + 1 else 0) (if scored == 0 then noGoal + 1 else 0))
+addScoreToSequences :: Sequences -> Int -> Int -> Result -> Sequences
+addScoreToSequences (Sequences wins draws losses unbeaten noWin cleansheets scoredGoal noGoal) scored conceded result
+    | scored > conceded && conceded == 0 = (Sequences (wins |> result) Seq.empty Seq.empty (unbeaten |> result) Seq.empty (cleansheets |> result) (scoredGoal |> result) Seq.empty)
+    | scored > conceded                  = (Sequences (wins |> result) Seq.empty Seq.empty (unbeaten |> result) Seq.empty Seq.empty (scoredGoal |> result) Seq.empty)
+    | scored == 0 && conceded == 0       = (Sequences Seq.empty (draws |> result) Seq.empty (unbeaten |> result) (noWin |> result) (cleansheets |> result) Seq.empty (noGoal |> result))
+    | scored == conceded                 = (Sequences Seq.empty (draws |> result) Seq.empty (unbeaten |> result) (noWin |> result) Seq.empty (scoredGoal |> result) Seq.empty)
+    | scored == 0                        = (Sequences Seq.empty Seq.empty (losses |> result) Seq.empty (noWin |> result) Seq.empty Seq.empty (noGoal |> result))
+    | otherwise                          = (Sequences Seq.empty Seq.empty (losses |> result) Seq.empty (noWin |> result) Seq.empty (scoredGoal |> result) Seq.empty)
 
 -- | Takes two sets of sequences and returns a new set containing the highest value for each sequence.
 maxSequences :: Sequences -> Sequences -> Sequences
-maxSequences (Sequences a b c d e f g h) (Sequences i j k l m n o p) = (Sequences (max a i) (max b j) (max c k) (max d l) (max e m) (max f n) (max g o) (max h p))
+maxSequences (Sequences a b c d e f g h) (Sequences i j k l m n o p) = (Sequences (longest a i) (longest b j) (longest c k) (longest d l) (longest e m) (longest f n) (longest g o) (longest h p))
+
+-- | Return the longer of two sequences.
+longest :: Seq a -> Seq a -> Seq a
+longest x y = if Seq.length x > Seq.length y then x else y
 
 -- | Convert a flat list of results into a mapping from team to list of results that that team was involved in.
 resultsByTeam :: [Result] -> Map Team [Result]
