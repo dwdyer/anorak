@@ -10,7 +10,11 @@ import List(partition, sort)
 -- | Builds a LeagueRecord for the specified team, including all of the results (from those provided) in which that
 --   team was involved.
 buildRecord :: Team -> [Result] -> LeagueRecord
-buildRecord team results = foldl (addResultToRecord team) (LeagueRecord team 0 0 0 0 0 0) results
+buildRecord team results = foldl (addResultToRecord team) (emptyRecord team) results
+
+-- | Returns a blank team record.
+emptyRecord :: Team -> LeagueRecord
+emptyRecord team = LeagueRecord team 0 0 0 0 0 0 (Sequences 0 0 0 0 0 0 0 0, Sequences 0 0 0 0 0 0 0 0)
 
 -- | Adds a single match result to a particular team's league record.  If the specified team was not involved in that
 --   match, the match is ignored.
@@ -21,10 +25,28 @@ addResultToRecord team record result
     | otherwise                 = record
 
 addScoreToRecord :: LeagueRecord -> Int -> Int -> LeagueRecord
-addScoreToRecord (LeagueRecord team won drawn lost for against adjustment) scored conceded
-    | scored > conceded  = (LeagueRecord team (won + 1) drawn lost (for + scored) (against + conceded) adjustment)
-    | scored == conceded = (LeagueRecord team won (drawn + 1) lost (for + scored) (against + conceded) adjustment)
-    | otherwise          = (LeagueRecord team won drawn (lost + 1) (for + scored) (against + conceded) adjustment)
+addScoreToRecord (LeagueRecord team won drawn lost for against adjustment sequences) scored conceded
+    | scored > conceded  = (LeagueRecord team (won + 1) drawn lost (for + scored) (against + conceded) adjustment updatedSequences)
+    | scored == conceded = (LeagueRecord team won (drawn + 1) lost (for + scored) (against + conceded) adjustment updatedSequences)
+    | otherwise          = (LeagueRecord team won drawn (lost + 1) (for + scored) (against + conceded) adjustment updatedSequences)
+    where updatedSequences = updateSequencesWithScore sequences scored conceded
+
+-- | Updates the current and overall sequences with the specified score.
+updateSequencesWithScore :: (Sequences, Sequences) -> Int -> Int -> (Sequences, Sequences)
+updateSequencesWithScore (current, overall) scored conceded = (updated, maxSequences updated overall)
+                                                              where updated = addScoreToSequences current scored conceded
+
+-- | Updates a set of sequences with a new result.
+addScoreToSequences :: Sequences -> Int -> Int -> Sequences
+addScoreToSequences (Sequences wins draws losses unbeaten noWin cleansheets scoredGoal noGoal) scored conceded 
+    | scored > conceded            = (Sequences (wins + 1) 0 0 (unbeaten + 1) 0 (if conceded == 0 then (cleansheets + 1) else 0) (scoredGoal + 1) 0)
+    | scored == 0 && conceded == 0 = (Sequences 0 (draws + 1) 0 (unbeaten + 1) (noWin + 1) (cleansheets + 1) 0 (noGoal + 1))
+    | scored == conceded           = (Sequences 0 (draws + 1) 0 (unbeaten + 1) (noWin + 1) 0 (scoredGoal + 1) 0)
+    | otherwise                    = (Sequences 0 0 (losses + 1) 0 (noWin + 1) 0 (if scored > 0 then scoredGoal + 1 else 0) (if scored == 0 then noGoal + 1 else 0))
+
+-- | Takes two sets of sequences and returns a new set containing the highest value for each sequence.
+maxSequences :: Sequences -> Sequences -> Sequences
+maxSequences (Sequences a b c d e f g h) (Sequences i j k l m n o p) = (Sequences (max a i) (max b j) (max c k) (max d l) (max e m) (max f n) (max g o) (max h p))
 
 -- | Convert a flat list of results into a mapping from team to list of results that that team was involved in.
 resultsByTeam :: [Result] -> Map Team [Result]
@@ -79,7 +101,7 @@ keep n x = drop ((length x) - n) x
 
 -- | Looks up the points adjustment for a team (if any) and applies it to their league record.
 adjust :: Map Team Int -> LeagueRecord -> LeagueRecord
-adjust adjustments (LeagueRecord t w d l f a adj) = (LeagueRecord t w d l f a (adj + Map.findWithDefault 0 t adjustments))
+adjust adjustments (LeagueRecord t w d l f a adj seq) = (LeagueRecord t w d l f a (adj + Map.findWithDefault 0 t adjustments) seq)
 
 -- | Converts a Result into a TeamResult for the specified team.
 convertResult :: Team -> Result -> TeamResult
