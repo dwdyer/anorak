@@ -106,6 +106,9 @@ generateFormTables group dir results = do applyTemplate group "overallformtable.
 generateResultsList :: STGroup String -> FilePath -> Map Day [Result] -> IO ()
 generateResultsList group dir results = applyTemplate group "results.html" dir [("results", AV $ Map.toList results)]
 
+generateSequences :: STGroup String -> FilePath -> Map Team [Result] -> IO ()
+generateSequences group dir results = do applyTemplate group "overallsequences.html" dir [("sequences", AV $ sequenceTable results Wins)]
+
 -- | Generates all stats pages for a given data file.  First parameter is a template group, second parameter is a pair of paths,
 --   the first is the path to the data file, the second is the path to the directory in which the pages will be created.
 generateStatsPages :: STGroup String -> FilePath -> [Result] -> Map Team Int  -> IO ()
@@ -114,6 +117,7 @@ generateStatsPages templateGroup targetDir results adjustments = do let teamResu
                                                                     generateLeagueTables templateGroup targetDir teamResults adjustments
                                                                     generateFormTables templateGroup targetDir teamResults
                                                                     generateResultsList templateGroup targetDir (resultsByDate results)
+                                                                    generateSequences templateGroup targetDir teamResults
 
 -- Searches a directory and all of its sub-directories for data files.
 findDataFiles :: FilePath -> IO [FilePath]

@@ -40,15 +40,7 @@ data TeamResult = TeamResult {day :: Day,
                               conceded :: Int,
                               outcome :: Char}
 
--- | The Sequences record keeps track of consecutive wins, draws etc.
-data Sequences = Sequences {wins :: Seq Result,
-                            draws :: Seq Result,
-                            losses :: Seq Result,
-                            unbeaten :: Seq Result,
-                            noWin :: Seq Result,
-                            cleansheets :: Seq Result,
-                            scoredGoal :: Seq Result,
-                            noGoal :: Seq Result}
+data SequenceType = Wins | Draws | Losses | Unbeaten | NoWin | Cleansheets | Scored | NoGoal
 
 -- | A LeagueRecord contains data about the league performance of a single team.  It
 --   includes total number of wins, draws, defeats, goals scored and goals conceded.
@@ -58,8 +50,7 @@ data LeagueRecord = LeagueRecord {team :: Team,                       -- ^ The t
                                   lost :: Int,                        -- ^ The number of matches lost by this team.
                                   for :: Int,                         -- ^ The total number of goals scored by this team.
                                   against :: Int,                     -- ^ The total number of goals conceded by this team.
-                                  adjustment :: Int,                  -- ^ A points adjustment (can be positive or negative but is usually zero) to be applied to this team's total.
-                                  sequences :: (Sequences, Sequences) -- ^ Tuple containing current sequences and overall sequences.
+                                  adjustment :: Int                   -- ^ A points adjustment (can be positive or negative but is usually zero) to be applied to this team's total.
                                  }
 -- A LeagueRecord can be rendered as a String containing both member fields and
 -- derived fields.
