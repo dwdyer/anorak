@@ -12,11 +12,7 @@ import List(partition, sort, sortBy)
 -- | Builds a LeagueRecord for the specified team, including all of the results (from those provided) in which that
 --   team was involved.
 buildRecord :: Team -> [Result] -> LeagueRecord
-buildRecord team results = foldl (addResultToRecord team) (emptyRecord team) results
-
--- | Returns a blank team record.
-emptyRecord :: Team -> LeagueRecord
-emptyRecord team = LeagueRecord team 0 0 0 0 0 0
+buildRecord team results = foldl (addResultToRecord team) (LeagueRecord team 0 0 0 0 0 0) results
 
 -- | Adds a single match result to a particular team's league record.  If the specified team was not involved in that
 --   match, the match is ignored.
