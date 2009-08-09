@@ -1,11 +1,13 @@
 -- | Core functionality for the Anorak system.
-module Anorak.Core (formTable, getSequences, leagueTable, resultsByDate, resultsByTeam, sequenceTables, splitHomeAndAway) where
+module Anorak.Core (formTable, getSequences, leagueTable, miniLeague, resultsByDate, resultsByTeam, sequenceTables, splitHomeAndAway) where
 
 import Anorak.Types
 import Data.Map(Map, (!))
-import qualified Data.Map as Map(assocs, elems, empty, findWithDefault, fromList, insertWith, map, mapWithKey, toList)
+import qualified Data.Map as Map(assocs, elems, empty, filterWithKey, findWithDefault, fromList, insertWith, map, mapWithKey, toList)
 import Data.Sequence(Seq, (|>))
 import qualified Data.Sequence as Seq(empty, length, null)
+import Data.Set(Set)
+import qualified Data.Set as Set(member)
 import Data.Time.Calendar(Day)
 import List(partition, sort, sortBy)
 
@@ -103,16 +105,17 @@ sequenceTables sequences = Map.fromList [(show Wins, sequenceTable sequences Win
 sequenceTable :: Map Team (Map SequenceType (Seq TeamResult)) -> SequenceType -> [(Team, Seq TeamResult)]
 sequenceTable sequences seqType = sortSequences $ Map.toList (Map.map (flip (!) seqType) sequences)
 
--- Sort a sequence table.
+-- | Sort a sequence table.
 sortSequences :: [(Team, Seq TeamResult)] -> [(Team, Seq TeamResult)]
 sortSequences seq = sortBy compareSequence (filter (not.Seq.null.snd) seq)
 
--- Comparator for a list of sequences, longest first.
+-- | Comparator for a list of sequences, longest first.
 compareSequence :: (Team, Seq TeamResult) -> (Team, Seq TeamResult) -> Ordering
 compareSequence (t1, s1) (t2, s2)
     | Seq.length s1 == Seq.length s2 = compare t1 t2
     | otherwise                      = compare (Seq.length s2) (Seq.length s1)
 
+-- | Given a map of results by team, calculate the current and longest sequences for each team.
 getSequences :: Map Team [Result] ->  (Map Team (Map SequenceType (Seq TeamResult)), Map Team (Map SequenceType (Seq TeamResult)))
 getSequences results = (Map.map (Map.map fst) teamSequences, Map.map (Map.map snd) teamSequences)
                        where teamSequences = sequencesByTeam results
@@ -124,6 +127,7 @@ sequencesByTeam results = Map.map sequences teamResults
 sequences :: [TeamResult] -> TeamSequences
 sequences results = foldl addResultToAllSequences emptySequences results
 
+-- | Create an empty TeamSequences structure.
 emptySequences:: TeamSequences
 emptySequences = Map.fromList [(Wins, (Seq.empty, Seq.empty)),
                                (Draws, (Seq.empty, Seq.empty)),
@@ -154,3 +158,11 @@ addMatchingResultToSequences result predicate (current, overall)
     | (predicate result) = (updated, if Seq.length updated > Seq.length overall then updated else overall)
     | otherwise          = (Seq.empty, overall)
     where updated = current |> result
+
+-- | Generate a league table that includes only results between the specified teams.
+miniLeague :: Set Team -> Map Team [Result] -> [LeagueRecord]
+miniLeague teams results = leagueTable filteredResults Map.empty
+                           where filteredResults = Map.map (filter $ checkBothTeamsInSet teams) $ Map.filterWithKey (\k m -> Set.member k teams) results
+
+checkBothTeamsInSet :: Set Team -> Result -> Bool
+checkBothTeamsInSet teams result = Set.member (homeTeam result) teams && Set.member (awayTeam result) teams

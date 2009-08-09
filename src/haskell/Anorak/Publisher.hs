@@ -7,6 +7,7 @@ import Anorak.Core
 import Anorak.Types
 import Anorak.RLTParser
 import Data.Map(Map)
+import Data.Set(Set)
 import Data.Time.Calendar(Day)
 import qualified Data.Map as Map(empty, fromAscList, map, toList)
 import List(isPrefixOf, isSuffixOf)
@@ -118,16 +119,22 @@ generateSequences group dir results = do let (overallCurrent, overallLongest) = 
                                          applyTemplate group "awaycurrentsequences.html" dir [("sequences", AV $ sequenceTables awayCurrent)]
                                          applyTemplate group "awaylongestsequences.html" dir [("sequences", AV $ sequenceTables awayLongest)]
 
+generateMiniLeagues :: STGroup String -> FilePath -> Map Team [Result] -> [(String, Set Team)] -> IO ()
+generateMiniLeagues group dir results miniLeagues = mapM_ (generateMiniLeague group dir results) miniLeagues
+
+generateMiniLeague :: STGroup String -> FilePath -> Map Team [Result] -> (String, Set Team) -> IO ()
+generateMiniLeague group dir results (name, teams) = do applyTemplate group "minileague.html" dir [("table", AV $ miniLeague teams results), ("name", AV $ name)]
 
 -- | Generates all stats pages for a given data file.  First parameter is a template group, second parameter is a pair of paths,
 --   the first is the path to the data file, the second is the path to the directory in which the pages will be created.
-generateStatsPages :: STGroup String -> FilePath -> [Result] -> Map Team Int  -> IO ()
-generateStatsPages templateGroup targetDir results adjustments = do let teamResults = resultsByTeam results
-                                                                    createDirectoryIfMissing True targetDir
-                                                                    generateLeagueTables templateGroup targetDir teamResults adjustments
-                                                                    generateFormTables templateGroup targetDir teamResults
-                                                                    generateResultsList templateGroup targetDir (resultsByDate results)
-                                                                    generateSequences templateGroup targetDir teamResults
+generateStatsPages :: STGroup String -> FilePath -> [Result] -> Map Team Int -> [(String, Set Team)] -> IO ()
+generateStatsPages templateGroup targetDir results adjustments miniLeagues = do let teamResults = resultsByTeam results
+                                                                                createDirectoryIfMissing True targetDir
+                                                                                generateLeagueTables templateGroup targetDir teamResults adjustments
+                                                                                generateFormTables templateGroup targetDir teamResults
+                                                                                generateResultsList templateGroup targetDir (resultsByDate results)
+                                                                                generateSequences templateGroup targetDir teamResults
+                                                                                generateMiniLeagues templateGroup targetDir teamResults miniLeagues 
 
 -- Searches a directory and all of its sub-directories for data files.
 findDataFiles :: FilePath -> IO [FilePath]
@@ -138,9 +145,10 @@ findDataFiles dir = do files <- getFiles dir
                        return (dataFiles ++ concat subFiles)
 
 processDataFile :: FilePath -> FilePath -> STGroup String -> FilePath -> IO ()
-processDataFile dataDir outputDir templateGroup dataFile = do (teams, results, adjustments) <- parseRLTFile dataFile
+processDataFile dataDir outputDir templateGroup dataFile = do putStr $ "Processing " ++ dataFile ++ "\n"
+                                                              (teams, results, adjustments, miniLeagues) <- parseRLTFile dataFile
                                                               let targetDir = combine outputDir (dropExtension $ makeRelative dataDir dataFile)
-                                                              generateStatsPages templateGroup targetDir results adjustments
+                                                              generateStatsPages templateGroup targetDir results adjustments miniLeagues
 
 -- | Expects three arguments - the path to the RLT data files, the path to the templates directory and the path to the
 --   output directory.

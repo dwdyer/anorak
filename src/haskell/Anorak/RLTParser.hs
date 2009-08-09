@@ -8,7 +8,7 @@ import Control.Exception(Exception, throw)
 import Data.Map(Map)
 import qualified Data.Map as Map(empty, insertWith)
 import Data.Set(Set)
-import qualified Data.Set as Set(elems, empty, insert)
+import qualified Data.Set as Set(elems, empty, fromList, insert)
 import Data.Time.Calendar(Day)
 import Data.Time.Format(readTime)
 import Data.Typeable(Typeable)
@@ -17,20 +17,21 @@ import System.Locale(defaultTimeLocale)
 import Text.ParserCombinators.Parsec((<|>), anyChar, char, eof, many1, manyTill, newline, noneOf, ParseError, parseFromFile, Parser, sepBy1)
 
 -- | An RLT file consists of many items (results, metadata and comments).
-data Item = Fixture Result        -- ^ The result of a single football match.
-          | Adjustment Team Int   -- ^ A number of points awarded to or deducted from an individual team.
-          | Metadata [String]     -- ^ Data about the league, such as which positions are promoted or relegated.
-          | Comment String        -- ^ Comments about the data.
+data Item = Fixture Result               -- ^ The result of a single football match.
+          | Adjustment Team Int          -- ^ A number of points awarded to or deducted from an individual team.
+          | MiniLeague String (Set Team) -- ^ A league within a league (e.g. The Big 4, London Clubs, North West Clubs, etc.)
+          | Metadata [String]            -- ^ Data about the league, such as which positions are promoted or relegated.
+          | Comment String               -- ^ Comments about the data.
 
 -- | An RLTException is thrown when there is a problem parsing RLT input.
 data RLTException = RLTException ParseError deriving (Typeable, Show)
 instance Exception RLTException 
 
 -- | Parse results and points adjustments, discard meta-data and comments.
-results :: Parser ([Team], [Result], Map Team Int)
+results :: Parser ([Team], [Result], Map Team Int, [(String, Set Team)])
 results = do list <- items
-             let (teams, results, adjustments) = extractData list in
-                 return (Set.elems teams, results, adjustments)
+             let (teams, results, adjustments, miniLeagues) = extractData list in
+                 return (Set.elems teams, results, adjustments, miniLeagues)
 
 -- | Each line of a data file is either a record (a match result or some metadata) or it is a comment.
 items :: Parser [Item]
@@ -41,14 +42,15 @@ record :: Parser Item
 record = do fields <- sepBy1 field (char '|')
             newline
             case fields of
-                (date:hTeam:hGoals:aTeam:aGoals:_) -> return (Fixture (Result day hTeam (read hGoals) aTeam (read aGoals)))
-                                                      -- RLT dates are 8-character strings in DDMMYYYY format.
-                                                      where day = readTime defaultTimeLocale "%d%m%Y" date
                 ("AWARDED":team:points:[])         -> return (Adjustment team $ read points)
                 ("DEDUCTED":team:points:[])        -> return (Adjustment team $ -read points)
+                ("MINILEAGUE":name:teams)          -> return (MiniLeague name $ Set.fromList teams)
                 ("PRIZE":_)                        -> return (Metadata fields)
                 ("RELEGATION":_)                   -> return (Metadata fields)
                 ("RULES":_)                        -> return (Metadata fields)
+                (date:hTeam:hGoals:aTeam:aGoals:_) -> return (Fixture (Result day hTeam (read hGoals) aTeam (read aGoals)))
+                                                      -- RLT dates are 8-character strings in DDMMYYYY format.
+                                                      where day = readTime defaultTimeLocale "%d%m%Y" date
                 otherwise                          -> fail ("Unexpected input: " ++ (concat $ intersperse "|" fields))
 
 -- | A field is one or more characters (not including pipes and newlines).
@@ -63,10 +65,11 @@ comment = do char '#'
 
 -- | Takes a list of parsed items and discards comments and meta-data.  The remaining items are separated into a list
 --   of results and a map of net points adjustments by team.
-extractData :: [Item] -> (Set Team, [Result], Map Team Int)
-extractData []                             = (Set.empty, [], Map.empty) 
-extractData (Fixture result:items)         = (addTeams result t, result:r, a) where (t, r, a) = extractData items
-extractData (Adjustment team amount:items) = (t, r, Map.insertWith (+) team amount a) where (t, r, a) = extractData items
+extractData :: [Item] -> (Set Team, [Result], Map Team Int, [(String, Set Team)])
+extractData []                             = (Set.empty, [], Map.empty, []) 
+extractData (Fixture result:items)         = (addTeams result t, result:r, a, m) where (t, r, a, m) = extractData items
+extractData (Adjustment team amount:items) = (t, r, Map.insertWith (+) team amount a, m) where (t, r, a, m) = extractData items
+extractData (MiniLeague name teams:items)  = (t, r, a, (name, teams):m) where (t, r, a, m) = extractData items
 extractData (_:items)                      = extractData items -- Discard metadata.
 
 -- | Adds the home team and away team from a match to the set of all teams (if they are not already present).
@@ -75,9 +78,9 @@ addTeams result set = Set.insert (awayTeam result) (Set.insert (homeTeam result)
 
 -- | Parses the specified RLT file and returns a list of the results it contains and a map of any points adjustments.
 --   Throws an RLTException if there is a problem parsing the file.
-parseRLTFile :: FilePath -> IO ([Team], [Result], Map Team Int)
+parseRLTFile :: FilePath -> IO ([Team], [Result], Map Team Int, [(String, Set Team)])
 parseRLTFile path = do contents <- parseFromFile results path
                        case contents of
-                           Left error      -> throw (RLTException error)
-                           Right (t, r, a) -> return (t, r, a)
+                           Left error         -> throw (RLTException error)
+                           Right (t, r, a, m) -> return (t, r, a, m)
 
