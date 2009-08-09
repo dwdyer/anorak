@@ -1,6 +1,7 @@
 -- | Core data types used by the Anorak system.
 module Anorak.Types where
 
+import Data.Map(Map)
 import Data.Sequence(Seq)
 import Data.Time.Calendar(Day)
 import Data.Time.Format(formatTime)
@@ -39,8 +40,15 @@ data TeamResult = TeamResult {day :: Day,
                               scored :: Int,
                               conceded :: Int,
                               outcome :: Char}
+instance Show TeamResult where
+    show result = formatTime defaultTimeLocale "%e %b %Y: " (day result) ++
+                  opposition result ++ "(" ++ [venue result] ++ ") " ++ [outcome result] ++ " " ++
+                  show (scored result) ++ "-" ++ show (conceded result)
 
 data SequenceType = Wins | Draws | Losses | Unbeaten | NoWin | Cleansheets | Scored | NoGoal
+    deriving (Eq, Ord, Show)
+
+type TeamSequences = Map SequenceType (Seq TeamResult, Seq TeamResult)
 
 -- | A LeagueRecord contains data about the league performance of a single team.  It
 --   includes total number of wins, draws, defeats, goals scored and goals conceded.

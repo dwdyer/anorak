@@ -107,7 +107,12 @@ generateResultsList :: STGroup String -> FilePath -> Map Day [Result] -> IO ()
 generateResultsList group dir results = applyTemplate group "results.html" dir [("results", AV $ Map.toList results)]
 
 generateSequences :: STGroup String -> FilePath -> Map Team [Result] -> IO ()
-generateSequences group dir results = do applyTemplate group "overallsequences.html" dir [("sequences", AV $ sequenceTable results Wins)]
+generateSequences group dir results = do let teamSequences = sequencesByTeam results
+                                             current = Map.map (Map.map fst) teamSequences
+                                             longest = Map.map (Map.map snd) teamSequences
+                                         applyTemplate group "overallcurrentsequences.html" dir [("sequences", AV $ sequenceTables current)]
+                                         applyTemplate group "overalllongestsequences.html" dir [("sequences", AV $ sequenceTables longest)]
+
 
 -- | Generates all stats pages for a given data file.  First parameter is a template group, second parameter is a pair of paths,
 --   the first is the path to the data file, the second is the path to the directory in which the pages will be created.
