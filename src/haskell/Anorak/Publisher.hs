@@ -107,11 +107,16 @@ generateResultsList :: STGroup String -> FilePath -> Map Day [Result] -> IO ()
 generateResultsList group dir results = applyTemplate group "results.html" dir [("results", AV $ Map.toList results)]
 
 generateSequences :: STGroup String -> FilePath -> Map Team [Result] -> IO ()
-generateSequences group dir results = do let teamSequences = sequencesByTeam results
-                                             current = Map.map (Map.map fst) teamSequences
-                                             longest = Map.map (Map.map snd) teamSequences
-                                         applyTemplate group "overallcurrentsequences.html" dir [("sequences", AV $ sequenceTables current)]
-                                         applyTemplate group "overalllongestsequences.html" dir [("sequences", AV $ sequenceTables longest)]
+generateSequences group dir results = do let (overallCurrent, overallLongest) = getSequences results
+                                             splitResults = splitHomeAndAway results
+                                             (homeCurrent, homeLongest) = getSequences $ Map.map fst splitResults
+                                             (awayCurrent, awayLongest) = getSequences $ Map.map snd splitResults
+                                         applyTemplate group "overallcurrentsequences.html" dir [("sequences", AV $ sequenceTables overallCurrent)]
+                                         applyTemplate group "overalllongestsequences.html" dir [("sequences", AV $ sequenceTables overallLongest)]
+                                         applyTemplate group "homecurrentsequences.html" dir [("sequences", AV $ sequenceTables homeCurrent)]
+                                         applyTemplate group "homelongestsequences.html" dir [("sequences", AV $ sequenceTables homeLongest)]
+                                         applyTemplate group "awaycurrentsequences.html" dir [("sequences", AV $ sequenceTables awayCurrent)]
+                                         applyTemplate group "awaylongestsequences.html" dir [("sequences", AV $ sequenceTables awayLongest)]
 
 
 -- | Generates all stats pages for a given data file.  First parameter is a template group, second parameter is a pair of paths,

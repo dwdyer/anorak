@@ -1,5 +1,5 @@
 -- | Core functionality for the Anorak system.
-module Anorak.Core (formTable, leagueTable, resultsByDate, resultsByTeam, sequencesByTeam, sequenceTables, splitHomeAndAway) where
+module Anorak.Core (formTable, getSequences, leagueTable, resultsByDate, resultsByTeam, sequenceTables, splitHomeAndAway) where
 
 import Anorak.Types
 import Data.Map(Map, (!))
@@ -96,6 +96,7 @@ sequenceTables sequences = Map.fromList [(show Wins, sequenceTable sequences Win
                                          (show Unbeaten, sequenceTable sequences Unbeaten),
                                          (show NoWin, sequenceTable sequences NoWin),
                                          (show Cleansheets, sequenceTable sequences Cleansheets),
+                                         (show Conceded, sequenceTable sequences Conceded),
                                          (show Scored, sequenceTable sequences Scored),        
                                          (show NoGoal, sequenceTable sequences NoGoal)]
 
@@ -112,6 +113,10 @@ compareSequence (t1, s1) (t2, s2)
     | Seq.length s1 == Seq.length s2 = compare t1 t2
     | otherwise                      = compare (Seq.length s2) (Seq.length s1)
 
+getSequences :: Map Team [Result] ->  (Map Team (Map SequenceType (Seq TeamResult)), Map Team (Map SequenceType (Seq TeamResult)))
+getSequences results = (Map.map (Map.map fst) teamSequences, Map.map (Map.map snd) teamSequences)
+                       where teamSequences = sequencesByTeam results
+
 sequencesByTeam :: Map Team [Result] -> Map Team TeamSequences
 sequencesByTeam results = Map.map sequences teamResults
                           where teamResults = (Map.mapWithKey (\t rs -> map (convertResult t) rs) results)
@@ -126,6 +131,7 @@ emptySequences = Map.fromList [(Wins, (Seq.empty, Seq.empty)),
                                (Unbeaten, (Seq.empty, Seq.empty)),
                                (NoWin, (Seq.empty, Seq.empty)),
                                (Cleansheets, (Seq.empty, Seq.empty)),
+                               (Conceded, (Seq.empty, Seq.empty)),
                                (Scored, (Seq.empty, Seq.empty)),
                                (NoGoal, (Seq.empty, Seq.empty))]
 
@@ -139,6 +145,7 @@ addResultToSequences result Losses sequences      = addMatchingResultToSequences
 addResultToSequences result Unbeaten sequences    = addMatchingResultToSequences result (\r -> outcome r /= 'L') sequences 
 addResultToSequences result NoWin sequences       = addMatchingResultToSequences result (\r -> outcome r /= 'W') sequences 
 addResultToSequences result Cleansheets sequences = addMatchingResultToSequences result (\r -> conceded r == 0) sequences 
+addResultToSequences result Conceded sequences    = addMatchingResultToSequences result (\r -> conceded r > 0) sequences 
 addResultToSequences result Scored sequences      = addMatchingResultToSequences result (\r -> scored r > 0) sequences 
 addResultToSequences result NoGoal sequences      = addMatchingResultToSequences result (\r -> scored r == 0) sequences 
 

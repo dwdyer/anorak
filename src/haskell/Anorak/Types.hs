@@ -45,7 +45,7 @@ instance Show TeamResult where
                   opposition result ++ "(" ++ [venue result] ++ ") " ++ [outcome result] ++ " " ++
                   show (scored result) ++ "-" ++ show (conceded result)
 
-data SequenceType = Wins | Draws | Losses | Unbeaten | NoWin | Cleansheets | Scored | NoGoal
+data SequenceType = Wins | Draws | Losses | Unbeaten | NoWin | Cleansheets | Conceded | Scored | NoGoal
     deriving (Eq, Ord, Show)
 
 type TeamSequences = Map SequenceType (Seq TeamResult, Seq TeamResult)
