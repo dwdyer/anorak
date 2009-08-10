@@ -138,7 +138,7 @@ generateMiniLeague group dir results tabs (name, teams) = do let selectedTabs = 
                                                                  attributes = [("table", AV $ miniLeagueTable teams results),
                                                                                ("miniLeaguesSelected", AV True),
                                                                                ("name", AV $ name),
-                                                                               ("tabs", AV $ selectedTabs)]
+                                                                               ("bottomTabs", AV $ selectedTabs)]
                                                              applyTemplateWithName group "minileague.html" dir (reduceName name ++ ".html") attributes
                                                              
 
