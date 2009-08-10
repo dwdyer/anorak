@@ -4,6 +4,8 @@
 module Anorak.Publisher (copyResources, findDataFiles, processDataFile) where
 
 import Anorak.Core
+import Anorak.Sequences
+import Anorak.Tables
 import Anorak.Types
 import Anorak.RLTParser
 import Char(isSpace, toLower)

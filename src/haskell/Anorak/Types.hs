@@ -32,6 +32,10 @@ instance Ord Result where
         | (date result1) == (date result2) = compare (homeTeam result1) (homeTeam result2)
         | otherwise                        = compare (date result1) (date result2)
 
+-- | Returns the margin of victory for a result (zero if it is a draw).
+margin :: Result -> Int
+margin result = abs $ (homeGoals result) - (awayGoals result)
+
 -- | A TeamResult is another way of organising information about the result of the match, relative to
 --   a particular team.
 data TeamResult = TeamResult {day :: Day,
@@ -102,4 +106,18 @@ goalDiff record = (for record) - (against record)
 -- | Calculates average number of league points earned per game.
 pointsPerGame :: LeagueRecord -> Double
 pointsPerGame record = (fromIntegral $ points record) / (fromIntegral $ played record)
+
+-- | Maps a single result for a particular team to a character ('W', 'D' or 'L').
+form :: Team -> Result -> Char
+form team result
+    | (homeGoals result) == (awayGoals result)                            = 'D'
+    | (homeTeam result == team && homeGoals result > awayGoals result)
+      || (awayTeam result == team && awayGoals result > homeGoals result) = 'W'
+    | otherwise                                                           = 'L'
+
+-- | Converts a Result into a TeamResult for the specified team.
+convertResult :: Team -> Result -> TeamResult
+convertResult team result
+    | team == (homeTeam result) = (TeamResult (date result) (awayTeam result) 'H' (homeGoals result) (awayGoals result) (form team result))
+    | otherwise                 = (TeamResult (date result) (homeTeam result) 'A' (awayGoals result) (homeGoals result) (form team result))
 
