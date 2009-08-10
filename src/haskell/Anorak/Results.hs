@@ -1,5 +1,5 @@
 -- | Core functionality for the Anorak system.
-module Anorak.Results (convertResult, form, Result(..), resultsByDate, resultsByTeam, splitHomeAndAway, Team, TeamResult(..)) where
+module Anorak.Results (biggestAwayWins, biggestHomeWins, convertResult, form, highestAggregates, Result(..), resultsByDate, resultsByTeam, splitHomeAndAway, Team, TeamResult(..)) where
 
 import Data.Map(Map)
 import qualified Data.Map as Map(elems, empty, filterWithKey, findWithDefault, insertWith, map, mapWithKey)
@@ -7,7 +7,7 @@ import Data.Set(Set)
 import qualified Data.Set as Set(member)
 import Data.Time.Calendar(Day)
 import Data.Time.Format(formatTime)
-import List(partition, sort, sortBy)
+import List(groupBy, partition, sort, sortBy)
 import System.Locale(defaultTimeLocale)
 
 -- | A team is represented simply by its name.
@@ -35,9 +35,9 @@ instance Ord Result where
         | (date result1) == (date result2) = compare (homeTeam result1) (homeTeam result2)
         | otherwise                        = compare (date result1) (date result2)
 
--- | Returns the margin of victory for a result (zero if it is a draw).
-margin :: Result -> Int
-margin result = abs $ (homeGoals result) - (awayGoals result)
+-- | Returns the match aggregate (total number of goals).
+aggregate :: Result -> Int
+aggregate result = (homeGoals result) + (awayGoals result)
 
 -- | A TeamResult is another way of organising information about the result of the match, relative to
 --   a particular team.
@@ -89,4 +89,20 @@ convertResult :: Team -> Result -> TeamResult
 convertResult team result
     | team == (homeTeam result) = (TeamResult (date result) (awayTeam result) 'H' (homeGoals result) (awayGoals result) (form team result))
     | otherwise                 = (TeamResult (date result) (homeTeam result) 'A' (awayGoals result) (homeGoals result) (form team result))
+
+biggestHomeWins :: [Result] -> [Result]
+biggestHomeWins results = head $ groupBy (\r1 r2 -> (margin r1) == (margin r2)) sortedResults
+                          where sortedResults = sortBy (\r1 r2 -> compare (margin r2) (margin r1)) results
+
+biggestAwayWins :: [Result] -> [Result]
+biggestAwayWins results = head $ groupBy (\r1 r2 -> (margin r1) == (margin r2)) sortedResults
+                          where sortedResults = sortBy (\r1 r2 -> compare (margin r1) (margin r2)) results
+
+-- | Returns the margin of victory for a result (zero if it is a draw, negative if it is an away win).
+margin :: Result -> Int
+margin result = (homeGoals result) - (awayGoals result)
+
+highestAggregates :: [Result] -> [Result]
+highestAggregates results = head $ groupBy (\r1 r2 -> (aggregate r1) == (aggregate r2)) sortedResults
+                            where sortedResults = sortBy (\r1 r2 -> compare (aggregate r2) (aggregate r1)) results
 

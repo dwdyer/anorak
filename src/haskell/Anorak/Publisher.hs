@@ -130,6 +130,16 @@ generateSequences group dir results link = do let (overallCurrent, overallLonges
                                               applyTemplate group "awaycurrentsequences.html" dir [("sequences", AV $ sequenceTables awayCurrent), ("currentSequencesSelected", AV True), linkAttr]
                                               applyTemplate group "awaylongestsequences.html" dir [("sequences", AV $ sequenceTables awayLongest), ("longestSequencesSelected", AV True), linkAttr]
 
+generateRecords :: STGroup String -> FilePath -> [Result] -> Maybe String -> IO ()
+generateRecords group dir results link = do let homeWins = biggestHomeWins results
+                                                awayWins = biggestAwayWins results
+                                                aggregates = highestAggregates results
+                                            applyTemplate group "records.html" dir [("homeWins", AV $ homeWins),
+                                                                                    ("awayWins", AV $ awayWins),
+                                                                                    ("aggregates", AV $ aggregates),
+                                                                                    ("recordsSelected", AV True),
+                                                                                    ("miniLeaguesLink", AV link)]
+
 generateMiniLeagues :: STGroup String -> FilePath -> Map Team [Result] -> [(String, Set Team)] -> IO ()
 generateMiniLeagues group dir results miniLeagues = do let tabs = map ((\n -> (n, reduceName n ++ ".html")).fst) miniLeagues -- Each tab is a display name and a file name.
                                                        mapM_ (generateMiniLeague group dir results tabs) miniLeagues
@@ -157,6 +167,7 @@ generateStatsPages templateGroup targetDir (LeagueData _ results adjustments min
                                                                                                generateFormTables templateGroup targetDir teamResults link
                                                                                                generateResultsList templateGroup targetDir (resultsByDate results) link
                                                                                                generateSequences templateGroup targetDir teamResults link
+                                                                                               generateRecords templateGroup targetDir results link
                                                                                                generateMiniLeagues templateGroup targetDir teamResults miniLeagues 
 
 -- | Determine which file the "Mini-Leagues" tab should link to (derived from the name of the first mini-league).
