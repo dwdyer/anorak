@@ -1,5 +1,5 @@
 -- | Core functionality for the Anorak system.
-module Anorak.Core (formTable, getSequences, leagueTable, miniLeague, resultsByDate, resultsByTeam, sequenceTables, splitHomeAndAway) where
+module Anorak.Core (formTable, getSequences, leagueTable, miniLeagueTable, resultsByDate, resultsByTeam, sequenceTables, splitHomeAndAway) where
 
 import Anorak.Types
 import Data.Map(Map, (!))
@@ -160,9 +160,9 @@ addMatchingResultToSequences result predicate (current, overall)
     where updated = current |> result
 
 -- | Generate a league table that includes only results between the specified teams.
-miniLeague :: Set Team -> Map Team [Result] -> [LeagueRecord]
-miniLeague teams results = leagueTable filteredResults Map.empty
-                           where filteredResults = Map.map (filter $ checkBothTeamsInSet teams) $ Map.filterWithKey (\k m -> Set.member k teams) results
+miniLeagueTable :: Set Team -> Map Team [Result] -> [LeagueRecord]
+miniLeagueTable teams results = leagueTable filteredResults Map.empty
+                                where filteredResults = Map.map (filter $ checkBothTeamsInSet $ teams) $ Map.filterWithKey (\k m -> Set.member k $ teams) results
 
 checkBothTeamsInSet :: Set Team -> Result -> Bool
 checkBothTeamsInSet teams result = Set.member (homeTeam result) teams && Set.member (awayTeam result) teams

@@ -96,43 +96,45 @@ applyTemplateWithName group templateName dir fileName attributes = case getStrin
                                                                                          where html = toString $ setManyAttrib attributes template
 
 -- | Generates home, away and overall HTML league tables.
-generateLeagueTables :: STGroup String -> FilePath -> Map Team [Result] -> Map Team Int -> IO ()
-generateLeagueTables group dir results adjustments = do applyTemplate group "overalltable.html" dir [("table", AV $ leagueTable results adjustments)]
-                                                        let splitResults = splitHomeAndAway results
-                                                        applyTemplate group "hometable.html" dir [("table", AV $ leagueTable (Map.map fst splitResults) Map.empty)]
-                                                        applyTemplate group "awaytable.html" dir [("table", AV $ leagueTable (Map.map snd splitResults) Map.empty)]
+generateLeagueTables :: STGroup String -> FilePath -> Map Team [Result] -> Map Team Int -> Maybe String -> IO ()
+generateLeagueTables group dir results adjustments link = do let splitResults = splitHomeAndAway results
+                                                                 linkAttr = ("miniLeaguesLink", AV link)
+                                                             applyTemplate group "overalltable.html" dir [("table", AV $ leagueTable results adjustments), linkAttr]
+                                                             applyTemplate group "hometable.html" dir [("table", AV $ leagueTable (Map.map fst splitResults) Map.empty), linkAttr]
+                                                             applyTemplate group "awaytable.html" dir [("table", AV $ leagueTable (Map.map snd splitResults) Map.empty), linkAttr]
 
-generateFormTables :: STGroup String -> FilePath -> Map Team [Result] -> IO ()
-generateFormTables group dir results = do applyTemplate group "overallformtable.html" dir [("table", AV $ formTable results 6)]
-                                          let splitResults = splitHomeAndAway results
-                                          applyTemplate group "homeformtable.html" dir [("table", AV $ formTable (Map.map fst splitResults) 4)]
-                                          applyTemplate group "awayformtable.html" dir [("table", AV $ formTable (Map.map snd splitResults) 4)]
+generateFormTables :: STGroup String -> FilePath -> Map Team [Result] -> Maybe String -> IO ()
+generateFormTables group dir results link = do let splitResults = splitHomeAndAway results
+                                                   linkAttr = ("miniLeaguesLink", AV link)
+                                               applyTemplate group "overallformtable.html" dir [("table", AV $ formTable results 6), linkAttr]
+                                               applyTemplate group "homeformtable.html" dir [("table", AV $ formTable (Map.map fst splitResults) 4), linkAttr]
+                                               applyTemplate group "awayformtable.html" dir [("table", AV $ formTable (Map.map snd splitResults) 4), linkAttr]
 
-generateResultsList :: STGroup String -> FilePath -> Map Day [Result] -> IO ()
-generateResultsList group dir results = applyTemplate group "results.html" dir [("results", AV $ Map.toList results)]
+generateResultsList :: STGroup String -> FilePath -> Map Day [Result] -> Maybe String -> IO ()
+generateResultsList group dir results link = applyTemplate group "results.html" dir [("results", AV $ reverse $ Map.toList results), -- Reverse to list most recent first.
+                                                                                     ("miniLeaguesLink", AV link)]
 
-generateSequences :: STGroup String -> FilePath -> Map Team [Result] -> IO ()
-generateSequences group dir results = do let (overallCurrent, overallLongest) = getSequences results
-                                             splitResults = splitHomeAndAway results
-                                             (homeCurrent, homeLongest) = getSequences $ Map.map fst splitResults
-                                             (awayCurrent, awayLongest) = getSequences $ Map.map snd splitResults
-                                         applyTemplate group "overallcurrentsequences.html" dir [("sequences", AV $ sequenceTables overallCurrent)]
-                                         applyTemplate group "overalllongestsequences.html" dir [("sequences", AV $ sequenceTables overallLongest)]
-                                         applyTemplate group "homecurrentsequences.html" dir [("sequences", AV $ sequenceTables homeCurrent)]
-                                         applyTemplate group "homelongestsequences.html" dir [("sequences", AV $ sequenceTables homeLongest)]
-                                         applyTemplate group "awaycurrentsequences.html" dir [("sequences", AV $ sequenceTables awayCurrent)]
-                                         applyTemplate group "awaylongestsequences.html" dir [("sequences", AV $ sequenceTables awayLongest)]
+-- | Generates current and longest sequences for home, away and all matches.
+generateSequences :: STGroup String -> FilePath -> Map Team [Result] -> Maybe String -> IO ()
+generateSequences group dir results link = do let (overallCurrent, overallLongest) = getSequences results
+                                                  splitResults = splitHomeAndAway results
+                                                  (homeCurrent, homeLongest) = getSequences $ Map.map fst splitResults
+                                                  (awayCurrent, awayLongest) = getSequences $ Map.map snd splitResults
+                                                  linkAttr = ("miniLeaguesLink", AV link)
+                                              applyTemplate group "overallcurrentsequences.html" dir [("sequences", AV $ sequenceTables overallCurrent), linkAttr]
+                                              applyTemplate group "overalllongestsequences.html" dir [("sequences", AV $ sequenceTables overallLongest), linkAttr]
+                                              applyTemplate group "homecurrentsequences.html" dir [("sequences", AV $ sequenceTables homeCurrent), linkAttr]
+                                              applyTemplate group "homelongestsequences.html" dir [("sequences", AV $ sequenceTables homeLongest), linkAttr]
+                                              applyTemplate group "awaycurrentsequences.html" dir [("sequences", AV $ sequenceTables awayCurrent), linkAttr]
+                                              applyTemplate group "awaylongestsequences.html" dir [("sequences", AV $ sequenceTables awayLongest), linkAttr]
 
 generateMiniLeagues :: STGroup String -> FilePath -> Map Team [Result] -> [(String, Set Team)] -> IO ()
-generateMiniLeagues group dir results miniLeagues = do let tabs = map (toTab.fst) miniLeagues
+generateMiniLeagues group dir results miniLeagues = do let tabs = map ((\n -> (n, reduceName n ++ ".html")).fst) miniLeagues -- Each tab is a display name and a file name.
                                                        mapM_ (generateMiniLeague group dir results tabs) miniLeagues
 
-toTab :: String -> (String, String)
-toTab name = (name, reduceName name ++ ".html")
-
 generateMiniLeague :: STGroup String -> FilePath -> Map Team [Result] -> [(String, String)] -> (String, Set Team) -> IO ()
-generateMiniLeague group dir results tabs (name, teams) = do let selectedTabs = map (\(n, f) -> (n, f, (n == name))) tabs
-                                                                 attributes = [("table", AV $ miniLeague teams results), ("name", AV $ name), ("tabs", AV $ selectedTabs)]
+generateMiniLeague group dir results tabs (name, teams) = do let selectedTabs = map (\(n, f) -> (n, f, (n == name))) tabs -- Add a boolean "selected" flag to each tab.
+                                                                 attributes = [("table", AV $ miniLeagueTable teams results), ("name", AV $ name), ("tabs", AV $ selectedTabs)]
                                                              applyTemplateWithName group "minileague.html" dir (reduceName name ++ ".html") attributes
                                                              
 
@@ -142,14 +144,21 @@ reduceName name = map toLower $ filter (not.isSpace) name
 
 -- | Generates all stats pages for a given data file.  First parameter is a template group, second parameter is a pair of paths,
 --   the first is the path to the data file, the second is the path to the directory in which the pages will be created.
-generateStatsPages :: STGroup String -> FilePath -> [Result] -> Map Team Int -> [(String, Set Team)] -> IO ()
-generateStatsPages templateGroup targetDir results adjustments miniLeagues = do let teamResults = resultsByTeam results
-                                                                                createDirectoryIfMissing True targetDir
-                                                                                generateLeagueTables templateGroup targetDir teamResults adjustments
-                                                                                generateFormTables templateGroup targetDir teamResults
-                                                                                generateResultsList templateGroup targetDir (resultsByDate results)
-                                                                                generateSequences templateGroup targetDir teamResults
-                                                                                generateMiniLeagues templateGroup targetDir teamResults miniLeagues 
+generateStatsPages :: STGroup String -> FilePath -> LeagueData -> IO ()
+generateStatsPages templateGroup targetDir (LeagueData _ results adjustments miniLeagues) = do let teamResults = resultsByTeam results
+                                                                                                   link = miniLeaguesLink miniLeagues
+                                                                                               createDirectoryIfMissing True targetDir
+                                                                                               generateLeagueTables templateGroup targetDir teamResults adjustments link
+                                                                                               generateFormTables templateGroup targetDir teamResults link
+                                                                                               generateResultsList templateGroup targetDir (resultsByDate results) link
+                                                                                               generateSequences templateGroup targetDir teamResults link
+                                                                                               generateMiniLeagues templateGroup targetDir teamResults miniLeagues 
+
+-- | Determine which file the "Mini-Leagues" tab should link to (derived from the name of the first mini-league).
+--   If there are no mini-leagues then this function returns nothing and the tab should not be shown.
+miniLeaguesLink :: [(String, Set Team)] -> Maybe String
+miniLeaguesLink []             = Nothing
+miniLeaguesLink ((name, _):ls) = Just $ (reduceName name) ++ ".html"
 
 -- | Searches a directory and all of its sub-directories for data files.
 findDataFiles :: FilePath -> IO [FilePath]
@@ -161,8 +170,8 @@ findDataFiles dir = do files <- getFiles dir
 
 processDataFile :: FilePath -> FilePath -> STGroup String -> FilePath -> IO ()
 processDataFile dataDir outputDir templateGroup dataFile = do print $ "Processing " ++ dataFile
-                                                              (teams, results, adjustments, miniLeagues) <- parseRLTFile dataFile
+                                                              leagueData <- parseRLTFile dataFile
                                                               let targetDir = combine outputDir (dropExtension $ makeRelative dataDir dataFile)
-                                                              generateStatsPages templateGroup targetDir results adjustments miniLeagues
+                                                              generateStatsPages templateGroup targetDir leagueData
 
 

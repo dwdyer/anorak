@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 
 -- | A module for parsing RLT data files as used by the Football Statistics Applet (see <https://fsa.dev.java.net>).
-module Anorak.RLTParser (parseRLTFile, RLTException) where
+module Anorak.RLTParser (LeagueData(LeagueData), parseRLTFile, RLTException) where
 
 import Anorak.Types
 import Control.Exception(Exception, throw)
@@ -27,11 +27,14 @@ data Item = Fixture Result               -- ^ The result of a single football ma
 data RLTException = RLTException ParseError deriving (Typeable, Show)
 instance Exception RLTException 
 
+-- | League data is extracted from an RLT file.  It consists of a list of teams, a list of results,
+--   a (probably empty) map of points adjustments, and a list of mini-leagues.
+data LeagueData = LeagueData (Set Team) [Result] (Map Team Int) [(String, Set Team)]
+
 -- | Parse results and points adjustments, discard meta-data and comments.
-results :: Parser ([Team], [Result], Map Team Int, [(String, Set Team)])
+results :: Parser (LeagueData)
 results = do list <- items
-             let (teams, results, adjustments, miniLeagues) = extractData list in
-                 return (Set.elems teams, results, adjustments, miniLeagues)
+             return (extractData list)
 
 -- | Each line of a data file is either a record (a match result or some metadata) or it is a comment.
 items :: Parser [Item]
@@ -65,22 +68,23 @@ comment = do char '#'
 
 -- | Takes a list of parsed items and discards comments and meta-data.  The remaining items are separated into a list
 --   of results and a map of net points adjustments by team.
-extractData :: [Item] -> (Set Team, [Result], Map Team Int, [(String, Set Team)])
-extractData []                             = (Set.empty, [], Map.empty, []) 
-extractData (Fixture result:items)         = (addTeams result t, result:r, a, m) where (t, r, a, m) = extractData items
-extractData (Adjustment team amount:items) = (t, r, Map.insertWith (+) team amount a, m) where (t, r, a, m) = extractData items
-extractData (MiniLeague name teams:items)  = (t, r, a, (name, teams):m) where (t, r, a, m) = extractData items
+extractData :: [Item] -> LeagueData
+extractData []                             = (LeagueData Set.empty [] Map.empty []) 
+extractData (Fixture result:items)         = (LeagueData (addTeams result t) (result:r) a m) where (LeagueData t r a m) = extractData items
+extractData (Adjustment team amount:items) = (LeagueData t r (Map.insertWith (+) team amount a) m) where (LeagueData t r a m) = extractData items
+extractData (MiniLeague name teams:items)  = (LeagueData t r a ((name, teams):m)) where (LeagueData t r a m) = extractData items
 extractData (_:items)                      = extractData items -- Discard metadata.
 
 -- | Adds the home team and away team from a match to the set of all teams (if they are not already present).
 addTeams :: Result -> Set Team -> Set Team
 addTeams result set = Set.insert (awayTeam result) (Set.insert (homeTeam result) set)
 
--- | Parses the specified RLT file and returns a list of the results it contains and a map of any points adjustments.
+-- | Parses the specified RLT file and returns a list of teams, a list of results, a map of any points adjustments,
+--   and a list of any configured mini-leagues (each represented by name/teams pair).
 --   Throws an RLTException if there is a problem parsing the file.
-parseRLTFile :: FilePath -> IO ([Team], [Result], Map Team Int, [(String, Set Team)])
+parseRLTFile :: FilePath -> IO (LeagueData)
 parseRLTFile path = do contents <- parseFromFile results path
                        case contents of
-                           Left error         -> throw (RLTException error)
-                           Right (t, r, a, m) -> return (t, r, a, m)
+                           Left error        -> throw (RLTException error)
+                           Right leagueData  -> return leagueData
 
