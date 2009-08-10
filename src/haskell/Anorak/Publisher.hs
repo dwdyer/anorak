@@ -3,7 +3,7 @@
 -- | HTML publishing module for the Anorak system.
 module Anorak.Publisher (copyResources, findDataFiles, processDataFile) where
 
-import Anorak.Core
+import Anorak.Results
 import Anorak.Sequences
 import Anorak.Tables
 import Anorak.Types

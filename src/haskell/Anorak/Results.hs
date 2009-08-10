@@ -1,5 +1,5 @@
 -- | Core functionality for the Anorak system.
-module Anorak.Core (resultsByDate, resultsByTeam, splitHomeAndAway) where
+module Anorak.Results (resultsByDate, resultsByTeam, splitHomeAndAway) where
 
 import Anorak.Types
 import Data.Map(Map)
