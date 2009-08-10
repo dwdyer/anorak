@@ -6,6 +6,7 @@ module Anorak.Publisher (copyResources, findDataFiles, processDataFile) where
 import Anorak.Core
 import Anorak.Types
 import Anorak.RLTParser
+import Char(isSpace, toLower)
 import Data.Map(Map)
 import Data.Set(Set)
 import Data.Time.Calendar(Day)
@@ -123,10 +124,19 @@ generateSequences group dir results = do let (overallCurrent, overallLongest) = 
                                          applyTemplate group "awaylongestsequences.html" dir [("sequences", AV $ sequenceTables awayLongest)]
 
 generateMiniLeagues :: STGroup String -> FilePath -> Map Team [Result] -> [(String, Set Team)] -> IO ()
-generateMiniLeagues group dir results miniLeagues = mapM_ (generateMiniLeague group dir results) miniLeagues
+generateMiniLeagues group dir results miniLeagues = do let tabs = map (toTab.fst) miniLeagues
+                                                       mapM_ (generateMiniLeague group dir results tabs) miniLeagues
 
-generateMiniLeague :: STGroup String -> FilePath -> Map Team [Result] -> (String, Set Team) -> IO ()
-generateMiniLeague group dir results (name, teams) = do applyTemplate group "minileague.html" dir [("table", AV $ miniLeague teams results), ("name", AV $ name)]
+toTab :: String -> (String, String)
+toTab name = (name, reduceName name ++ ".html")
+
+generateMiniLeague :: STGroup String -> FilePath -> Map Team [Result] -> [(String, String)] -> (String, Set Team) -> IO ()
+generateMiniLeague group dir results tabs (name, teams) = do applyTemplateWithName group "minileague.html" dir (reduceName name ++ ".html") attributes
+                                                          where attributes = [("table", AV $ miniLeague teams results), ("name", AV $ name), ("tabs", AV $ tabs)]
+
+-- | Convert a string for use as a filename (converts to lower case and eliminates whitespace).
+reduceName :: String -> String
+reduceName name = map toLower $ filter (not.isSpace) name
 
 -- | Generates all stats pages for a given data file.  First parameter is a template group, second parameter is a pair of paths,
 --   the first is the path to the data file, the second is the path to the directory in which the pages will be created.
@@ -139,7 +149,7 @@ generateStatsPages templateGroup targetDir results adjustments miniLeagues = do 
                                                                                 generateSequences templateGroup targetDir teamResults
                                                                                 generateMiniLeagues templateGroup targetDir teamResults miniLeagues 
 
--- Searches a directory and all of its sub-directories for data files.
+-- | Searches a directory and all of its sub-directories for data files.
 findDataFiles :: FilePath -> IO [FilePath]
 findDataFiles dir = do files <- getFiles dir
                        let dataFiles = filter (isSuffixOf ".rlt") files
