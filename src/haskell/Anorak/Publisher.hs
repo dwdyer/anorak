@@ -131,8 +131,10 @@ toTab :: String -> (String, String)
 toTab name = (name, reduceName name ++ ".html")
 
 generateMiniLeague :: STGroup String -> FilePath -> Map Team [Result] -> [(String, String)] -> (String, Set Team) -> IO ()
-generateMiniLeague group dir results tabs (name, teams) = do applyTemplateWithName group "minileague.html" dir (reduceName name ++ ".html") attributes
-                                                          where attributes = [("table", AV $ miniLeague teams results), ("name", AV $ name), ("tabs", AV $ tabs)]
+generateMiniLeague group dir results tabs (name, teams) = do let selectedTabs = map (\(n, f) -> (n, f, (n == name))) tabs
+                                                                 attributes = [("table", AV $ miniLeague teams results), ("name", AV $ name), ("tabs", AV $ selectedTabs)]
+                                                             applyTemplateWithName group "minileague.html" dir (reduceName name ++ ".html") attributes
+                                                             
 
 -- | Convert a string for use as a filename (converts to lower case and eliminates whitespace).
 reduceName :: String -> String
