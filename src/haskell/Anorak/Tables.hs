@@ -1,12 +1,65 @@
 -- | Functions for generating league tables (including form tables and mini-leagues).
-module Anorak.Tables (formTable, leagueTable, miniLeagueTable) where
+module Anorak.Tables (formTable, goalDiff, LeagueRecord(..), leagueTable, miniLeagueTable, played, points, pointsPerGame) where
 
-import Anorak.Types
+import Anorak.Results
 import Data.Map(Map)
 import qualified Data.Map as Map(elems, empty, filterWithKey, findWithDefault, map, mapWithKey)
 import Data.Set(Set)
 import qualified Data.Set as Set(member)
 import List(sort)
+
+-- | A LeagueRecord contains data about the league performance of a single team.  It
+--   includes total number of wins, draws, defeats, goals scored and goals conceded.
+data LeagueRecord = LeagueRecord {team :: Team,                       -- ^ The team that this record relates to.
+                                  won :: Int,                         -- ^ The number of matches won by this team.
+                                  drawn :: Int,                       -- ^ The number of matches drawn by this team.
+                                  lost :: Int,                        -- ^ The number of matches lost by this team.
+                                  for :: Int,                         -- ^ The total number of goals scored by this team.
+                                  against :: Int,                     -- ^ The total number of goals conceded by this team.
+                                  adjustment :: Int                   -- ^ A points adjustment (can be positive or negative but is usually zero) to be applied to this team's total.
+                                 }
+-- A LeagueRecord can be rendered as a String containing both member fields and
+-- derived fields.
+instance Show LeagueRecord where
+    show record = (team record) ++
+                  " P" ++ show (played record) ++
+                  " W" ++ show (won record) ++
+                  " D" ++ show (drawn record) ++
+                  " L" ++ show (lost record) ++
+                  " F" ++ show (for record) ++
+                  " A" ++ show (against record) ++
+                  " GD" ++ show (goalDiff record) ++
+                  " Pts" ++ show (points record)
+-- A LeagueRecord can be compared with other records to provide an ordering for a
+-- list of records.
+instance Eq LeagueRecord where
+    (==) record1 record2 = (points record1) == (points record2)
+                           && (goalDiff record1) == (goalDiff record2)
+                           && (for record1) == (for record2)
+                           && (won record1) == (won record2)
+instance Ord LeagueRecord where
+    compare record1 record2
+        | (points record1) /= (points record2)     = compare (points record2) (points record1)
+        | (goalDiff record1) /= (goalDiff record2) = compare (goalDiff record2) (goalDiff record1)
+        | (for record1) /= (for record2)           = compare (for record2) (for record1)
+        | (won record1) /= (won record2)           = compare (won record2) (won record1)
+        | otherwise                                = EQ
+
+-- | Calculates the total number of matches played (the sum or wins, draws and defeats).
+played :: LeagueRecord -> Int
+played record = (won record) + (drawn record) + (lost record)
+
+-- | Calculates the total number of points (3 points for each win, 1 for each draw, +/- any adjustment).
+points :: LeagueRecord -> Int
+points record = (won record) * 3 + (drawn record) + (adjustment record)
+
+-- | Calculates goal difference (total scored minus total conceded)
+goalDiff :: LeagueRecord -> Int
+goalDiff record = (for record) - (against record)
+
+-- | Calculates average number of league points earned per game.
+pointsPerGame :: LeagueRecord -> Double
+pointsPerGame record = (fromIntegral $ points record) / (fromIntegral $ played record)
 
 -- | Builds a LeagueRecord for the specified team, including all of the results (from those provided) in which that
 --   team was involved.

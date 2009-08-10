@@ -6,7 +6,6 @@ module Anorak.Publisher (copyResources, findDataFiles, processDataFile) where
 import Anorak.Results
 import Anorak.Sequences
 import Anorak.Tables
-import Anorak.Types
 import Anorak.RLTParser
 import Char(isSpace, toLower)
 import Data.Map(Map)

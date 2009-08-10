@@ -3,7 +3,7 @@
 -- | A module for parsing RLT data files as used by the Football Statistics Applet (see <https://fsa.dev.java.net>).
 module Anorak.RLTParser (LeagueData(LeagueData), parseRLTFile, RLTException) where
 
-import Anorak.Types
+import Anorak.Results
 import Control.Exception(Exception, throw)
 import Data.Map(Map)
 import qualified Data.Map as Map(empty, insertWith)

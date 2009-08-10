@@ -13,7 +13,7 @@ Author:         Daniel W. Dyer
 
 Executable anorak
     Main-Is:            Main.hs
-    Other-Modules:      Anorak.Types, Anorak.Results, Anorak.RLTParser, Anorak.Sequences, Anorak.Tables, Anorak.Publisher
+    Other-Modules:      Anorak.Results, Anorak.RLTParser, Anorak.Sequences, Anorak.Tables, Anorak.Publisher
     Build-Depends:      base, containers, directory, filepath, haskell98, HStringTemplate >= 0.4.2, old-locale, parsec, time
     Hs-Source-Dirs:     src/haskell
 
