@@ -11,8 +11,9 @@ Description:    Generates HTML pages containing league tables, form tables,
 License:        AllRightsReserved
 Author:         Daniel W. Dyer
 
-Library
-    Exposed-Modules:    Anorak.Types, Anorak.Core, Anorak.RLTParser, Anorak.Publisher
-    Build-Depends:      base, containers, directory, filepath, haskell98, HStringTemplate, old-locale, parsec, time
+Executable anorak
+    Main-Is:            Main.hs
+    Other-Modules:      Anorak.Types, Anorak.Core, Anorak.RLTParser, Anorak.Publisher
+    Build-Depends:      base, containers, directory, filepath, haskell98, HStringTemplate >= 0.6, old-locale, parsec, time
     Hs-Source-Dirs:     src/haskell
 

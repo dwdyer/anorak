@@ -1,7 +1,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 
 -- | HTML publishing module for the Anorak system.
-module Anorak.Publisher where
+module Anorak.Publisher (copyResources, findDataFiles, processDataFile) where
 
 import Anorak.Core
 import Anorak.Types
@@ -12,11 +12,10 @@ import Data.Time.Calendar(Day)
 import qualified Data.Map as Map(empty, fromAscList, map, toList)
 import List(isPrefixOf, isSuffixOf)
 import Monad(filterM)
-import System(getArgs)
 import System.Directory(createDirectoryIfMissing, copyFile, doesDirectoryExist, doesFileExist, getDirectoryContents)
 import System.FilePath(combine, dropExtension, makeRelative, replaceDirectory)
 import Text.ParserCombinators.Parsec(ParseError)
-import Text.StringTemplate(directoryGroup, getStringTemplate, setManyAttrib, STGroup, StringTemplate, stShowsToSE, toString)
+import Text.StringTemplate(getStringTemplate, setManyAttrib, STGroup, StringTemplate, stShowsToSE, toString)
 import Text.StringTemplate.Classes(ToSElem(toSElem), SElem(SM))
 
 instance ToSElem LeagueRecord where
@@ -84,12 +83,16 @@ copyResources from to = do files <- getFiles from
 copyToDirectory :: FilePath -> FilePath -> IO()
 copyToDirectory dir file = copyFile file (replaceDirectory file dir)
 
--- | Generates an output file by applying a template with one or more attributes set.
+-- | Generates an output file by applying a template with one or more attributes set.  The file's name is derived
+--   from the template name.
 applyTemplate :: STGroup String -> FilePath -> FilePath -> [(String, AttributeValue)] -> IO ()
-applyTemplate group templateName dir attributes = case getStringTemplate templateName group of
-                                                      Nothing       -> print $ "Could not find template for " ++ templateName
-                                                      Just template -> writeFile (combine dir templateName) html
-                                                                       where html = toString $ setManyAttrib attributes template
+applyTemplate group templateName dir attributes = applyTemplateWithName group templateName dir templateName attributes 
+
+applyTemplateWithName :: STGroup String -> FilePath -> FilePath -> FilePath -> [(String, AttributeValue)] -> IO ()
+applyTemplateWithName group templateName dir fileName attributes = case getStringTemplate templateName group of
+                                                                        Nothing       -> print $ "Could not find template for " ++ templateName
+                                                                        Just template -> writeFile (combine dir fileName) html
+                                                                                         where html = toString $ setManyAttrib attributes template
 
 -- | Generates home, away and overall HTML league tables.
 generateLeagueTables :: STGroup String -> FilePath -> Map Team [Result] -> Map Team Int -> IO ()
@@ -145,17 +148,9 @@ findDataFiles dir = do files <- getFiles dir
                        return (dataFiles ++ concat subFiles)
 
 processDataFile :: FilePath -> FilePath -> STGroup String -> FilePath -> IO ()
-processDataFile dataDir outputDir templateGroup dataFile = do putStr $ "Processing " ++ dataFile ++ "\n"
+processDataFile dataDir outputDir templateGroup dataFile = do print $ "Processing " ++ dataFile
                                                               (teams, results, adjustments, miniLeagues) <- parseRLTFile dataFile
                                                               let targetDir = combine outputDir (dropExtension $ makeRelative dataDir dataFile)
                                                               generateStatsPages templateGroup targetDir results adjustments miniLeagues
 
--- | Expects three arguments - the path to the RLT data files, the path to the templates directory and the path to the
---   output directory.
-main :: IO ()
-main = do dataDir:templateDir:outputDir:_ <- getArgs
-          dataFiles <- findDataFiles dataDir
-          group <- directoryGroup templateDir :: IO (STGroup String)
-          copyResources templateDir outputDir
-          mapM_ (processDataFile dataDir outputDir group) dataFiles
 
