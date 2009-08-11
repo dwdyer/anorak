@@ -90,19 +90,33 @@ convertResult team result
     | team == (homeTeam result) = (TeamResult (date result) (awayTeam result) 'H' (homeGoals result) (awayGoals result) (form team result))
     | otherwise                 = (TeamResult (date result) (homeTeam result) 'A' (awayGoals result) (homeGoals result) (form team result))
 
-biggestHomeWins :: [Result] -> [Result]
-biggestHomeWins results = head $ groupBy (\r1 r2 -> (margin r1) == (margin r2)) sortedResults
-                          where sortedResults = sortBy (\r1 r2 -> compare (margin r2) (margin r1)) results
-
-biggestAwayWins :: [Result] -> [Result]
-biggestAwayWins results = head $ groupBy (\r1 r2 -> (margin r1) == (margin r2)) sortedResults
-                          where sortedResults = sortBy (\r1 r2 -> compare (margin r1) (margin r2)) results
-
 -- | Returns the margin of victory for a result (zero if it is a draw, negative if it is an away win).
 margin :: Result -> Int
 margin result = (homeGoals result) - (awayGoals result)
 
+homeWins :: [Result] -> [Result]
+homeWins results = filter (\r -> homeGoals r > awayGoals r) results
+
+awayWins :: [Result] -> [Result]
+awayWins results = filter (\r -> homeGoals r < awayGoals r) results
+
+-- | Return the first group from a list of groups, but if it's too short append the next group(s) until it's long enough.
+takeAtLeast :: Int -> [[a]] -> [a]
+takeAtLeast _ []               = [] -- If we run out of groups, we can't take any more even if we haven't reached the minimum yet.
+takeAtLeast 0 _                = [] -- If we've reached the minimum we're done.
+takeAtLeast count (group:rest) = group ++ takeAtLeast (max 0 (count - length group)) rest
+
+biggestHomeWins :: [Result] -> [Result]
+biggestHomeWins results = takeAtLeast 3 $ groupBy (\r1 r2 -> (margin r1) == (margin r2)) sortedResults
+                          where sortedResults = sortBy (\r1 r2 -> compare (margin r2) (margin r1)) wins
+                                wins = homeWins results
+
+biggestAwayWins :: [Result] -> [Result]
+biggestAwayWins results = takeAtLeast 3 $ groupBy (\r1 r2 -> (margin r1) == (margin r2)) sortedResults
+                          where sortedResults = sortBy (\r1 r2 -> compare (margin r1) (margin r2)) wins
+                                wins = awayWins results
+
 highestAggregates :: [Result] -> [Result]
-highestAggregates results = head $ groupBy (\r1 r2 -> (aggregate r1) == (aggregate r2)) sortedResults
+highestAggregates results = takeAtLeast 3 $ groupBy (\r1 r2 -> (aggregate r1) == (aggregate r2)) sortedResults
                             where sortedResults = sortBy (\r1 r2 -> compare (aggregate r2) (aggregate r1)) results
 
