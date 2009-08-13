@@ -2,6 +2,7 @@
 module Anorak.Tables (formTable, goalDiff, LeagueRecord(..), leagueTable, miniLeagueTable, played, points, pointsPerGame) where
 
 import Anorak.Results
+import Anorak.Utils(keep)
 import Data.Map(Map)
 import qualified Data.Map as Map(elems, empty, filterWithKey, findWithDefault, map, mapWithKey)
 import Data.Set(Set)
@@ -94,10 +95,6 @@ formTable teamResults n = map (attachForm formResults) $ leagueTable formResults
 attachForm :: Map Team [Result] -> LeagueRecord -> (LeagueRecord, [TeamResult])
 attachForm results record = (record, map (convertResult (team record)) formResults)
                             where formResults = Map.findWithDefault [] (team record) results
-
--- | Retains the last n elements in a list.
-keep :: Int -> [a] -> [a]
-keep n x = drop ((length x) - n) x
 
 -- | Looks up the points adjustment for a team (if any) and applies it to their league record.
 adjust :: Map Team Int -> LeagueRecord -> LeagueRecord

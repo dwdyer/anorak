@@ -4,9 +4,10 @@
 module Anorak.Publisher (copyResources, findDataFiles, processDataFile) where
 
 import Anorak.Results
+import Anorak.RLTParser
 import Anorak.Sequences
 import Anorak.Tables
-import Anorak.RLTParser
+import Anorak.Utils
 import Char(isSpace, toLower)
 import Data.Map(Map)
 import Data.Set(Set)
@@ -131,12 +132,23 @@ generateSequences group dir results link = do let (overallCurrent, overallLonges
                                               applyTemplate group "awaylongestsequences.html" dir [("sequences", AV $ sequenceTables awayLongest), ("longestSequencesSelected", AV True), linkAttr]
 
 generateRecords :: STGroup String -> FilePath -> [Result] -> Maybe String -> IO ()
-generateRecords group dir results link = do let homeWins = biggestHomeWins results
-                                                awayWins = biggestAwayWins results
-                                                aggregates = highestAggregates results
-                                            applyTemplate group "records.html" dir [("homeWins", AV $ homeWins),
-                                                                                    ("awayWins", AV $ awayWins),
-                                                                                    ("aggregates", AV $ aggregates),
+generateRecords group dir results link = do let homeWinMatches = homeWins results
+                                                awayWinMatches = awayWins results
+                                                matchCount = length results
+                                                homeWinCount = length homeWinMatches
+                                                awayWinCount = length awayWinMatches
+                                                drawCount = matchCount - homeWinCount - awayWinCount
+                                                highAggregates = highestAggregates results
+                                            applyTemplate group "records.html" dir [("matches", AV $ matchCount),
+                                                                                    ("homeWins", AV $ homeWinCount),
+                                                                                    ("homeWinPercent", AV $ percentage homeWinCount matchCount),
+                                                                                    ("awayWins", AV $ awayWinCount),
+                                                                                    ("awayWinPercent", AV $ percentage awayWinCount matchCount),
+                                                                                    ("draws", AV $ drawCount),
+                                                                                    ("drawPercent", AV $ percentage drawCount matchCount),
+                                                                                    ("bigHomeWins", AV $ biggestWins homeWinMatches),
+                                                                                    ("bigAwayWins", AV $ biggestWins awayWinMatches),
+                                                                                    ("highAggregates", AV $ highAggregates),
                                                                                     ("recordsSelected", AV True),
                                                                                     ("miniLeaguesLink", AV link)]
 
