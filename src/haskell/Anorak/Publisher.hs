@@ -1,8 +1,9 @@
 {-# LANGUAGE ExistentialQuantification #-}
 
 -- | HTML publishing module for the Anorak system.
-module Anorak.Publisher (copyResources, findDataFiles, processDataFile) where
+module Anorak.Publisher (copyResources, processDataFile) where
 
+import Anorak.Config(Season(..))
 import Anorak.Results
 import Anorak.RLTParser
 import Anorak.Sequences
@@ -188,18 +189,10 @@ miniLeaguesLink :: [(String, Set Team)] -> Maybe String
 miniLeaguesLink []             = Nothing
 miniLeaguesLink ((name, _):ls) = Just $ (reduceName name) ++ ".html"
 
--- | Searches a directory and all of its sub-directories for data files.
-findDataFiles :: FilePath -> IO [FilePath]
-findDataFiles dir = do files <- getFiles dir
-                       let dataFiles = filter (isSuffixOf ".rlt") files
-                       directories <- getSubDirectories dir
-                       subFiles <- mapM (findDataFiles) directories
-                       return (dataFiles ++ concat subFiles)
-
-processDataFile :: FilePath -> FilePath -> STGroup String -> FilePath -> IO ()
-processDataFile dataDir outputDir templateGroup dataFile = do print $ "Processing " ++ dataFile
-                                                              leagueData <- parseRLTFile dataFile
-                                                              let targetDir = combine outputDir (dropExtension $ makeRelative dataDir dataFile)
-                                                              generateStatsPages templateGroup targetDir leagueData
+processDataFile :: STGroup String -> Season -> IO ()
+processDataFile templateGroup season = do let dataFile = inputFile season
+                                          print $ "Processing " ++ dataFile
+                                          leagueData <- parseRLTFile dataFile 
+                                          generateStatsPages templateGroup (outputDir season) leagueData
 
 

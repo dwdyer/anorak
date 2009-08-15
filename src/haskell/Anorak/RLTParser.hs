@@ -45,16 +45,16 @@ record :: Parser Item
 record = do fields <- sepBy1 field (char '|')
             newline
             case fields of
-                ("AWARDED":team:points:[])         -> return (Adjustment team $ read points)
-                ("DEDUCTED":team:points:[])        -> return (Adjustment team $ -read points)
-                ("MINILEAGUE":name:teams)          -> return (MiniLeague name $ Set.fromList teams)
-                ("PRIZE":_)                        -> return (Metadata fields)
-                ("RELEGATION":_)                   -> return (Metadata fields)
-                ("RULES":_)                        -> return (Metadata fields)
-                (date:hTeam:hGoals:aTeam:aGoals:_) -> return (Fixture (Result day hTeam (read hGoals) aTeam (read aGoals)))
+                ("AWARDED":team:points:[])         -> return $ Adjustment team $ read points
+                ("DEDUCTED":team:points:[])        -> return $ Adjustment team $ -read points
+                ("MINILEAGUE":name:teams)          -> return $ MiniLeague name $ Set.fromList teams
+                ("PRIZE":_)                        -> return $ Metadata fields
+                ("RELEGATION":_)                   -> return $ Metadata fields
+                ("RULES":_)                        -> return $ Metadata fields
+                (date:hTeam:hGoals:aTeam:aGoals:_) -> return $ Fixture $ Result day hTeam (read hGoals) aTeam (read aGoals)
                                                       -- RLT dates are 8-character strings in DDMMYYYY format.
                                                       where day = readTime defaultTimeLocale "%d%m%Y" date
-                otherwise                          -> fail ("Unexpected input: " ++ (concat $ intersperse "|" fields))
+                otherwise                          -> fail $ "Unexpected input: " ++ (concat $ intersperse "|" fields)
 
 -- | A field is one or more characters (not including pipes and newlines).
 field :: Parser String
