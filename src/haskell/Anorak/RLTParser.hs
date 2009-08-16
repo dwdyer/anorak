@@ -85,6 +85,6 @@ addTeams result set = Set.insert (awayTeam result) (Set.insert (homeTeam result)
 parseRLTFile :: FilePath -> IO (LeagueData)
 parseRLTFile path = do contents <- parseFromFile results path
                        case contents of
-                           Left error        -> throw (RLTException error)
+                           Left error        -> throw $ RLTException error
                            Right leagueData  -> return leagueData
 

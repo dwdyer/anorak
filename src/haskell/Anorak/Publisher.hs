@@ -1,9 +1,9 @@
 {-# LANGUAGE ExistentialQuantification #-}
 
 -- | HTML publishing module for the Anorak system.
-module Anorak.Publisher (copyResources, processDataFile) where
+module Anorak.Publisher (copyResources, publishLeagues) where
 
-import Anorak.Config(Season(..))
+import Anorak.Config
 import Anorak.Results
 import Anorak.RLTParser
 import Anorak.Sequences
@@ -154,7 +154,7 @@ generateRecords group dir results link = do let homeWinMatches = homeWins result
                                                                                     ("miniLeaguesLink", AV link)]
 
 generateMiniLeagues :: STGroup String -> FilePath -> Map Team [Result] -> [(String, Set Team)] -> IO ()
-generateMiniLeagues group dir results miniLeagues = do let tabs = map ((\n -> (n, reduceName n ++ ".html")).fst) miniLeagues -- Each tab is a display name and a file name.
+generateMiniLeagues group dir results miniLeagues = do let tabs = map ((\n -> (n, toHTMLFileName n)).fst) miniLeagues -- Each tab is a display name and a file name.
                                                        mapM_ (generateMiniLeague group dir results tabs) miniLeagues
 
 generateMiniLeague :: STGroup String -> FilePath -> Map Team [Result] -> [(String, String)] -> (String, Set Team) -> IO ()
@@ -163,12 +163,12 @@ generateMiniLeague group dir results tabs (name, teams) = do let selectedTabs = 
                                                                                ("miniLeaguesSelected", AV True),
                                                                                ("name", AV $ name),
                                                                                ("bottomTabs", AV $ selectedTabs)]
-                                                             applyTemplateWithName group "minileague.html" dir (reduceName name ++ ".html") attributes
+                                                             applyTemplateWithName group "minileague.html" dir (toHTMLFileName name) attributes
                                                              
 
 -- | Convert a string for use as a filename (converts to lower case and eliminates whitespace).
-reduceName :: String -> String
-reduceName name = map toLower $ filter (not.isSpace) name
+toHTMLFileName :: String -> String
+toHTMLFileName name = (map toLower $ filter (not.isSpace) name) ++ ".html"
 
 -- | Generates all stats pages for a given data file.  First parameter is a template group, second parameter is a pair of paths,
 --   the first is the path to the data file, the second is the path to the directory in which the pages will be created.
@@ -187,12 +187,15 @@ generateStatsPages templateGroup targetDir (LeagueData _ results adjustments min
 --   If there are no mini-leagues then this function returns nothing and the tab should not be shown.
 miniLeaguesLink :: [(String, Set Team)] -> Maybe String
 miniLeaguesLink []             = Nothing
-miniLeaguesLink ((name, _):ls) = Just $ (reduceName name) ++ ".html"
+miniLeaguesLink ((name, _):ls) = Just $ toHTMLFileName name
 
-processDataFile :: STGroup String -> Season -> IO ()
-processDataFile templateGroup season = do let dataFile = inputFile season
-                                          print $ "Processing " ++ dataFile
-                                          leagueData <- parseRLTFile dataFile 
-                                          generateStatsPages templateGroup (outputDir season) leagueData
+publishLeagues :: STGroup String -> Configuration -> IO ()
+publishLeagues templateGroup config = mapM_ (publishSeason templateGroup) $ concat $ map seasons $ concat $ map divisions (leagues config)
+
+publishSeason :: STGroup String -> Season -> IO ()
+publishSeason templateGroup season = do let dataFile = inputFile season
+                                        print $ "Processing " ++ dataFile
+                                        leagueData <- parseRLTFile dataFile 
+                                        generateStatsPages templateGroup (outputDir season) leagueData
 
 
