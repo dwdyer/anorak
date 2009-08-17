@@ -16,11 +16,28 @@ import Data.Time.Calendar(Day)
 import qualified Data.Map as Map(empty, fromAscList, map, toList)
 import List(isPrefixOf, isSuffixOf)
 import Monad(filterM)
-import System.Directory(createDirectoryIfMissing, copyFile, doesDirectoryExist, doesFileExist, getDirectoryContents)
+import System.Directory(createDirectoryIfMissing, doesDirectoryExist, doesFileExist, getDirectoryContents)
 import System.FilePath(combine, dropExtension, makeRelative, replaceDirectory)
 import Text.ParserCombinators.Parsec(ParseError)
 import Text.StringTemplate(getStringTemplate, setManyAttrib, STGroup, StringTemplate, stShowsToSE, toString)
-import Text.StringTemplate.Classes(ToSElem(toSElem), SElem(SM))
+import Text.StringTemplate.Classes(ToSElem(toSElem), SElem(SM, STR))
+
+instance ToSElem Configuration where
+    toSElem config = SM $ Map.fromAscList [("leagues", toSElem $ leagues config)]
+
+instance ToSElem League where
+    toSElem league = SM $ Map.fromAscList [("divisions", toSElem $ divisions league),
+                                           ("name", STR $ leagueName league)]
+                                           
+
+instance ToSElem Division where
+    toSElem division = SM $ Map.fromAscList [("name", STR $ divisionName division),
+                                             ("seasons", toSElem $ seasons division)]
+
+instance ToSElem Season where
+    toSElem season = SM $ Map.fromAscList [("link", STR $ relativeLink season),
+                                           ("name", STR $ seasonName season)]
+                                           
 
 instance ToSElem LeagueRecord where
     toSElem record = SM $ Map.fromAscList [("against", toSElem $ against record),
@@ -82,10 +99,6 @@ copyResources from to = do files <- getFiles from
                            let resources = filter (not . isSuffixOf ".st") files
                            createDirectoryIfMissing True to
                            mapM_ (copyToDirectory to) resources
-
--- | Copies an individual file to a new directory, retaining the original file name.
-copyToDirectory :: FilePath -> FilePath -> IO()
-copyToDirectory dir file = copyFile file (replaceDirectory file dir)
 
 -- | Generates an output file by applying a template with one or more attributes set.  The file's name is derived
 --   from the template name.
@@ -173,15 +186,15 @@ toHTMLFileName name = (map toLower $ filter (not.isSpace) name) ++ ".html"
 -- | Generates all stats pages for a given data file.  First parameter is a template group, second parameter is a pair of paths,
 --   the first is the path to the data file, the second is the path to the directory in which the pages will be created.
 generateStatsPages :: STGroup String -> FilePath -> LeagueData -> IO ()
-generateStatsPages templateGroup targetDir (LeagueData _ results adjustments miniLeagues) = do let teamResults = resultsByTeam results
-                                                                                                   link = miniLeaguesLink miniLeagues
-                                                                                               createDirectoryIfMissing True targetDir
-                                                                                               generateLeagueTables templateGroup targetDir teamResults adjustments link
-                                                                                               generateFormTables templateGroup targetDir teamResults link
-                                                                                               generateResultsList templateGroup targetDir (resultsByDate results) link
-                                                                                               generateSequences templateGroup targetDir teamResults link
-                                                                                               generateRecords templateGroup targetDir results link
-                                                                                               generateMiniLeagues templateGroup targetDir teamResults miniLeagues 
+generateStatsPages templateGroup targetDir (LeagueData _ results adj miniLeagues) = do let teamResults = resultsByTeam results
+                                                                                           link = miniLeaguesLink miniLeagues
+                                                                                       createDirectoryIfMissing True targetDir
+                                                                                       generateLeagueTables templateGroup targetDir teamResults adj link
+                                                                                       generateFormTables templateGroup targetDir teamResults link
+                                                                                       generateResultsList templateGroup targetDir (resultsByDate results) link
+                                                                                       generateSequences templateGroup targetDir teamResults link
+                                                                                       generateRecords templateGroup targetDir results link
+                                                                                       generateMiniLeagues templateGroup targetDir teamResults miniLeagues 
 
 -- | Determine which file the "Mini-Leagues" tab should link to (derived from the name of the first mini-league).
 --   If there are no mini-leagues then this function returns nothing and the tab should not be shown.
@@ -190,7 +203,8 @@ miniLeaguesLink []             = Nothing
 miniLeaguesLink ((name, _):ls) = Just $ toHTMLFileName name
 
 publishLeagues :: STGroup String -> Configuration -> IO ()
-publishLeagues templateGroup config = mapM_ (publishSeason templateGroup) $ concat $ map seasons $ concat $ map divisions (leagues config)
+publishLeagues templateGroup config = do applyTemplate templateGroup "selector.json" (outputRoot config) [("config", AV config)]
+                                         mapM_ (publishSeason templateGroup) $ concat $ map seasons $ concat $ map divisions (leagues config)
 
 publishSeason :: STGroup String -> Season -> IO ()
 publishSeason templateGroup season = do let dataFile = inputFile season
