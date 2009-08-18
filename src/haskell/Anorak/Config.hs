@@ -18,7 +18,7 @@ data Division = Division {divisionName :: String, seasons :: [Season]}
 data Season = Season {seasonName :: String,    -- ^ The name of the season (e.g. "1997/98").
                       inputFile :: FilePath,   -- ^ Path to the season's data file.
                       outputDir :: FilePath,   -- ^ The directory to write the generated files to.
-                      relativeLink :: FilePath -- ^ Link relative to the base directory.
+                      relativeLink :: FilePath -- ^ Link relative to the web root.
                      }
 
 -- | A ConfigurationException is thrown when there is a problem processing the XML configuration file.
@@ -37,13 +37,13 @@ convertXMLDocumentToConfig :: FilePath -> Element -> Configuration
 convertXMLDocumentToConfig configFile element = Configuration outputDir leagues
                                                 where outputDir = makeAbsolute (getAttributeValue element "output") (takeDirectory configFile)
                                                       inputDir = takeDirectory configFile
-                                                      leagues = map (processLeagueTag inputDir outputDir) $ findChildren (QName "league" Nothing Nothing) element
+                                                      leagues = map (processLeagueTag inputDir outputDir) $ findChildren (xmlName "league") element
 
 processLeagueTag :: FilePath -> FilePath -> Element -> League
-processLeagueTag baseDir outputDir tag = League (getAttributeValue tag "name") (map (processDivisionTag baseDir outputDir) $ findChildren (QName "division" Nothing Nothing) tag)
+processLeagueTag baseDir outputDir tag = League (getAttributeValue tag "name") (map (processDivisionTag baseDir outputDir) $ findChildren (xmlName "division") tag)
 
 processDivisionTag :: FilePath -> FilePath -> Element -> Division
-processDivisionTag baseDir outputDir tag = Division (getAttributeValue tag "name") (map (processSeasonTag baseDir outputDir) $ findChildren (QName "season" Nothing Nothing) tag)
+processDivisionTag baseDir outputDir tag = Division (getAttributeValue tag "name") (map (processSeasonTag baseDir outputDir) $ findChildren (xmlName "season") tag)
 
 processSeasonTag :: FilePath -> FilePath -> Element -> Season
 processSeasonTag baseDir outputDir tag = Season (getAttributeValue tag "name")
@@ -52,8 +52,12 @@ processSeasonTag baseDir outputDir tag = Season (getAttributeValue tag "name")
                                                 ("../../../" ++ seasonDir ++ "/overalltable.html")
                                          where seasonDir = getAttributeValue tag "output"
 
+-- | Simplifies the reading of XML attributes by assuming that the attribute is present.  Throws an exception if it is not.
 getAttributeValue :: Element -> String -> String
-getAttributeValue element name = case findAttr (QName name Nothing Nothing) element of
+getAttributeValue element name = case findAttr (xmlName name) element of
                                      Nothing    -> throw $ ConfigurationException $ "Missing attribute: " ++ name
                                      Just value -> value
 
+-- | Simple QNames.
+xmlName :: String -> QName
+xmlName name = QName name Nothing Nothing
