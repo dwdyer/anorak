@@ -1,5 +1,5 @@
 -- | Core functionality for the Anorak system.
-module Anorak.Results (awayWins, biggestWins, convertResult, form, highestAggregates, homeWins, Result(..), resultsByDate, resultsByTeam, splitHomeAndAway, Team, TeamResult(..)) where
+module Anorak.Results (aggregate, awayWins, biggestWins, convertResult, form, highestAggregates, homeWins, Result(..), resultsByDate, resultsByTeam, splitHomeAndAway, Team, TeamResult(..)) where
 
 import Anorak.Utils(takeAtLeast)
 import Data.Map(Map)

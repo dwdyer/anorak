@@ -161,6 +161,7 @@ generateRecords group dir results metaData = do let homeWinMatches = homeWins re
                                                     homeWinCount = length homeWinMatches
                                                     awayWinCount = length awayWinMatches
                                                     drawCount = matchCount - homeWinCount - awayWinCount
+                                                    goalCount = sum $ map aggregate results
                                                     highAggregates = highestAggregates results
                                                 applyTemplate group "records.html" dir [("matches", AV matchCount),
                                                                                         ("homeWins", AV homeWinCount),
@@ -169,6 +170,7 @@ generateRecords group dir results metaData = do let homeWinMatches = homeWins re
                                                                                         ("awayWinPercent", AV $ percentage awayWinCount matchCount),
                                                                                         ("draws", AV drawCount),
                                                                                         ("drawPercent", AV $ percentage drawCount matchCount),
+                                                                                        ("goals", AV goalCount),
                                                                                         ("bigHomeWins", AV $ biggestWins homeWinMatches),
                                                                                         ("bigAwayWins", AV $ biggestWins awayWinMatches),
                                                                                         ("highAggregates", AV highAggregates),
