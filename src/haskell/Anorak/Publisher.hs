@@ -135,11 +135,6 @@ generateFormTables group dir results metaData = do let splitResults = splitHomeA
                                                    applyTemplate group "homeformtable.html" dir (("table", AV $ formTable (Map.map fst splitResults) 4):attributes)
                                                    applyTemplate group "awayformtable.html" dir (("table", AV $ formTable (Map.map snd splitResults) 4):attributes)
 
-generateResultsList :: STGroup String -> FilePath -> Map Day [Result] -> MetaData -> IO ()
-generateResultsList group dir results metaData = applyTemplate group "results.html" dir [("results", AV $ reverse $ Map.toList results), -- Reverse to list most recent first.
-                                                                                         ("resultsSelected", AV True),
-                                                                                         ("metaData", AV metaData)]
-
 -- | Generates current and longest sequences for home, away and all matches.
 generateSequences :: STGroup String -> FilePath -> Map Team [Result] -> MetaData -> IO ()
 generateSequences group dir results metaData = do let (overallCurrent, overallLongest) = getSequences results
@@ -154,8 +149,8 @@ generateSequences group dir results metaData = do let (overallCurrent, overallLo
                                                   applyTemplate group "awaycurrentsequences.html" dir [("sequences", AV $ sequenceTables awayCurrent), ("currentSequencesSelected", AV True), attr]
                                                   applyTemplate group "awaylongestsequences.html" dir [("sequences", AV $ sequenceTables awayLongest), ("longestSequencesSelected", AV True), attr]
 
-generateRecords :: STGroup String -> FilePath -> [Result] -> MetaData -> IO ()
-generateRecords group dir results metaData = do let homeWinMatches = homeWins results
+generateResults :: STGroup String -> FilePath -> [Result] -> MetaData -> IO ()
+generateResults group dir results metaData = do let homeWinMatches = homeWins results
                                                     awayWinMatches = awayWins results
                                                     matchCount = length results
                                                     homeWinCount = length homeWinMatches
@@ -163,7 +158,8 @@ generateRecords group dir results metaData = do let homeWinMatches = homeWins re
                                                     drawCount = matchCount - homeWinCount - awayWinCount
                                                     goalCount = sum $ map aggregate results
                                                     highAggregates = highestAggregates results
-                                                applyTemplate group "records.html" dir [("matches", AV matchCount),
+                                                applyTemplate group "results.html" dir [("results", AV $ reverse $ Map.toList $ resultsByDate results), -- Reverse to list most recent first.
+                                                                                        ("matches", AV matchCount),
                                                                                         ("homeWins", AV homeWinCount),
                                                                                         ("homeWinPercent", AV $ percentage homeWinCount matchCount),
                                                                                         ("awayWins", AV awayWinCount),
@@ -174,7 +170,7 @@ generateRecords group dir results metaData = do let homeWinMatches = homeWins re
                                                                                         ("bigHomeWins", AV $ biggestWins homeWinMatches),
                                                                                         ("bigAwayWins", AV $ biggestWins awayWinMatches),
                                                                                         ("highAggregates", AV highAggregates),
-                                                                                        ("recordsSelected", AV True),
+                                                                                        ("resultsSelected", AV True),
                                                                                         ("metaData", AV metaData)]
 
 generateMiniLeagues :: STGroup String -> FilePath -> Map Team [Result] -> [(String, Set Team)] -> MetaData -> IO ()
@@ -203,9 +199,8 @@ generateStatsPages templateGroup targetDir (LeagueData _ results adj miniLeagues
                                                                                                 createDirectoryIfMissing True targetDir
                                                                                                 generateLeagueTables templateGroup targetDir teamResults adj metaData
                                                                                                 generateFormTables templateGroup targetDir teamResults metaData
-                                                                                                generateResultsList templateGroup targetDir (resultsByDate results) metaData
+                                                                                                generateResults templateGroup targetDir results metaData
                                                                                                 generateSequences templateGroup targetDir teamResults metaData
-                                                                                                generateRecords templateGroup targetDir results metaData
                                                                                                 generateMiniLeagues templateGroup targetDir teamResults miniLeagues metaData
 
 -- | Determine which file the "Mini-Leagues" tab should link to (derived from the name of the first mini-league).
