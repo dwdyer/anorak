@@ -33,7 +33,7 @@ sequenceTable sequences seqType = sortSequences $ Map.toList (Map.map (flip (!) 
 
 -- | Sort a sequence table.
 sortSequences :: [(Team, Seq TeamResult)] -> [(Team, Seq TeamResult)]
-sortSequences seq = sortBy compareSequence (filter (not.Seq.null.snd) seq)
+sortSequences = sortBy compareSequence . filter (not.Seq.null.snd)
 
 -- | Comparator for a list of sequences, longest first.
 compareSequence :: (Team, Seq TeamResult) -> (Team, Seq TeamResult) -> Ordering
@@ -49,11 +49,11 @@ getSequences results = (Map.map (Map.map fst) teamSequences, Map.map (Map.map sn
 -- | Calculate current and longest sequences for each team.
 sequencesByTeam :: Map Team [Result] -> Map Team CombinedTeamSequences
 sequencesByTeam results = Map.map sequences teamResults
-                          where teamResults = (Map.mapWithKey (\t rs -> map (convertResult t) rs) results)
+                          where teamResults = Map.mapWithKey (map . convertResult) results
 
 -- | Calculate current and longest sequences for a team given their results.
 sequences :: [TeamResult] -> CombinedTeamSequences
-sequences results = foldl addResultToAllSequences emptySequences results
+sequences = foldl addResultToAllSequences emptySequences
 
 -- | Create an empty CombinedTeamSequences structure.
 emptySequences:: CombinedTeamSequences
@@ -84,7 +84,7 @@ addResultToSequences result NoGoal sequences      = addMatchingResultToSequences
 
 addMatchingResultToSequences :: TeamResult -> (TeamResult -> Bool) -> (Seq TeamResult, Seq TeamResult) -> (Seq TeamResult, Seq TeamResult)
 addMatchingResultToSequences result predicate (current, overall)
-    | (predicate result) = (updated, if Seq.length updated > Seq.length overall then updated else overall)
-    | otherwise          = (Seq.empty, overall)
+    | predicate result = (updated, if Seq.length updated > Seq.length overall then updated else overall)
+    | otherwise        = (Seq.empty, overall)
     where updated = current |> result
 

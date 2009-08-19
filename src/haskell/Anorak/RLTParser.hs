@@ -54,7 +54,7 @@ record = do fields <- sepBy1 field (char '|')
                 (date:hTeam:hGoals:aTeam:aGoals:_) -> return $ Fixture $ Result day hTeam (read hGoals) aTeam (read aGoals)
                                                       -- RLT dates are 8-character strings in DDMMYYYY format.
                                                       where day = readTime defaultTimeLocale "%d%m%Y" date
-                otherwise                          -> fail $ "Unexpected input: " ++ (concat $ intersperse "|" fields)
+                otherwise                          -> fail $ "Unexpected input: " ++ concat (intersperse "|" fields)
 
 -- | A field is one or more characters (not including pipes and newlines).
 field :: Parser String
@@ -69,15 +69,15 @@ comment = do char '#'
 -- | Takes a list of parsed items and discards comments and meta-data.  The remaining items are separated into a list
 --   of results and a map of net points adjustments by team.
 extractData :: [Item] -> LeagueData
-extractData []                             = (LeagueData Set.empty [] Map.empty []) 
-extractData (Fixture result:items)         = (LeagueData (addTeams result t) (result:r) a m) where (LeagueData t r a m) = extractData items
-extractData (Adjustment team amount:items) = (LeagueData t r (Map.insertWith (+) team amount a) m) where (LeagueData t r a m) = extractData items
-extractData (MiniLeague name teams:items)  = (LeagueData t r a ((name, teams):m)) where (LeagueData t r a m) = extractData items
+extractData []                             = LeagueData Set.empty [] Map.empty []
+extractData (Fixture result:items)         = LeagueData (addTeams result t) (result:r) a m where (LeagueData t r a m) = extractData items
+extractData (Adjustment team amount:items) = LeagueData t r (Map.insertWith (+) team amount a) m where (LeagueData t r a m) = extractData items
+extractData (MiniLeague name teams:items)  = LeagueData t r a ((name, teams):m) where (LeagueData t r a m) = extractData items
 extractData (_:items)                      = extractData items -- Discard metadata.
 
 -- | Adds the home team and away team from a match to the set of all teams (if they are not already present).
 addTeams :: Result -> Set Team -> Set Team
-addTeams result set = Set.insert (awayTeam result) (Set.insert (homeTeam result) set)
+addTeams result = Set.insert (awayTeam result) . Set.insert (homeTeam result)
 
 -- | Parses the specified RLT file and returns a list of teams, a list of results, a map of any points adjustments,
 --   and a list of any configured mini-leagues (each represented by name/teams pair).

@@ -88,8 +88,7 @@ getFiles :: FilePath -> IO [FilePath]
 getFiles dir = do contents <- getDirectoryContents dir
                   let visible = filter (not . isPrefixOf ".") contents -- Exclude hidden files/directories.
                       absolute = map (combine dir) visible -- Use qualified paths.
-                  files <- filterM (doesFileExist) absolute -- Exclude directories.
-                  return files
+                  filterM doesFileExist absolute -- Exclude directories.
 
 -- | Returns a list of sub-directories (excluding those that are hidden)  in the specified directory.  The returned paths
 --   are fully-qualified.
@@ -97,8 +96,7 @@ getSubDirectories :: FilePath -> IO [FilePath]
 getSubDirectories dir = do contents <- getDirectoryContents dir
                            let visible = filter (not . isPrefixOf ".") contents -- Exclude hidden files/directories.
                                absolute = map (combine dir) visible -- Use qualified paths.
-                           directories <- filterM (doesDirectoryExist) absolute -- Exclude files (non-directories).
-                           return directories
+                           filterM doesDirectoryExist absolute -- Exclude files (non-directories).
 
 -- | Copies all non-template files from the source directory to the target directory.  Used for making sure that CSS
 --   files and images (if any) are deployed with the generated HTML.  If the target directory does not exist it is
@@ -112,7 +110,7 @@ copyResources from to = do files <- getFiles from
 -- | Generates an output file by applying a template with one or more attributes set.  The file's name is derived
 --   from the template name.
 applyTemplate :: STGroup String -> FilePath -> FilePath -> [(String, AttributeValue)] -> IO ()
-applyTemplate group templateName dir attributes = applyTemplateWithName group templateName dir templateName attributes 
+applyTemplate group templateName dir = applyTemplateWithName group templateName dir templateName
 
 applyTemplateWithName :: STGroup String -> FilePath -> FilePath -> FilePath -> [(String, AttributeValue)] -> IO ()
 applyTemplateWithName group templateName dir fileName attributes = case getStringTemplate templateName group of
@@ -189,7 +187,7 @@ generateMiniLeague group dir results tabs metaData (name, teams) = do let select
 
 -- | Convert a string for use as a filename (converts to lower case and eliminates whitespace).
 toHTMLFileName :: String -> String
-toHTMLFileName name = (map toLower $ filter (not.isSpace) name) ++ ".html"
+toHTMLFileName name = map toLower (filter (not.isSpace) name) ++ ".html"
 
 -- | Generates all stats pages for a given data file.  First parameter is a template group, second parameter is a pair of paths,
 --   the first is the path to the data file, the second is the path to the directory in which the pages will be created.
