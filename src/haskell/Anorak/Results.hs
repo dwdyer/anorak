@@ -18,17 +18,13 @@ import System.Locale(defaultTimeLocale)
 -- | A team is represented simply by its name.
 type Team = String
 
--- Day needs to be an instance of both Data and Typeable to be used in other types that derive those classes.
---deriving instance Data Day
---deriving instance Typeable Day
-
 -- | A match result consists of a date, two teams and the goals scored by each.
 data Result = Result {date :: Day,      -- ^ The day that the match was played.
                       homeTeam :: Team, -- ^ The team playing at home.
                       homeGoals :: Int, -- ^ The number of goals scored by the home team.
                       awayTeam :: Team, -- ^ The visiting team.
                       awayGoals :: Int  -- ^ The number of goals scored by the away team.
-                     } -- deriving (Data, Typeable)
+                     }
 instance Show Result where
     show result = formatTime defaultTimeLocale "%e %b %Y: " (date result) ++
                   homeTeam result ++ " " ++
@@ -55,7 +51,7 @@ data TeamResult = TeamResult {day :: Day,
                               venue :: Char,
                               scored :: Int,
                               conceded :: Int,
-                              outcome :: Char} -- deriving (Data, Typeable)
+                              outcome :: Char}
 instance Show TeamResult where
     show result = formatTime defaultTimeLocale "%e %b %Y: " (day result) ++
                   opposition result ++ "(" ++ [venue result] ++ ") " ++ [outcome result] ++ " " ++
