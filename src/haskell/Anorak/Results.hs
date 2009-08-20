@@ -1,18 +1,26 @@
+{-# LANGUAGE DeriveDataTypeable #-}
+
 -- | Core functionality for the Anorak system.
 module Anorak.Results (aggregate, awayWins, biggestWins, convertResult, form, highestAggregates, homeWins, Result(..), resultsByDate, resultsByTeam, splitHomeAndAway, Team, TeamResult(..)) where
 
 import Anorak.Utils(takeAtLeast)
+import Data.Data(Data)
 import Data.Map(Map)
 import qualified Data.Map as Map(elems, empty, filterWithKey, findWithDefault, insertWith, map, mapWithKey)
 import Data.Set(Set)
 import qualified Data.Set as Set(member)
-import Data.Time.Calendar(Day)
+import Data.Time.Calendar(Day(..))
 import Data.Time.Format(formatTime)
+import Data.Typeable(Typeable)
 import List(groupBy, partition, sort, sortBy)
 import System.Locale(defaultTimeLocale)
 
 -- | A team is represented simply by its name.
 type Team = String
+
+-- Day needs to be an instance of both Data and Typeable to be used in other types that derive those classes.
+--deriving instance Data Day
+--deriving instance Typeable Day
 
 -- | A match result consists of a date, two teams and the goals scored by each.
 data Result = Result {date :: Day,      -- ^ The day that the match was played.
@@ -20,7 +28,7 @@ data Result = Result {date :: Day,      -- ^ The day that the match was played.
                       homeGoals :: Int, -- ^ The number of goals scored by the home team.
                       awayTeam :: Team, -- ^ The visiting team.
                       awayGoals :: Int  -- ^ The number of goals scored by the away team.
-                     }
+                     } -- deriving (Data, Typeable)
 instance Show Result where
     show result = formatTime defaultTimeLocale "%e %b %Y: " (date result) ++
                   homeTeam result ++ " " ++
@@ -47,7 +55,7 @@ data TeamResult = TeamResult {day :: Day,
                               venue :: Char,
                               scored :: Int,
                               conceded :: Int,
-                              outcome :: Char}
+                              outcome :: Char} -- deriving (Data, Typeable)
 instance Show TeamResult where
     show result = formatTime defaultTimeLocale "%e %b %Y: " (day result) ++
                   opposition result ++ "(" ++ [venue result] ++ ") " ++ [outcome result] ++ " " ++

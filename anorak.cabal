@@ -16,4 +16,3 @@ Executable anorak
     Other-Modules:      Anorak.Config, Anorak.Utils, Anorak.Results, Anorak.RLTParser, Anorak.Sequences, Anorak.Tables, Anorak.Publisher
     Build-Depends:      base, containers, directory, filepath, haskell98, HStringTemplate >= 0.4.2, old-locale, parsec, time, xml
     Hs-Source-Dirs:     src/haskell
-

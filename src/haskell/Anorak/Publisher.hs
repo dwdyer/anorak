@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE ExistentialQuantification #-}
 
 -- | HTML publishing module for the Anorak system.
@@ -10,32 +11,20 @@ import Anorak.Sequences
 import Anorak.Tables
 import Anorak.Utils
 import Char(isSpace, toLower)
+import Data.Data(Data)
 import Data.Map(Map)
+import qualified Data.Map as Map(empty, fromAscList, map, toList)
 import Data.Set(Set)
 import Data.Time.Calendar(Day)
-import qualified Data.Map as Map(empty, fromAscList, map, toList)
+import Data.Typeable(Typeable)
 import List(isPrefixOf, isSuffixOf)
 import Monad(filterM)
 import System.Directory(createDirectoryIfMissing, doesDirectoryExist, doesFileExist, getDirectoryContents)
 import System.FilePath(combine, dropExtension, makeRelative, replaceDirectory)
 import Text.ParserCombinators.Parsec(ParseError)
 import Text.StringTemplate(getStringTemplate, setManyAttrib, STGroup, StringTemplate, stShowsToSE, toString)
-import Text.StringTemplate.Classes(ToSElem(toSElem), SElem(SM, STR))
-
-instance ToSElem Configuration where
-    toSElem config = SM $ Map.fromAscList [("leagues", toSElem $ leagues config)]
-
-instance ToSElem League where
-    toSElem league = SM $ Map.fromAscList [("divisions", toSElem $ divisions league),
-                                           ("name", STR $ leagueName league)]
-
-instance ToSElem Division where
-    toSElem division = SM $ Map.fromAscList [("name", STR $ divisionName division),
-                                             ("seasons", toSElem $ seasons division)]
-
-instance ToSElem Season where
-    toSElem season = SM $ Map.fromAscList [("link", STR $ relativeLink season),
-                                           ("name", STR $ seasonName season)]
+import Text.StringTemplate.Classes(ToSElem(toSElem), SElem(SM))
+import Text.StringTemplate.GenericStandard
 
 instance ToSElem LeagueRecord where
     toSElem record = SM $ Map.fromAscList [("against", toSElem $ against record),
@@ -50,7 +39,6 @@ instance ToSElem LeagueRecord where
                                            ("positiveGD", toSElem $ goalDiff record > 0), -- Goal difference could be neither +ve or -ve (i.e. zero).
                                            ("team", toSElem $ team record),
                                            ("won", toSElem $ won record)]
-
 instance ToSElem Result where
     toSElem result = SM $ Map.fromAscList [("awayGoals", toSElem $ awayGoals result),
                                            ("awayTeam", toSElem $ awayTeam result),
@@ -75,12 +63,7 @@ instance ToSElem AttributeValue where
 data MetaData = MetaData {league :: String,
                           division :: String,
                           season :: String,
-                          miniLeaguesLink :: Maybe String}
-instance ToSElem MetaData where
-    toSElem meta = SM $ Map.fromAscList [("division", STR $ division meta),
-                                         ("league", STR $ league meta),
-                                         ("miniLeaguesLink", toSElem $ miniLeaguesLink meta),
-                                         ("season", STR $ season meta)]
+                          miniLeaguesLink :: Maybe String} deriving (Data, Typeable)
 
 -- | Returns a list of files (excluding sub-directories and hidden files)  in the specified directory.  The returned paths
 --   are fully-qualified.
