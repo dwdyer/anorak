@@ -56,7 +56,7 @@ processSeasonTag baseDir outputDir tag = Season (getAttributeValue tag "name")
 -- | Simplifies the reading of XML attributes by assuming that the attribute is present.  Throws an exception if it is not.
 getAttributeValue :: Element -> String -> String
 getAttributeValue element name = case findAttr (xmlName name) element of
-                                     Nothing    -> throw $ ConfigurationException $ "Missing attribute: " ++ name
+                                     Nothing    -> throw . ConfigurationException $ "Missing attribute: " ++ name
                                      Just value -> value
 
 -- | Simple QNames.

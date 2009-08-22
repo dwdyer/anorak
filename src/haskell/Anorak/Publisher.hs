@@ -13,7 +13,7 @@ import Anorak.Utils
 import Char(isSpace, toLower)
 import Data.Data(Data)
 import Data.Map(Map)
-import qualified Data.Map as Map(empty, fromAscList, map, toList)
+import qualified Data.Map as Map(assocs, empty, fromAscList, map, toList)
 import Data.Set(Set)
 import Data.Time.Calendar(Day)
 import Data.Typeable(Typeable)
@@ -23,7 +23,7 @@ import System.Directory(createDirectoryIfMissing, doesDirectoryExist, doesFileEx
 import System.FilePath(combine, dropExtension, makeRelative, replaceDirectory)
 import Text.ParserCombinators.Parsec(ParseError)
 import Text.StringTemplate(getStringTemplate, setManyAttrib, STGroup, StringTemplate, stShowsToSE, toString)
-import Text.StringTemplate.Classes(ToSElem(toSElem), SElem(SM))
+import Text.StringTemplate.Classes(ToSElem(toSElem), SElem(SM, STR))
 import Text.StringTemplate.GenericStandard
 
 instance ToSElem LeagueRecord where
@@ -37,7 +37,8 @@ instance ToSElem LeagueRecord where
                                            ("played", toSElem $ played record),
                                            ("points", toSElem $ points record),
                                            ("positiveGD", toSElem $ goalDiff record > 0), -- Goal difference could be neither +ve or -ve (i.e. zero).
-                                           ("team", toSElem $ team record),
+                                           ("team", STR $ team record),
+                                           ("teamLink", STR . toHTMLFileName $ team record),
                                            ("won", toSElem $ won record)]
 instance ToSElem Result where
     toSElem result = SM $ Map.fromAscList [("awayGoals", toSElem $ awayGoals result),
@@ -139,7 +140,7 @@ generateResults group dir results metaData = do let homeWinMatches = homeWins re
                                                     drawCount = matchCount - homeWinCount - awayWinCount
                                                     goalCount = sum $ map aggregate results
                                                     highAggregates = highestAggregates results
-                                                applyTemplate group "results.html" dir [("results", AV $ reverse $ Map.toList $ resultsByDate results), -- Reverse to list most recent first.
+                                                applyTemplate group "results.html" dir [("results", AV $ reverse . Map.toList $ resultsByDate results), -- Reverse to list most recent first.
                                                                                         ("matches", AV matchCount),
                                                                                         ("homeWins", AV homeWinCount),
                                                                                         ("homeWinPercent", AV $ percentage homeWinCount matchCount),
@@ -166,7 +167,16 @@ generateMiniLeague group dir results tabs metaData (name, teams) = do let select
                                                                                         ("bottomTabs", AV selectedTabs),
                                                                                         ("metaData", AV metaData)]
                                                                       applyTemplateWithName group "minileague.html" dir (toHTMLFileName name) attributes
-                                                             
+
+generateTeamPages :: STGroup String -> FilePath -> Map Team [Result] -> MetaData -> IO ()
+generateTeamPages group dir teamResults metaData = mapM_ (uncurry $ generateTeamPage group dir metaData) (Map.assocs teamResults)
+
+-- | Generate the overview page for an individual team.
+generateTeamPage :: STGroup String -> FilePath -> MetaData -> Team -> [Result] -> IO ()
+generateTeamPage group dir metaData team results = do let attributes = [("team", AV team),
+                                                                        ("results", AV $ map (convertResult team) results),
+                                                                        ("metaData", AV metaData)]
+                                                      applyTemplateWithName group "team.html" dir (toHTMLFileName team) attributes
 
 -- | Convert a string for use as a filename (converts to lower case and eliminates whitespace).
 toHTMLFileName :: String -> String
@@ -183,6 +193,7 @@ generateStatsPages templateGroup targetDir (LeagueData _ results adj miniLeagues
                                                                                                 generateResults templateGroup targetDir results metaData
                                                                                                 generateSequences templateGroup targetDir teamResults metaData
                                                                                                 generateMiniLeagues templateGroup targetDir teamResults miniLeagues metaData
+                                                                                                generateTeamPages templateGroup targetDir teamResults metaData
 
 -- | Determine which file the "Mini-Leagues" tab should link to (derived from the name of the first mini-league).
 --   If there are no mini-leagues then this function returns nothing and the tab should not be shown.
