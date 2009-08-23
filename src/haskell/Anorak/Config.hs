@@ -50,7 +50,7 @@ processSeasonTag :: FilePath -> FilePath -> Element -> Season
 processSeasonTag baseDir outputDir tag = Season (getAttributeValue tag "name")
                                                 (makeAbsolute (getAttributeValue tag "input") baseDir)
                                                 (makeAbsolute seasonDir outputDir)
-                                                ("../../../" ++ seasonDir ++ "/overalltable.html")
+                                                ("../../../" ++ seasonDir ++ "/index.html")
                                          where seasonDir = getAttributeValue tag "output"
 
 -- | Simplifies the reading of XML attributes by assuming that the attribute is present.  Throws an exception if it is not.

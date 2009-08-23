@@ -106,14 +106,14 @@ applyTemplateWithName group templateName dir fileName attributes = case getStrin
 generateLeagueTables :: STGroup String -> FilePath -> Map Team [Result] -> Map Team Int -> MetaData -> IO ()
 generateLeagueTables group dir results adjustments metaData = do let splitResults = splitHomeAndAway results
                                                                      attributes = [("tableSelected", AV True), ("metaData", AV metaData)]
-                                                                 applyTemplate group "overalltable.html" dir (("table", AV $ leagueTable results adjustments):attributes)
+                                                                 applyTemplateWithName group "table.html" dir "index.html" (("table", AV $ leagueTable results adjustments):attributes)
                                                                  applyTemplate group "hometable.html" dir (("table", AV $ leagueTable (Map.map fst splitResults) Map.empty):attributes)
                                                                  applyTemplate group "awaytable.html" dir (("table", AV $ leagueTable (Map.map snd splitResults) Map.empty):attributes)
 
 generateFormTables :: STGroup String -> FilePath -> Map Team [Result] -> MetaData -> IO ()
 generateFormTables group dir results metaData = do let splitResults = splitHomeAndAway results
                                                        attributes = [("formSelected", AV True), ("metaData", AV metaData)]
-                                                   applyTemplate group "overallformtable.html" dir (("table", AV $ formTable results 6):attributes)
+                                                   applyTemplate group "formtable.html" dir (("table", AV $ formTable results 6):attributes)
                                                    applyTemplate group "homeformtable.html" dir (("table", AV $ formTable (Map.map fst splitResults) 4):attributes)
                                                    applyTemplate group "awayformtable.html" dir (("table", AV $ formTable (Map.map snd splitResults) 4):attributes)
 
@@ -124,8 +124,8 @@ generateSequences group dir results metaData = do let (overallCurrent, overallLo
                                                       (homeCurrent, homeLongest) = getSequences $ Map.map fst splitResults
                                                       (awayCurrent, awayLongest) = getSequences $ Map.map snd splitResults
                                                       attr = ("metaData", AV metaData)
-                                                  applyTemplate group "overallcurrentsequences.html" dir [("sequences", AV $ sequenceTables overallCurrent), ("currentSequencesSelected", AV True), attr]
-                                                  applyTemplate group "overalllongestsequences.html" dir [("sequences", AV $ sequenceTables overallLongest), ("longestSequencesSelected", AV True), attr]
+                                                  applyTemplate group "currentsequences.html" dir [("sequences", AV $ sequenceTables overallCurrent), ("currentSequencesSelected", AV True), attr]
+                                                  applyTemplate group "longestsequences.html" dir [("sequences", AV $ sequenceTables overallLongest), ("longestSequencesSelected", AV True), attr]
                                                   applyTemplate group "homecurrentsequences.html" dir [("sequences", AV $ sequenceTables homeCurrent), ("currentSequencesSelected", AV True), attr]
                                                   applyTemplate group "homelongestsequences.html" dir [("sequences", AV $ sequenceTables homeLongest), ("longestSequencesSelected", AV True), attr]
                                                   applyTemplate group "awaycurrentsequences.html" dir [("sequences", AV $ sequenceTables awayCurrent), ("currentSequencesSelected", AV True), attr]
