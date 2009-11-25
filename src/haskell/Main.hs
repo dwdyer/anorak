@@ -5,8 +5,7 @@ import Anorak.Publisher
 import System(getArgs)
 import Text.StringTemplate(directoryGroup, STGroup)
 
--- | Expects three arguments - the path to the XML config file, the path to the templates directory and the path to the
---   output directory.
+-- | Expects two arguments - the path to the XML config file and the path to the templates directory.
 main :: IO ()
 main = do [configFile, templateDir] <- getArgs
           config <- readConfig configFile

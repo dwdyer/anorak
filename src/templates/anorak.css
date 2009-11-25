@@ -1,0 +1,77 @@
+*                        {padding: 0; margin: 0;}
+html                     {min-height: 100%;}
+body                     {font-family: sans-serif; font-size: 62.5%; line-height: 1.8em; min-height: 100%;}
+h2                       {font-family: serif; font-size: 2.7em; margin-bottom: .6666em;}
+h3                       {font-family: serif; font-size: 1.8em; margin-bottom: 1.286em;}
+p                        {font-size: 1.3em; margin-bottom: 1.385em;}
+table                    {font-size: 1.3em; border-spacing: 0; margin-bottom: 1.385em;}
+table table              {font-size: inherit;}
+table h3                 {font-family: serif; font-size: 1.385em; margin-bottom: 0;}
+td                       {margin-bottom: 1.385em;}
+th                       {margin-bottom: 1.385em;}
+
+/* General */
+#container               {position: absolute; min-height: 100%; min-width: 100%;}
+#centre                  {width: 930px; margin-left: auto; margin-right: auto; margin-top: 5em; padding-right: 3em; padding-left: 1em;}
+#selector                {padding: 1em; float: right; font-size: 1.3em; vertical-align: middle; text-align: left;}
+#content                 {position: relative; padding: 3.6em 3em; background: #ffffff;}
+.clearFloat              {clear: both; display: block; visibility: hidden;}
+
+
+/* Tabs */
+#toptabs                 {font-size: 1.4em; padding: 0 1em; margin-top: 1.286em; border-bottom: 1px solid #333333; clear: both;}
+#toptabs .tab            {padding: .15em 1em; border-bottom: 0; margin-bottom: -1px;}
+#toptabs .selectedtab    {border-bottom: 1px solid #ffffff;}
+#bottomtabs              {font-size: 1.2em; padding: 0 1em; margin-bottom: 1.5em; border-top: 1px solid #333333;}
+#bottomtabs .tab         {padding: 0 1em; border-top: 0; margin-top: -1px;}
+#bottomtabs .selectedtab {border-top: 1px solid #ffffff;}
+.tab                     {font-family: sans-serif; position: relative; display: inline-block; background: #eeeeee; border: 1px solid #333333;}
+.tab a                   {font-weight: bold; text-decoration: none; color: #000000;}
+.tab a:hover             {text-decoration: none;} 
+.tab a:visited           {color: #000000;}
+.selectedtab             {background: #ffffff;}
+
+
+/* League/form tables */
+.matchday                {font-weight: bold;}
+.form                    {font-family: monospace; text-align: center; padding: 0 1em;}
+.date                    {padding-right: 1em; white-space: nowrap;}
+.details                 {color: #000000; background-color: #eeeeee; border: 1px solid #cccccc; font-family: sans-serif; padding: .5em; text-align: left; font-weight: normal;
+                          display: none; position: absolute; margin-left: 3.5em; margin-top: -1em;}
+.details table           {margin: 0; padding: 0 !important}
+.details .score          {padding: 0px}
+.hover .details          {display: block;}
+.hometeam                {text-align: right;}
+.hotspot                 {border-bottom: 1px dotted #888888;}
+.hover                   {color: #0000ff;}
+.negative                {color: #660000;}
+.number                  {text-align: right; padding: 0 1em;}
+.number .details         {margin-left: 2.5em;}
+.opposition              {padding: 0 1em;}
+.outcome                 {font-family: monospace; text-align: center; padding-left: .5em;}
+.points                  {font-weight: bold;}
+.position                {padding-right: 1em;}
+.positive                {color: #006600;}
+.score                   {font-weight: bold; padding: 0 1em; white-space: nowrap;}
+
+
+/* Sequences */
+.sequences               {margin-bottom: 1.385em;}
+.sequence                {vertical-align: top; width: 33.33%; white-space: nowrap;}
+.sequence table          {width: 100%; padding-right: 1em;}
+.sequence table .number  {width: 3em; font-weight: bold;}
+.mainsequences           {border-bottom: 1px solid #000000;}
+
+
+/* Results/Records */
+#results td              {vertical-align: top;}
+#resultsPie              {float: right;}
+#records                 {padding-left: 1.5em; margin-left: 1.5em; border-left: 1px solid #000000;}
+.record                  {text-align: left;}
+#totals .number          {font-weight: bold;}
+
+
+/* Sortables */
+.sortable th             {cursor: pointer;}
+th.sorttable_nosort      {cursor: default;}
+
