@@ -1,15 +1,22 @@
 module Main where
 
-import Anorak.Config(readConfig, outputRoot)
+import Anorak.Config(Configuration, outputRoot, readConfig)
+import Anorak.FeatureExtractor(generateFeatures)
 import Anorak.Publisher
 import System(getArgs)
 import Text.StringTemplate(directoryGroup, STGroup)
 
--- | Expects two arguments - the path to the XML config file and the path to the templates directory.
+-- | First argument is the command.  Any subsequent arguments are command-specific.
 main :: IO ()
-main = do [configFile, templateDir] <- getArgs
-          config <- readConfig configFile
-          group <- directoryGroup templateDir :: IO (STGroup String)
-          copyResources templateDir (outputRoot config)
-          publishLeagues group config
+main = do (command:parameters) <- getArgs
+          case command of
+            "publish"  -> publish (parameters !! 0) (parameters !! 1)
+            "features" -> generateFeatures (parameters !! 0)
+            otherwise  -> print $ "Unknown option: " ++ command
 
+-- | Publish HTML pages for the configured data files, using the templates in the specified directory.
+publish :: FilePath -> FilePath -> IO ()
+publish configFile templateDir = do config <- readConfig configFile
+                                    group <- directoryGroup templateDir :: IO (STGroup String)
+                                    copyResources templateDir (outputRoot config)
+                                    publishLeagues group config

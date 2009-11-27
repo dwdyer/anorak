@@ -20,6 +20,6 @@ source-repository head
 
 executable anorak
     main-is:            Main.hs
-    other-modules:      Anorak.Config, Anorak.Utils, Anorak.Results, Anorak.RLTParser, Anorak.Sequences, Anorak.Tables, Anorak.Publisher
+    other-modules:      Anorak.Config, Anorak.Utils, Anorak.Results, Anorak.RLTParser, Anorak.Sequences, Anorak.Tables, Anorak.Publisher, Anorak.FeatureExtractor
     build-depends:      base, containers, directory, filepath, haskell98, HStringTemplate >= 0.4.2, old-locale, parsec, time, xml
     hs-source-dirs:     src/haskell
