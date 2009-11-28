@@ -7,6 +7,7 @@ import Anorak.Utils(takeAtLeast)
 import Data.Data(Data)
 import Data.Map(Map)
 import qualified Data.Map as Map(elems, empty, filterWithKey, findWithDefault, insertWith, map, mapWithKey)
+import Data.Ord(comparing)
 import Data.Set(Set)
 import qualified Data.Set as Set(member)
 import Data.Time.Calendar(Day(..))
@@ -37,8 +38,8 @@ instance Eq Result where
                            && awayTeam result1 == awayTeam result2
 instance Ord Result where
     compare result1 result2
-        | date result1 == date result2 = compare (homeTeam result1) (homeTeam result2)
-        | otherwise                    = compare (date result1) (date result2)
+        | date result1 == date result2 = comparing homeTeam result1 result2
+        | otherwise                    = comparing date result1 result2
 
 -- | Returns the match aggregate (total number of goals).
 aggregate :: Result -> Int
@@ -107,9 +108,9 @@ awayWins = filter (\r -> homeGoals r < awayGoals r)
 
 biggestWins :: [Result] -> [Result]
 biggestWins results = takeAtLeast 3 $ groupBy (\r1 r2 -> margin r1 == margin r2) sortedResults
-                      where sortedResults = sortBy (\r1 r2 -> compare (margin r2) (margin r1)) results
+                      where sortedResults = sortBy (\r1 r2 -> comparing margin r2 r1) results
 
 highestAggregates :: [Result] -> [Result]
 highestAggregates results = takeAtLeast 3 $ groupBy (\r1 r2 -> aggregate r1 == aggregate r2) sortedResults
-                            where sortedResults = sortBy (\r1 r2 -> compare (aggregate r2) (aggregate r1)) results
+                            where sortedResults = sortBy (\r1 r2 -> comparing aggregate r2 r1) results
 

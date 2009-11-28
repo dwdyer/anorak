@@ -10,8 +10,8 @@ import Text.StringTemplate(directoryGroup, STGroup)
 main :: IO ()
 main = do (command:parameters) <- getArgs
           case command of
-            "publish"  -> publish (parameters !! 0) (parameters !! 1)
-            "features" -> generateFeatures (parameters !! 0)
+            "publish"  -> publish (head parameters) (parameters !! 1)
+            "features" -> generateFeatures $ head parameters
             otherwise  -> print $ "Unknown option: " ++ command
 
 -- | Publish HTML pages for the configured data files, using the templates in the specified directory.

@@ -5,6 +5,7 @@ import Anorak.Results
 import Anorak.Utils(keep)
 import Data.Map(Map)
 import qualified Data.Map as Map(elems, empty, filterWithKey, findWithDefault, map, mapWithKey)
+import Data.Ord(comparing)
 import Data.Set(Set)
 import qualified Data.Set as Set(member)
 import List(sort)
@@ -40,10 +41,10 @@ instance Eq LeagueRecord where
                            && won record1 == won record2
 instance Ord LeagueRecord where
     compare record1 record2
-        | points record1 /= points record2     = compare (points record2) (points record1)
-        | goalDiff record1 /= goalDiff record2 = compare (goalDiff record2) (goalDiff record1)
-        | for record1 /= for record2           = compare (for record2) (for record1)
-        | won record1 /= won record2           = compare (won record2) (won record1)
+        | points record1 /= points record2     = comparing points record2 record1
+        | goalDiff record1 /= goalDiff record2 = comparing goalDiff record2 record1
+        | for record1 /= for record2           = comparing for record2 record1
+        | won record1 /= won record2           = comparing won record2 record1
         | otherwise                            = EQ
 
 -- | Calculates the total number of matches played (the sum or wins, draws and defeats).

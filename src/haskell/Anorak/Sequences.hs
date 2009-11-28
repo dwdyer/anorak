@@ -4,6 +4,7 @@ module Anorak.Sequences (getSequences, sequenceTables) where
 import Anorak.Results
 import Data.Map(Map, (!))
 import qualified Data.Map as Map(fromList, map, mapWithKey, toList)
+import Data.Ord(comparing)
 import Data.Sequence(Seq, (|>))
 import qualified Data.Sequence as Seq(empty, length, null)
 import List(sortBy)
@@ -39,7 +40,7 @@ sortSequences = sortBy compareSequence . filter (not.Seq.null.snd)
 compareSequence :: (Team, Seq TeamResult) -> (Team, Seq TeamResult) -> Ordering
 compareSequence (t1, s1) (t2, s2)
     | Seq.length s1 == Seq.length s2 = compare t1 t2
-    | otherwise                      = compare (Seq.length s2) (Seq.length s1)
+    | otherwise                      = comparing Seq.length s2 s1
 
 -- | Given a map of results by team, calculate the current and longest sequences for each team.
 getSequences :: Map Team [Result] -> (Map Team TeamSequences, Map Team TeamSequences)

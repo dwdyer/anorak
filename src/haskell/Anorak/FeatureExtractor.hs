@@ -18,7 +18,7 @@ data TeamFeatures = TeamFeatures {winRate :: Double,
                                   concedeRate :: Double}
 -- | Team features are written out as tab-separted data with 4 columns: win rate, draw rate, score rate and concede rate.
 instance Show TeamFeatures where
-    show (TeamFeatures w d f a) = (show w) ++ "\t" ++ (show d) ++ "\t" ++ (show f) ++ "\t" ++ (show a)
+    show (TeamFeatures w d f a) = show w ++ "\t" ++ show d ++ "\t" ++ show f ++ "\t" ++ show a
 
 data MatchFeatures = MatchFeatures TeamFeatures TeamFeatures Outcome
 -- | Match features are just the home team and away team features combined, giving 8 tab-separated columns.
@@ -40,7 +40,7 @@ extractFeatures' (r@(Result _ hteam _ ateam _):rs) teamRecords
     -- If we don't have features for the teams involved we initialise them from this result, but we can't generate
     -- match features from nothing so we skip the result and continue with subsequent results.
     | Map.notMember hteam teamRecords || Map.notMember ateam teamRecords = otherFeatures
-    | otherwise                                                          = (getResultFeatures r teamRecords):otherFeatures
+    | otherwise                                                          = getResultFeatures r teamRecords : otherFeatures
     where otherFeatures = extractFeatures' rs (updateRecords r teamRecords)
 
 -- | After processing a result, we add it to the form records of the teams involved so that it can be used as
@@ -75,8 +75,8 @@ addScoreToFeatures (TeamFeatures w d f a) scored conceded
     | scored > conceded  = TeamFeatures (w * 0.75 + 0.25) (d * 0.75) forRate againstRate
     | scored == conceded = TeamFeatures (w * 0.75) (d * 0.75 + 0.25) forRate againstRate
     | otherwise          = TeamFeatures (w * 0.75) (d * 0.75) forRate againstRate
-    where forRate = f * 0.75 + (fromIntegral scored) * 0.25
-          againstRate = a * 0.75 + (fromIntegral conceded) * 0.25
+    where forRate = f * 0.75 + fromIntegral scored * 0.25
+          againstRate = a * 0.75 + fromIntegral conceded * 0.25
 
 -- | Get the form data and match outcome for a given result.
 getResultFeatures :: Result -> Map Team TeamFeatures -> MatchFeatures
