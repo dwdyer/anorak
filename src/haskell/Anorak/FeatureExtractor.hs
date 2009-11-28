@@ -4,64 +4,60 @@ module Anorak.FeatureExtractor (generateFeatures, MatchFeatures(..), Outcome, Te
 
 import Anorak.Results(Result(..), Team)
 import Anorak.RLTParser(LeagueData(..), parseRLTFile)
-import Anorak.Utils(rate)
 import Data.Map(Map, (!))
-import qualified Data.Map as Map(adjustWithKey, empty, fromDistinctAscList, insert, lookup, notMember)
-import qualified Data.Set as Set(toAscList)
+import qualified Data.Map as Map(empty, insert, lookup, member)
 
 -- | There are only three possible outcomes for a match.
 data Outcome = HomeWin | Draw | AwayWin deriving (Show)
 
-data TeamFeatures = TeamFeatures {winRate :: Double,
-                                  drawRate :: Double,
-                                  scoreRate :: Double,
-                                  concedeRate :: Double}
+-- | Team features consist of four values, the weighted win ratio, weighted draw ratio then weighted score and concede ratios.
+--   Values take into account all previous matches but each time a new result is added, the influence of previous results is
+--   discounted.  The most recent result accounts for 25% of the value, second most recent result is 0.75 * 25% or 18.75%, and
+--   so on.
+data TeamFeatures = TeamFeatures Double Double Double Double
 -- | Team features are written out as tab-separted data with 4 columns: win rate, draw rate, score rate and concede rate.
 instance Show TeamFeatures where
     show (TeamFeatures w d f a) = show w ++ "\t" ++ show d ++ "\t" ++ show f ++ "\t" ++ show a
 
-data MatchFeatures = MatchFeatures TeamFeatures TeamFeatures Outcome
+data MatchFeatures = MatchFeatures (TeamFeatures, TeamFeatures) (TeamFeatures, TeamFeatures) Outcome
 -- | Match features are just the home team and away team features combined, giving 8 tab-separated columns.
 instance Show MatchFeatures where
-    show (MatchFeatures h a o) = show h ++ "\t" ++ show a ++ "\t" ++ show o
+    show (MatchFeatures (h, hh) (a, aa) o) = show h ++ "\t" ++ show hh ++ "\t" ++ show a ++ "\t" ++ show aa ++ "\t" ++ show o
 
 generateFeatures :: FilePath -> IO ()
-generateFeatures dataFile = do LeagueData teams results _ _ <- parseRLTFile dataFile
-                               let features = extractFeatures (Set.toAscList teams) results
+generateFeatures dataFile = do LeagueData _ results _ _ <- parseRLTFile dataFile
+                               let features = extractFeatures results Map.empty Map.empty Map.empty
                                mapM_ print features
 
 -- | Given a list of results, return a list of features and associated match outcomes.
-extractFeatures :: [Team] -> [Result] -> [MatchFeatures]
-extractFeatures teams results = extractFeatures' results Map.empty
-
-extractFeatures' :: [Result] -> Map Team TeamFeatures -> [MatchFeatures]
-extractFeatures' [] teamRecords = []
-extractFeatures' (r@(Result _ hteam _ ateam _):rs) teamRecords
+extractFeatures :: [Result] -> Map Team TeamFeatures -> Map Team TeamFeatures -> Map Team TeamFeatures -> [MatchFeatures]
+extractFeatures [] _ _ _ = []
+extractFeatures (r@(Result _ hteam _ ateam _):rs) overall home away
     -- If we don't have features for the teams involved we initialise them from this result, but we can't generate
     -- match features from nothing so we skip the result and continue with subsequent results.
-    | Map.notMember hteam teamRecords || Map.notMember ateam teamRecords = otherFeatures
-    | otherwise                                                          = getResultFeatures r teamRecords : otherFeatures
-    where otherFeatures = extractFeatures' rs (updateRecords r teamRecords)
+    | not $ haveFeatures hteam ateam overall home away = otherFeatures
+    | otherwise                                        = getResultFeatures r overall home away : otherFeatures
+    where otherFeatures = extractFeatures rs (updateRecords ateam r (updateRecords hteam r overall)) (updateRecords hteam r home) (updateRecords ateam r away)
+
+haveFeatures :: Team -> Team -> Map Team TeamFeatures -> Map Team TeamFeatures -> Map Team TeamFeatures -> Bool
+haveFeatures hteam ateam overall home away = Map.member hteam overall && Map.member ateam overall && Map.member hteam home && Map.member ateam away
 
 -- | After processing a result, we add it to the form records of the teams involved so that it can be used as
 --   form data for subsequent matches.
-updateRecords :: Result -> Map Team TeamFeatures -> Map Team TeamFeatures
-updateRecords result@(Result _ hteam hgoals ateam agoals) teamRecords = Map.insert ateam awayFeatures (Map.insert hteam homeFeatures teamRecords)
-                                                                        where homeFeatures = case Map.lookup hteam teamRecords of
-                                                                                                 Nothing -> initialFeatures hgoals agoals
-                                                                                                 Just f  -> addResultToFeatures hteam f result
-                                                                              awayFeatures = case Map.lookup ateam teamRecords of
-                                                                                                 Nothing -> initialFeatures agoals hgoals
-                                                                                                 Just f  -> addResultToFeatures ateam f result
+updateRecords :: Team -> Result -> Map Team TeamFeatures -> Map Team TeamFeatures
+updateRecords team result teamRecords = Map.insert team features teamRecords
+                                        where features = case Map.lookup team teamRecords of
+                                                             Nothing -> initialFeatures team result
+                                                             Just f  -> addResultToFeatures team f result
                                                                         
 -- | Create the intial team features from a team's first result.
-initialFeatures :: Int -> Int -> TeamFeatures
-initialFeatures for against
-    | for > against = TeamFeatures 1 0 scored conceded
-    | for < against = TeamFeatures 0 0 scored conceded
-    | otherwise     = TeamFeatures 0 1 scored conceded
-    where scored = fromIntegral for
-          conceded = fromIntegral against
+initialFeatures :: Team -> Result -> TeamFeatures
+initialFeatures team (Result _ ht hg _ ag)
+    | hg == ag              = TeamFeatures 0 1 (fromIntegral hg) (fromIntegral ag)
+    | team == ht && hg > ag = TeamFeatures 1 0 (fromIntegral hg) (fromIntegral ag)
+    | team == ht && hg < ag = TeamFeatures 0 0 (fromIntegral hg) (fromIntegral ag)
+    | ag > hg               = TeamFeatures 1 0 (fromIntegral ag) (fromIntegral hg)
+    | otherwise             = TeamFeatures 0 0 (fromIntegral ag) (fromIntegral hg)
 
 -- | Update a team's form record with the result of the specified match.
 addResultToFeatures :: Team -> TeamFeatures -> Result -> TeamFeatures
@@ -79,10 +75,10 @@ addScoreToFeatures (TeamFeatures w d f a) scored conceded
           againstRate = a * 0.75 + fromIntegral conceded * 0.25
 
 -- | Get the form data and match outcome for a given result.
-getResultFeatures :: Result -> Map Team TeamFeatures -> MatchFeatures
-getResultFeatures result teamRecords = MatchFeatures homeRecord awayRecord (getOutcome result)
-                                       where homeRecord = teamRecords ! homeTeam result
-                                             awayRecord = teamRecords ! awayTeam result
+getResultFeatures :: Result -> Map Team TeamFeatures -> Map Team TeamFeatures -> Map Team TeamFeatures -> MatchFeatures
+getResultFeatures result overallRecords homeRecords awayRecords = MatchFeatures homeRecord awayRecord (getOutcome result)
+                                                                  where homeRecord = (overallRecords ! homeTeam result, homeRecords ! homeTeam result)
+                                                                        awayRecord = (overallRecords ! awayTeam result, awayRecords ! awayTeam result)
 
 -- | Maps a result to one of three possible outcome types (home win, away win or draw).
 getOutcome :: Result -> Outcome

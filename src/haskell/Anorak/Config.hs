@@ -7,8 +7,8 @@ import Anorak.Utils(makeAbsolute)
 import Control.Exception(Exception, throw)
 import Data.Data(Data)
 import Data.Typeable(Typeable)
-import System.FilePath(combine, takeDirectory)
-import Text.XML.Light(Attr(..), Content(..), Element(..), findAttr, findChildren, parseXMLDoc, QName(..))
+import System.FilePath(takeDirectory)
+import Text.XML.Light(Element(..), findAttr, findChildren, parseXMLDoc, QName(..))
 
 data Configuration = Configuration {outputRoot :: FilePath, leagues :: [League]} deriving (Data, Typeable)
 -- | Configuration consists of a list of leagues, each with a name and one or more divisions.

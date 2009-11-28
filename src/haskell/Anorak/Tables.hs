@@ -104,7 +104,7 @@ adjust adjustments (LeagueRecord t w d l f a adj) = LeagueRecord t w d l f a (ad
 -- | Generate a league table that includes only results between the specified teams.
 miniLeagueTable :: Set Team -> Map Team [Result] -> [LeagueRecord]
 miniLeagueTable teams results = leagueTable filteredResults Map.empty
-                                where filteredResults = Map.map (filter $ checkBothTeamsInSet teams) $ Map.filterWithKey (\k m -> Set.member k teams) results
+                                where filteredResults = Map.map (filter $ checkBothTeamsInSet teams) $ Map.filterWithKey (\k _ -> Set.member k teams) results
 
 checkBothTeamsInSet :: Set Team -> Result -> Bool
 checkBothTeamsInSet teams result = Set.member (homeTeam result) teams && Set.member (awayTeam result) teams

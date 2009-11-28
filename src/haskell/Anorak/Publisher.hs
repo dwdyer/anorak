@@ -15,16 +15,14 @@ import Data.Data(Data)
 import Data.Map(Map)
 import qualified Data.Map as Map(assocs, empty, fromAscList, map, toList)
 import Data.Set(Set)
-import Data.Time.Calendar(Day)
 import Data.Typeable(Typeable)
 import List(isPrefixOf, isSuffixOf)
 import Monad(filterM)
-import System.Directory(createDirectoryIfMissing, doesDirectoryExist, doesFileExist, getDirectoryContents)
-import System.FilePath(combine, dropExtension, makeRelative, replaceDirectory)
-import Text.ParserCombinators.Parsec(ParseError)
-import Text.StringTemplate(getStringTemplate, setManyAttrib, STGroup, StringTemplate, stShowsToSE, toString)
+import System.Directory(createDirectoryIfMissing, doesFileExist, getDirectoryContents)
+import System.FilePath(combine)
+import Text.StringTemplate(getStringTemplate, setManyAttrib, STGroup, stShowsToSE, toString)
 import Text.StringTemplate.Classes(ToSElem(toSElem), SElem(SM, STR))
-import Text.StringTemplate.GenericStandard
+import Text.StringTemplate.GenericStandard()
 
 instance ToSElem LeagueRecord where
     toSElem record = SM $ Map.fromAscList [("against", toSElem $ against record),
@@ -73,14 +71,6 @@ getFiles dir = do contents <- getDirectoryContents dir
                   let visible = filter (not . isPrefixOf ".") contents -- Exclude hidden files/directories.
                       absolute = map (combine dir) visible -- Use qualified paths.
                   filterM doesFileExist absolute -- Exclude directories.
-
--- | Returns a list of sub-directories (excluding those that are hidden)  in the specified directory.  The returned paths
---   are fully-qualified.
-getSubDirectories :: FilePath -> IO [FilePath]
-getSubDirectories dir = do contents <- getDirectoryContents dir
-                           let visible = filter (not . isPrefixOf ".") contents -- Exclude hidden files/directories.
-                               absolute = map (combine dir) visible -- Use qualified paths.
-                           filterM doesDirectoryExist absolute -- Exclude files (non-directories).
 
 -- | Copies all non-template files from the source directory to the target directory.  Used for making sure that CSS
 --   files and images (if any) are deployed with the generated HTML.  If the target directory does not exist it is
@@ -186,7 +176,6 @@ toHTMLFileName name = map toLower (filter (not.isSpace) name) ++ ".html"
 --   the first is the path to the data file, the second is the path to the directory in which the pages will be created.
 generateStatsPages :: STGroup String -> FilePath -> LeagueData -> MetaData -> IO ()
 generateStatsPages templateGroup targetDir (LeagueData _ results adj miniLeagues) metaData = do let teamResults = resultsByTeam results
-                                                                                                    link = miniLeaguesLink metaData
                                                                                                 createDirectoryIfMissing True targetDir
                                                                                                 generateLeagueTables templateGroup targetDir teamResults adj metaData
                                                                                                 generateFormTables templateGroup targetDir teamResults metaData
@@ -198,8 +187,8 @@ generateStatsPages templateGroup targetDir (LeagueData _ results adj miniLeagues
 -- | Determine which file the "Mini-Leagues" tab should link to (derived from the name of the first mini-league).
 --   If there are no mini-leagues then this function returns nothing and the tab should not be shown.
 getMiniLeaguesLink :: [(String, Set Team)] -> Maybe String
-getMiniLeaguesLink []             = Nothing
-getMiniLeaguesLink ((name, _):ls) = Just $ toHTMLFileName name
+getMiniLeaguesLink []            = Nothing
+getMiniLeaguesLink ((name, _):_) = Just $ toHTMLFileName name
 
 publishLeagues :: STGroup String -> Configuration -> IO ()
 publishLeagues templateGroup config = do applyTemplate templateGroup "selector.json" (outputRoot config) [("config", AV config)]

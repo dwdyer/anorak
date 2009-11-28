@@ -1,5 +1,5 @@
 -- | Utility functions that are not specific to Anorak.
-module Anorak.Utils (copyToDirectory, keep, makeAbsolute, percentage, rate, takeAtLeast) where
+module Anorak.Utils (copyToDirectory, keep, makeAbsolute, percentage, takeAtLeast) where
 
 import System.Directory(copyFile)
 import System.FilePath(combine, isRelative, replaceDirectory)
@@ -27,6 +27,3 @@ makeAbsolute path base
 copyToDirectory :: FilePath -> FilePath -> IO()
 copyToDirectory dir file = copyFile file (replaceDirectory file dir)
 
--- | Calculate a floating point rate from the given numerator and denominator.
-rate :: Int -> Int -> Double
-rate n d = fromIntegral n / fromIntegral d

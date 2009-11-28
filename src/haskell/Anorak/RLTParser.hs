@@ -8,8 +8,7 @@ import Control.Exception(Exception, throw)
 import Data.Map(Map)
 import qualified Data.Map as Map(empty, insertWith)
 import Data.Set(Set)
-import qualified Data.Set as Set(elems, empty, fromList, insert)
-import Data.Time.Calendar(Day)
+import qualified Data.Set as Set(empty, fromList, insert)
 import Data.Time.Format(readTime)
 import Data.Typeable(Typeable)
 import List(concat, intersperse)
@@ -54,7 +53,7 @@ record = do fields <- sepBy1 field (char '|')
                 (date:hTeam:hGoals:aTeam:aGoals:_) -> return $ Fixture $ Result day hTeam (read hGoals) aTeam (read aGoals)
                                                       -- RLT dates are 8-character strings in DDMMYYYY format.
                                                       where day = readTime defaultTimeLocale "%d%m%Y" date
-                otherwise                          -> fail $ "Unexpected input: " ++ concat (intersperse "|" fields)
+                _                                  -> fail $ "Unexpected input: " ++ concat (intersperse "|" fields)
 
 -- | A field is one or more characters (not including pipes and newlines).
 field :: Parser String

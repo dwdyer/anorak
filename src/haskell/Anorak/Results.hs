@@ -4,16 +4,12 @@
 module Anorak.Results (aggregate, awayWins, biggestWins, convertResult, form, highestAggregates, homeWins, Result(..), resultsByDate, resultsByTeam, splitHomeAndAway, Team, TeamResult(..)) where
 
 import Anorak.Utils(takeAtLeast)
-import Data.Data(Data)
 import Data.Map(Map)
-import qualified Data.Map as Map(elems, empty, filterWithKey, findWithDefault, insertWith, map, mapWithKey)
+import qualified Data.Map as Map(empty, insertWith, mapWithKey)
 import Data.Ord(comparing)
-import Data.Set(Set)
-import qualified Data.Set as Set(member)
 import Data.Time.Calendar(Day(..))
 import Data.Time.Format(formatTime)
-import Data.Typeable(Typeable)
-import List(groupBy, partition, sort, sortBy)
+import List(groupBy, partition, sortBy)
 import System.Locale(defaultTimeLocale)
 
 -- | A team is represented simply by its name.

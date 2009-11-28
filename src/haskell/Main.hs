@@ -12,7 +12,7 @@ main = do (command:parameters) <- getArgs
           case command of
             "publish"  -> publish (head parameters) (parameters !! 1)
             "features" -> generateFeatures $ head parameters
-            otherwise  -> print $ "Unknown option: " ++ command
+            _          -> print $ "Unknown option: " ++ command
 
 -- | Publish HTML pages for the configured data files, using the templates in the specified directory.
 publish :: FilePath -> FilePath -> IO ()
