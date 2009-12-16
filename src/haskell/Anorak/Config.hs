@@ -16,10 +16,11 @@ data League = League {leagueName :: String, divisions :: [Division]} deriving (D
 -- | A division has a name and one or more seasons.
 data Division = Division {divisionName :: String, seasons :: [Season]} deriving (Data, Typeable)
 -- | A season has a name and is defined by the contents of a data file.
-data Season = Season {seasonName :: String,    -- ^ The name of the season (e.g. "1997/98").
-                      inputFile :: FilePath,   -- ^ Path to the season's data file.
-                      outputDir :: FilePath,   -- ^ The directory to write the generated files to.
-                      relativeLink :: FilePath -- ^ Link relative to the web root.
+data Season = Season {seasonName :: String,     -- ^ The name of the season (e.g. "1997/98").
+                      inputFile :: FilePath,    -- ^ Path to the season's data file.
+                      outputDir :: FilePath,    -- ^ The directory to write the generated files to.
+                      relativeLink :: FilePath, -- ^ Link relative to the web root.
+                      aggregated :: Bool        -- ^ Whether this is an aggregate of multiple seasons.
                      } deriving (Data, Typeable)
 
 -- | A ConfigurationException is thrown when there is a problem processing the XML configuration file.
@@ -51,6 +52,7 @@ processSeasonTag baseDir outputDir tag = Season (getAttributeValue tag "name")
                                                 (makeAbsolute (getAttributeValue tag "input") baseDir)
                                                 (makeAbsolute seasonDir outputDir)
                                                 ("../../../" ++ seasonDir ++ "/index.html")
+                                                ((getAttributeValue tag "aggregated") == "true")
                                          where seasonDir = getAttributeValue tag "output"
 
 -- | Simplifies the reading of XML attributes by assuming that the attribute is present.  Throws an exception if it is not.

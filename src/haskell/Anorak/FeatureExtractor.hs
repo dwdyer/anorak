@@ -20,7 +20,7 @@ instance Show TeamFeatures where
     show (TeamFeatures w d f a) = show w ++ "\t" ++ show d ++ "\t" ++ show f ++ "\t" ++ show a
 
 data MatchFeatures = MatchFeatures (TeamFeatures, TeamFeatures) (TeamFeatures, TeamFeatures) Outcome
--- | Match features are just the home team and away team features combined, giving 8 tab-separated columns.
+-- | Match features are just the home team and away team features combined, giving 16 tab-separated columns.
 instance Show MatchFeatures where
     show (MatchFeatures (h, hh) (a, aa) o) = show h ++ "\t" ++ show hh ++ "\t" ++ show a ++ "\t" ++ show aa ++ "\t" ++ show o
 

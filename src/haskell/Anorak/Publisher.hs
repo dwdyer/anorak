@@ -62,6 +62,7 @@ instance ToSElem AttributeValue where
 data MetaData = MetaData {league :: String,
                           division :: String,
                           season :: String,
+                          isAggregated :: Bool,
                           miniLeaguesLink :: Maybe String} deriving (Data, Typeable)
 
 -- | Returns a list of files (excluding sub-directories and hidden files)  in the specified directory.  The returned paths
@@ -204,6 +205,6 @@ publishSeason :: STGroup String -> String -> String -> Season -> IO ()
 publishSeason templateGroup leagueName divisionName season = do let dataFile = inputFile season
                                                                 print $ "Processing " ++ dataFile
                                                                 LeagueData teams results adj miniLeagues <- parseRLTFile dataFile
-                                                                let metaData = MetaData leagueName divisionName (seasonName season) (getMiniLeaguesLink miniLeagues)
+                                                                let metaData = MetaData leagueName divisionName (seasonName season) (aggregated season) (getMiniLeaguesLink miniLeagues)
                                                                 generateStatsPages templateGroup (outputDir season) (LeagueData teams results adj miniLeagues) metaData 
 
