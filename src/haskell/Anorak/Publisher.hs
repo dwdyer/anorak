@@ -14,6 +14,7 @@ import Char(isSpace, toLower)
 import Data.Data(Data)
 import Data.Map(Map)
 import qualified Data.Map as Map(assocs, empty, fromAscList, map, toList)
+import Data.Sequence(Seq)
 import Data.Set(Set)
 import Data.Typeable(Typeable)
 import List(isPrefixOf, isSuffixOf)
@@ -118,12 +119,18 @@ generateSequences group dir results metaData = do let (overallCurrent, overallLo
                                                       (homeCurrent, homeLongest) = getSequences $ Map.map fst splitResults
                                                       (awayCurrent, awayLongest) = getSequences $ Map.map snd splitResults
                                                       attr = ("metaData", AV metaData)
-                                                  applyTemplate group "currentsequences.html" dir [("sequences", AV $ sequenceTables overallCurrent), ("currentSequencesSelected", AV True), attr]
-                                                  applyTemplate group "longestsequences.html" dir [("sequences", AV $ sequenceTables overallLongest), ("longestSequencesSelected", AV True), attr]
-                                                  applyTemplate group "homecurrentsequences.html" dir [("sequences", AV $ sequenceTables homeCurrent), ("currentSequencesSelected", AV True), attr]
-                                                  applyTemplate group "homelongestsequences.html" dir [("sequences", AV $ sequenceTables homeLongest), ("longestSequencesSelected", AV True), attr]
-                                                  applyTemplate group "awaycurrentsequences.html" dir [("sequences", AV $ sequenceTables awayCurrent), ("currentSequencesSelected", AV True), attr]
-                                                  applyTemplate group "awaylongestsequences.html" dir [("sequences", AV $ sequenceTables awayLongest), ("longestSequencesSelected", AV True), attr]
+                                                  applyTemplate group "currentsequences.html" dir [("sequences", convertToTables overallCurrent), ("currentSequencesSelected", AV True), attr]
+                                                  applyTemplate group "longestsequences.html" dir [("sequences", convertToTables overallLongest), ("longestSequencesSelected", AV True), attr]
+                                                  applyTemplate group "homecurrentsequences.html" dir [("sequences", convertToTables homeCurrent), ("currentSequencesSelected", AV True), attr]
+                                                  applyTemplate group "homelongestsequences.html" dir [("sequences", convertToTables homeLongest), ("longestSequencesSelected", AV True), attr]
+                                                  applyTemplate group "awaycurrentsequences.html" dir [("sequences", convertToTables awayCurrent), ("currentSequencesSelected", AV True), attr]
+                                                  applyTemplate group "awaylongestsequences.html" dir [("sequences", convertToTables awayLongest), ("longestSequencesSelected", AV True), attr]
+                                                  where convertToTables = AV . Map.map insertLinks . sequenceTables
+
+-- | Converts pairs of teams/sequences into triples that include a link to the team's page.
+insertLinks :: [(Team, Seq TeamResult)] -> [(Team, String, Seq TeamResult)]
+insertLinks [] =            []
+insertLinks ((t, s):rest) = ((t, toHTMLFileName t, s):insertLinks rest)
 
 generateResults :: STGroup String -> FilePath -> [Result] -> MetaData -> IO ()
 generateResults group dir results metaData = do let homeWinMatches = homeWins results

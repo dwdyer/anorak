@@ -3,3 +3,4 @@ dist
 output
 templates
 *.swp
+.DS_Store
