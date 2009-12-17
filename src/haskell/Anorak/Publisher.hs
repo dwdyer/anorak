@@ -41,14 +41,17 @@ instance ToSElem LeagueRecord where
 instance ToSElem Result where
     toSElem result = SM $ Map.fromAscList [("awayGoals", toSElem $ awayGoals result),
                                            ("awayTeam", toSElem $ awayTeam result),
+                                           ("awayTeamLink", STR . toHTMLFileName $ awayTeam result),
                                            ("date", toSElem $ date result),
                                            ("homeGoals", toSElem $ homeGoals result),
-                                           ("homeTeam", toSElem $ homeTeam result)]
+                                           ("homeTeam", toSElem $ homeTeam result),
+                                           ("homeTeamLink", STR . toHTMLFileName $ homeTeam result)]
 
 instance ToSElem TeamResult where
     toSElem result = SM $ Map.fromAscList [("conceded", toSElem $ conceded result),
                                            ("day", toSElem $ day result),
                                            ("opposition", toSElem $ opposition result),
+                                           ("oppositionLink", STR . toHTMLFileName $ opposition result),
                                            ("outcome", toSElem $ outcome result),
                                            ("scored", toSElem $ scored result),
                                            ("venue", toSElem $ venue result)]
