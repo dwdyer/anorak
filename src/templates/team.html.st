@@ -3,7 +3,6 @@ $header(title=team)$
   $selector()$
   $tabs()$
   <div id="content">
-    <div class="shadow"></div>
     <h2>$team$ - $metaData.division$ $metaData.season$</h2>
     <table>
       $results:{<tr>
