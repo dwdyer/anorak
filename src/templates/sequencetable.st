@@ -7,7 +7,7 @@
         <div class="details">
           <div class="shadow"></div>
           <strong>$it.("0")$</strong>
-          $details(results=it.("1"))$
+          $details(results=it.("2"))$
         </div>
       </div>
     </td>
