@@ -1,8 +1,9 @@
 -- | Utility functions that are not specific to Anorak.
-module Anorak.Utils (copyToDirectory, keep, makeAbsolute, percentage, takeAtLeast) where
+module Anorak.Utils (copyToDirectory, keep, isNewer, makeAbsolute, percentage, takeAtLeast) where
 
-import System.Directory(copyFile)
+import System.Directory(copyFile, getModificationTime)
 import System.FilePath(combine, isRelative, replaceDirectory)
+import System.IO.Error(isDoesNotExistError, try)
 
 -- | Retains the last n elements in a list.
 keep :: Int -> [a] -> [a]
@@ -26,4 +27,13 @@ makeAbsolute path base
 -- | Copies an individual file to a new directory, retaining the original file name.
 copyToDirectory :: FilePath -> FilePath -> IO()
 copyToDirectory dir file = copyFile file (replaceDirectory file dir)
+
+-- | Returns true if the first file is newer than the second.  If the destination file does not exist, returns true.
+--   If the source file does not exist, throws an IOError.
+isNewer :: FilePath -> FilePath -> IO Bool
+isNewer source destination = do sourceTime <- getModificationTime source
+                                result <- try $ getModificationTime destination
+                                case result of
+                                    Left e          -> if isDoesNotExistError e then return True else ioError e
+                                    Right destTime  -> return $ sourceTime > destTime
 
