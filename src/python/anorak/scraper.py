@@ -1,26 +1,8 @@
 from datetime import datetime
 import urllib
 from BeautifulSoup import BeautifulSoup, SoupStrainer
-from config import aliases, data
-
-class Result:
-    def __init__(self, date, home_team, home_score, away_team, away_score):
-        """Sets all result fields, mapping team names to their canonical forms."""
-        self.date = date
-        self.home_team = home_team if not home_team in aliases else aliases[home_team]
-        self.home_score = home_score
-        self.away_team = away_team if not away_team in aliases else aliases[away_team]
-        self.away_score = away_score
-
-    def __str__(self):
-        """Returns the result formatted as a single RLT (pipe-delimited) record."""
-        return "|".join([self.date.strftime("%d%m%Y"), self.home_team, str(self.home_score), self.away_team, str(self.away_score)])
-
-    def __cmp__(self, other):
-        """Results are ordered primarily by date.  Results from the same day are sorted alphabetically by home team."""
-        date_cmp = cmp(self.date, other.date)
-        return date_cmp if date_cmp != 0 else cmp(self.home_team, other.home_team)
-
+from config import data
+from results import Result, parse_rlt, write_rlt
 
 def load_html(url, strainer=None):
     """Loads the HTML at the specified URL and returns it as a BeautifulSoup object."""
@@ -31,8 +13,8 @@ def load_html(url, strainer=None):
 
 def scrape_bbc_results(results_page_url):
     """Scrapes the specified BBC web page for football results.  Returns a list of Result objects."""
-    tags = load_html(results_page_url, SoupStrainer(attrs={"class":["mvb", "competitionResults"]}))
     # Find all tags that contain dates or results ('mvb' indicates a date, 'competitionResults' indicates a result).
+    tags = load_html(results_page_url, SoupStrainer(attrs={"class":["mvb", "competitionResults"]}))
     results = []
     for tag in tags:
         if tag["class"] == "mvb":
@@ -50,8 +32,12 @@ def scrape_bbc_results(results_page_url):
 
 def update_all(data_files):
     for url, file in data_files.items():
+        old_results, metadata = parse_rlt(file)
         new_results = scrape_bbc_results(url)
-        print "\n".join([str(result) for result in new_results])
-        print
+        if len(new_results) > len(old_results):
+            print "Writing %d new results to %s." % (len(new_results) - len(old_results), file)
+            write_rlt(file, new_results, metadata)
+        else:
+            print "No new results for %s, skipping." % file
 
 update_all(data)
