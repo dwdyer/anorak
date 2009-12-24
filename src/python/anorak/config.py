@@ -4,8 +4,6 @@ data = {
     "http://news.bbc.co.uk/sport1/hi/football/eng_div_2/results/default.stm" : "../../../data/england/league1/2009-2010.rlt",
     "http://news.bbc.co.uk/sport1/hi/football/eng_div_3/results/default.stm" : "../../../data/england/league2/2009-2010.rlt",
     "http://news.bbc.co.uk/sport1/hi/football/eng_conf/conf_results/default.stm" : "../../../data/england/conference/2009-2010.rlt",
-#    "http://news.bbc.co.uk/sport1/hi/football/eng_conf/conference_south_results/default.stm" : "../../../data/england/south/2009-2010.rlt",
-#    "http://news.bbc.co.uk/sport1/hi/football/eng_conf/conference_north_results/default.stm" : "../../../data/england/north/2009-2010.rlt",
 }
 
 # Maps common team name variants to the canonical form of that team's name.

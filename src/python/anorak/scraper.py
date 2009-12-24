@@ -27,16 +27,17 @@ def scrape_bbc_results(results_page_url):
             away_team_cell = tag.tr.find("td", attrs={"class":"c3"}).b
             away_team = away_team_cell.string.extract() if away_team_cell.a == None else away_team_cell.a.string.extract()
             results.append(Result(date, home_team, int(score[0]), away_team, int(score[1])))
-    results.sort()
     return results
 
 def update_all(data_files):
     for url, file in data_files.items():
         old_results, metadata = parse_rlt(file)
         new_results = scrape_bbc_results(url)
-        if len(new_results) > len(old_results):
-            print "Writing %d new results to %s." % (len(new_results) - len(old_results), file)
-            write_rlt(file, new_results, metadata)
+        combined_results = list(set(old_results) | set(new_results))
+        if len(combined_results) > len(old_results):
+            print "Writing %d new results to %s." % (len(combined_results) - len(old_results), file)
+            combined_results.sort()
+            write_rlt(file, combined_results, metadata)
         else:
             print "No new results for %s, skipping." % file
 

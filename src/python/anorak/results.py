@@ -19,6 +19,8 @@ class Result:
         date_cmp = cmp(self.date, other.date)
         return date_cmp if date_cmp != 0 else cmp(self.home_team, other.home_team)
 
+    def __hash__(self):
+        return hash(self.date) + hash(self.home_team)
 
 def parse_rlt(rlt_path):
     """Read an RLT file and return a list of results and a list of metadata records."""
