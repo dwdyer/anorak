@@ -6,17 +6,20 @@ module Anorak.RLTParser (LeagueData(LeagueData), parseRLTFile, RLTException) whe
 import Anorak.Results
 import Control.Exception(Exception, throw)
 import Data.Map(Map)
-import qualified Data.Map as Map(empty, insertWith)
+import qualified Data.Map as Map(empty, insertWith, unionWith)
 import Data.Set(Set)
-import qualified Data.Set as Set(empty, fromList, insert)
+import qualified Data.Set as Set(empty, fromList, insert, union)
 import Data.Time.Format(readTime)
 import Data.Typeable(Typeable)
 import List(concat, intersperse)
+import System.FilePath(combine, takeDirectory)
 import System.Locale(defaultTimeLocale)
+import System.IO.Unsafe(unsafePerformIO)
 import Text.ParserCombinators.Parsec((<|>), anyChar, char, eof, many1, manyTill, newline, noneOf, ParseError, parseFromFile, Parser, sepBy1)
 
 -- | An RLT file consists of many items (results, metadata and comments).
 data Item = Fixture Result               -- ^ The result of a single football match.
+          | Include FilePath             -- ^ The path to another RLT file that should be parsed and included.
           | Adjustment Team Int          -- ^ A number of points awarded to or deducted from an individual team.
           | MiniLeague String (Set Team) -- ^ A league within a league (e.g. The Big 4, London Clubs, North West Clubs, etc.)
           | Metadata [String]            -- ^ Data about the league, such as which positions are promoted or relegated.
@@ -30,10 +33,11 @@ instance Exception RLTException
 --   a (probably empty) map of points adjustments, and a list of mini-leagues.
 data LeagueData = LeagueData (Set Team) [Result] (Map Team Int) [(String, Set Team)]
 
--- | Parse results and points adjustments, discard meta-data and comments.
-results :: Parser (LeagueData)
-results = do list <- items
-             return (extractData list)
+-- | Parse results and points adjustments, discard meta-data and comments.  The function argument is
+--   the path of the data directory, used to resolve relative paths for include directives.
+results :: FilePath -> Parser (LeagueData)
+results dataDir = do list <- items
+                     return (extractData dataDir list)
 
 -- | Each line of a data file is either a record (a match result or some metadata) or it is a comment.
 items :: Parser [Item]
@@ -44,6 +48,7 @@ record :: Parser Item
 record = do fields <- sepBy1 field (char '|')
             newline
             case fields of
+                ("INCLUDE":path:[])                -> return $ Include path
                 ("AWARDED":team:points:[])         -> return $ Adjustment team $ read points
                 ("DEDUCTED":team:points:[])        -> return $ Adjustment team $ -read points
                 ("MINILEAGUE":name:teams)          -> return $ MiniLeague name $ Set.fromList teams
@@ -67,12 +72,18 @@ comment = do char '#'
 
 -- | Takes a list of parsed items and discards comments and meta-data.  The remaining items are separated into a list
 --   of results and a map of net points adjustments by team.
-extractData :: [Item] -> LeagueData
-extractData []                             = LeagueData Set.empty [] Map.empty []
-extractData (Fixture result:items)         = LeagueData (addTeams result t) (result:r) a m where (LeagueData t r a m) = extractData items
-extractData (Adjustment team amount:items) = LeagueData t r (Map.insertWith (+) team amount a) m where (LeagueData t r a m) = extractData items
-extractData (MiniLeague name teams:items)  = LeagueData t r a ((name, teams):m) where (LeagueData t r a m) = extractData items
-extractData (_:items)                      = extractData items -- Discard metadata.
+extractData :: FilePath -> [Item] -> LeagueData
+extractData _ []                                   = LeagueData Set.empty [] Map.empty []
+extractData dataDir (Fixture result:items)         = LeagueData (addTeams result t) (result:r) a m
+                                                     where (LeagueData t r a m) = extractData dataDir items
+extractData dataDir (Include path:items)           = LeagueData (Set.union t t') (r' ++ r) (Map.unionWith (+) a a') m
+                                                     where (LeagueData t r a m) = extractData dataDir items
+                                                           (LeagueData t' r' a' _) = unsafePerformIO $ parseRLTFile $ combine dataDir path
+extractData dataDir (Adjustment team amount:items) = LeagueData t r (Map.insertWith (+) team amount a) m
+                                                     where (LeagueData t r a m) = extractData dataDir items
+extractData dataDir (MiniLeague name teams:items)  = LeagueData t r a ((name, teams):m)
+                                                     where (LeagueData t r a m) = extractData dataDir items
+extractData dataDir (_:items)                      = extractData dataDir items -- Discard metadata.
 
 -- | Adds the home team and away team from a match to the set of all teams (if they are not already present).
 addTeams :: Result -> Set Team -> Set Team
@@ -82,7 +93,8 @@ addTeams result = Set.insert (awayTeam result) . Set.insert (homeTeam result)
 --   and a list of any configured mini-leagues (each represented by name/teams pair).
 --   Throws an RLTException if there is a problem parsing the file.
 parseRLTFile :: FilePath -> IO (LeagueData)
-parseRLTFile path = do contents <- parseFromFile results path
+parseRLTFile path = do let dataDir = takeDirectory path
+                       contents <- parseFromFile (results dataDir) path
                        case contents of
                            Left error        -> throw $ RLTException error
                            Right leagueData  -> return leagueData
