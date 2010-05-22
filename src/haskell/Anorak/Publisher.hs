@@ -26,7 +26,8 @@ import Text.StringTemplate.Classes(ToSElem(toSElem), SElem(SM, STR))
 import Text.StringTemplate.GenericStandard()
 
 instance ToSElem LeagueRecord where
-    toSElem record = SM $ Map.fromAscList [("against", toSElem $ against record),
+    toSElem record = SM $ Map.fromAscList [("adjustment", toSElem $ (if adjustment record /= 0 then Just $ adjustment record else Nothing)),
+                                           ("against", toSElem $ against record),
                                            ("average", stShowsToSE $ pointsPerGame record),
                                            ("drawn", toSElem $ drawn record),
                                            ("for", toSElem $ for record),

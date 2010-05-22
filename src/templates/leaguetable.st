@@ -37,7 +37,9 @@
             $else$
             <td class="number">0</td>
             $endif$
-            <td class="number points">$it.("points")$</td>
+            <td class="number points">
+              $it.("points")$$if(it.("adjustment"))$<span class="adjustment">($it.("adjustment")$)</span>$endif$
+            </td>
             <td class="number">($it.("average");format="2"$)</td>
           </tr>}$
         </tbody>
