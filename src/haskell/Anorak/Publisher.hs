@@ -26,7 +26,7 @@ import Text.StringTemplate.Classes(ToSElem(toSElem), SElem(SM, STR))
 import Text.StringTemplate.GenericStandard()
 
 instance ToSElem LeagueRecord where
-    toSElem record = SM $ Map.fromAscList [("adjustment", toSElem $ (if adjustment record /= 0 then Just $ adjustment record else Nothing)),
+    toSElem record = SM $ Map.fromAscList [("adjustment", toSElem $ adjustmentString $ adjustment record),
                                            ("against", toSElem $ against record),
                                            ("average", stShowsToSE $ pointsPerGame record),
                                            ("drawn", toSElem $ drawn record),
@@ -69,6 +69,13 @@ data MetaData = MetaData {league :: String,
                           season :: String,
                           isAggregated :: Bool,
                           miniLeaguesLink :: Maybe String} deriving (Data, Typeable)
+
+-- | Convert points adjustment into a string with +/- sign, or Nothing if there is no adjustment.
+adjustmentString :: Int -> Maybe String
+adjustmentString adj
+    | adj < 0   = Just $ show adj
+    | adj > 0   = Just $ "+" ++ show adj
+    | otherwise = Nothing
 
 -- | Returns a list of files (excluding sub-directories and hidden files)  in the specified directory.  The returned paths
 --   are fully-qualified.
