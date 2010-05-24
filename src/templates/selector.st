@@ -10,7 +10,6 @@
     <select id="seasons">
       <option>Loading...</option>
     </select>
-    <button id="selectorButton">View</button>
   </div>
 </div>
 

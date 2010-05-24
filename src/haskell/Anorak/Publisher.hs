@@ -182,8 +182,22 @@ generateTeamPages group dir teamResults metaData = mapM_ (uncurry $ generateTeam
 
 -- | Generate the overview page for an individual team.
 generateTeamPage :: STGroup String -> FilePath -> MetaData -> Team -> [Result] -> IO ()
-generateTeamPage group dir metaData team results = do let attributes = [("team", AV team),
+generateTeamPage group dir metaData team results = do let record = buildRecord team results
+                                                          matches = played record
+                                                          wins = won record
+                                                          defeats = lost record
+                                                          draws = drawn record
+                                                          attributes = [("team", AV team),
                                                                         ("results", AV $ map (convertResult team) results),
+                                                                        ("matches", AV matches),
+                                                                        ("wins", AV wins),
+                                                                        ("winPercent", AV $ percentage wins matches),
+                                                                        ("defeats", AV defeats),
+                                                                        ("defeatPercent", AV $ percentage defeats matches),
+                                                                        ("draws", AV draws),
+                                                                        ("drawPercent", AV $ percentage draws matches),
+                                                                        ("goalsFor", AV $ for record),
+                                                                        ("goalsAgainst", AV $ against record),
                                                                         ("metaData", AV metaData)]
                                                       applyTemplateWithName group "team.html" dir (toHTMLFileName team) attributes
 

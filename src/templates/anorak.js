@@ -21,8 +21,8 @@ function configureSelector()
   }
   updateDivisions();
   addEvent(leagues, "change", updateDivisions);
-  addEvent(divisions, "change", updateSeasons);
-  addEvent(elementById("selectorButton"), "click", function() {window.location.href = seasons.options[seasons.selectedIndex].value;});
+  addEvent(divisions, "change", function() {updateSeasons(); window.location.href = seasons.options[seasons.selectedIndex].value;});
+  addEvent(seasons, "change", function() {window.location.href = seasons.options[seasons.selectedIndex].value;});
 }
 
 function updateDivisions()

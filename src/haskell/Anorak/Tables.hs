@@ -1,5 +1,5 @@
 -- | Functions for generating league tables (including form tables and mini-leagues).
-module Anorak.Tables (formTable, goalDiff, LeagueRecord(..), leagueTable, miniLeagueTable, played, points, pointsPerGame) where
+module Anorak.Tables (buildRecord, formTable, goalDiff, LeagueRecord(..), leagueTable, miniLeagueTable, played, points, pointsPerGame) where
 
 import Anorak.Results
 import Anorak.Utils(keep)
