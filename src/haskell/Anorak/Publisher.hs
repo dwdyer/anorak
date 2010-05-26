@@ -12,6 +12,8 @@ import Anorak.Aggregates
 import Anorak.Tables
 import Anorak.Utils
 import Char(isSpace, toLower)
+import Data.ByteString(ByteString)
+import qualified Data.ByteString as BS(writeFile)
 import Data.Data(Data)
 import Data.Map(Map)
 import qualified Data.Map as Map(assocs, empty, fromAscList, map, mapKeys, toList)
@@ -22,7 +24,7 @@ import List(isPrefixOf, isSuffixOf)
 import Monad(filterM)
 import System.Directory(createDirectoryIfMissing, doesFileExist, getDirectoryContents)
 import System.FilePath(combine)
-import Text.StringTemplate(getStringTemplate, setManyAttrib, STGroup, stShowsToSE, toString)
+import Text.StringTemplate(getStringTemplate, render, setManyAttrib, STGroup, stShowsToSE)
 import Text.StringTemplate.Classes(ToSElem(toSElem), SElem(SM, STR))
 import Text.StringTemplate.GenericStandard()
 
@@ -97,24 +99,24 @@ copyResources from to = do files <- getFiles from
 
 -- | Generates an output file by applying a template with one or more attributes set.  The file's name is derived
 --   from the template name.
-applyTemplate :: STGroup String -> FilePath -> FilePath -> [(String, AttributeValue)] -> IO ()
+applyTemplate :: STGroup ByteString -> FilePath -> FilePath -> [(String, AttributeValue)] -> IO ()
 applyTemplate group templateName dir = applyTemplateWithName group templateName dir templateName
 
-applyTemplateWithName :: STGroup String -> FilePath -> FilePath -> FilePath -> [(String, AttributeValue)] -> IO ()
+applyTemplateWithName :: STGroup ByteString -> FilePath -> FilePath -> FilePath -> [(String, AttributeValue)] -> IO ()
 applyTemplateWithName group templateName dir fileName attributes = case getStringTemplate templateName group of
                                                                         Nothing       -> print $ "Could not find template for " ++ templateName
-                                                                        Just template -> writeFile (combine dir fileName) html
-                                                                                         where html = toString $ setManyAttrib attributes template
+                                                                        Just template -> BS.writeFile (combine dir fileName) html
+                                                                                         where html = render $ setManyAttrib attributes template
 
 -- | Generates home, away and overall HTML league tables.
-generateLeagueTables :: STGroup String -> FilePath -> Map Team [Result] -> Map Team Int -> MetaData -> IO ()
+generateLeagueTables :: STGroup ByteString -> FilePath -> Map Team [Result] -> Map Team Int -> MetaData -> IO ()
 generateLeagueTables group dir results adjustments metaData = do let splitResults = splitHomeAndAway results
                                                                      attributes = [("tableSelected", AV True), ("metaData", AV metaData)]
                                                                  applyTemplateWithName group "table.html" dir "index.html" (("table", AV $ leagueTable results adjustments):attributes)
                                                                  applyTemplate group "hometable.html" dir (("table", AV $ leagueTable (Map.map fst splitResults) Map.empty):attributes)
                                                                  applyTemplate group "awaytable.html" dir (("table", AV $ leagueTable (Map.map snd splitResults) Map.empty):attributes)
 
-generateFormTables :: STGroup String -> FilePath -> Map Team [Result] -> MetaData -> IO ()
+generateFormTables :: STGroup ByteString -> FilePath -> Map Team [Result] -> MetaData -> IO ()
 generateFormTables group dir results metaData = do let splitResults = splitHomeAndAway results
                                                        attributes = [("formSelected", AV True), ("metaData", AV metaData)]
                                                    applyTemplate group "formtable.html" dir (("table", AV $ formTable results 6):attributes)
@@ -122,7 +124,7 @@ generateFormTables group dir results metaData = do let splitResults = splitHomeA
                                                    applyTemplate group "awayformtable.html" dir (("table", AV $ formTable (Map.map snd splitResults) 4):attributes)
 
 -- | Generates current and longest sequences for home, away and all matches.
-generateSequences :: STGroup String -> FilePath -> Map Team [Result] -> MetaData -> IO ()
+generateSequences :: STGroup ByteString -> FilePath -> Map Team [Result] -> MetaData -> IO ()
 generateSequences group dir results metaData = do let (overallCurrent, overallLongest) = getSequenceTables results
                                                       splitResults = splitHomeAndAway results
                                                       (homeCurrent, homeLongest) = getSequenceTables $ Map.map fst splitResults
@@ -137,7 +139,7 @@ generateSequences group dir results metaData = do let (overallCurrent, overallLo
                                                   where convertTables = AV . Map.mapKeys show . Map.map insertLinks
 
 -- | Generates team aggregates for all matches.
-generateAggregates:: STGroup String -> FilePath -> Map Team [Result] -> MetaData -> IO ()
+generateAggregates:: STGroup ByteString -> FilePath -> Map Team [Result] -> MetaData -> IO ()
 generateAggregates group dir results metaData = do let aggregates = getAggregateTables results
                                                        attr = ("metaData", AV metaData)
                                                    applyTemplate group "aggregates.html" dir [("aggregates", convertTables aggregates), ("aggregatesSelected", AV True), attr]
@@ -148,7 +150,7 @@ insertLinks :: [(Team, a)] -> [(Team, String, a)]
 insertLinks [] =            []
 insertLinks ((t, s):rest) = ((t, toHTMLFileName t, s):insertLinks rest)
 
-generateResults :: STGroup String -> FilePath -> [Result] -> MetaData -> IO ()
+generateResults :: STGroup ByteString -> FilePath -> [Result] -> MetaData -> IO ()
 generateResults group dir results metaData = do let homeWinMatches = homeWins results
                                                     awayWinMatches = awayWins results
                                                     matchCount = length results
@@ -172,11 +174,11 @@ generateResults group dir results metaData = do let homeWinMatches = homeWins re
                                                                                         ("resultsSelected", AV True),
                                                                                         ("metaData", AV metaData)]
 
-generateMiniLeagues :: STGroup String -> FilePath -> Map Team [Result] -> [(String, Set Team)] -> MetaData -> IO ()
+generateMiniLeagues :: STGroup ByteString -> FilePath -> Map Team [Result] -> [(String, Set Team)] -> MetaData -> IO ()
 generateMiniLeagues group dir results miniLeagues metaData = do let tabs = map ((\n -> (n, toHTMLFileName n)).fst) miniLeagues -- Each tab is a display name and a file name.
                                                                 mapM_ (generateMiniLeague group dir results tabs metaData) miniLeagues
 
-generateMiniLeague :: STGroup String -> FilePath -> Map Team [Result] -> [(String, String)] -> MetaData -> (String, Set Team) -> IO ()
+generateMiniLeague :: STGroup ByteString -> FilePath -> Map Team [Result] -> [(String, String)] -> MetaData -> (String, Set Team) -> IO ()
 generateMiniLeague group dir results tabs metaData (name, teams) = do let selectedTabs = map (\(n, f) -> (n, f, (n == name))) tabs -- Add a boolean "selected" flag to each tab.
                                                                           attributes = [("table", AV $ miniLeagueTable teams results),
                                                                                         ("miniLeaguesSelected", AV True),
@@ -185,11 +187,11 @@ generateMiniLeague group dir results tabs metaData (name, teams) = do let select
                                                                                         ("metaData", AV metaData)]
                                                                       applyTemplateWithName group "minileague.html" dir (toHTMLFileName name) attributes
 
-generateTeamPages :: STGroup String -> FilePath -> Map Team [Result] -> MetaData -> IO ()
+generateTeamPages :: STGroup ByteString -> FilePath -> Map Team [Result] -> MetaData -> IO ()
 generateTeamPages group dir teamResults metaData = mapM_ (uncurry $ generateTeamPage group dir metaData) (Map.assocs teamResults)
 
 -- | Generate the overview page for an individual team.
-generateTeamPage :: STGroup String -> FilePath -> MetaData -> Team -> [Result] -> IO ()
+generateTeamPage :: STGroup ByteString -> FilePath -> MetaData -> Team -> [Result] -> IO ()
 generateTeamPage group dir metaData team results = do let record = buildRecord team results
                                                           matches = played record
                                                           wins = won record
@@ -219,7 +221,7 @@ toHTMLFileName name = map toLower (filter (not.isSpace) name) ++ ".html"
 
 -- | Generates all stats pages for a given data file.  First parameter is a template group, second parameter is a pair of paths,
 --   the first is the path to the data file, the second is the path to the directory in which the pages will be created.
-generateStatsPages :: STGroup String -> FilePath -> LeagueData -> MetaData -> IO ()
+generateStatsPages :: STGroup ByteString -> FilePath -> LeagueData -> MetaData -> IO ()
 generateStatsPages templateGroup targetDir (LeagueData _ results adj miniLeagues) metaData = do let teamResults = resultsByTeam results
                                                                                                 createDirectoryIfMissing True targetDir
                                                                                                 generateLeagueTables templateGroup targetDir teamResults adj metaData
@@ -236,17 +238,17 @@ getMiniLeaguesLink :: [(String, Set Team)] -> Maybe String
 getMiniLeaguesLink []            = Nothing
 getMiniLeaguesLink ((name, _):_) = Just $ toHTMLFileName name
 
-publishLeagues :: STGroup String -> Configuration -> IO ()
+publishLeagues :: STGroup ByteString -> Configuration -> IO ()
 publishLeagues templateGroup config = do applyTemplate templateGroup "selector.json" (outputRoot config) [("config", AV config)]
                                          mapM_ (publishLeague templateGroup) $ leagues config
 
-publishLeague :: STGroup String -> League -> IO ()
+publishLeague :: STGroup ByteString -> League -> IO ()
 publishLeague templateGroup league = mapM_ (publishDivision templateGroup (leagueName league)) $ divisions league
 
-publishDivision :: STGroup String -> String -> Division -> IO ()
+publishDivision :: STGroup ByteString -> String -> Division -> IO ()
 publishDivision templateGroup leagueName division = mapM_ (publishSeason templateGroup leagueName (divisionName division)) $ seasons division
 
-publishSeason :: STGroup String -> String -> String -> Season -> IO ()
+publishSeason :: STGroup ByteString -> String -> String -> Season -> IO ()
 publishSeason templateGroup leagueName divisionName season = do let dataFile = inputFile season
                                                                 modified <- isNewer dataFile (combine (outputDir season) "index.html")
                                                                 case modified || aggregated season || collated season of

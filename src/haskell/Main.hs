@@ -3,6 +3,7 @@ module Main where
 import Anorak.Config(Configuration, outputRoot, readConfig)
 import Anorak.FeatureExtractor(generateFeatures)
 import Anorak.Publisher
+import Data.ByteString(ByteString)
 import System(getArgs)
 import Text.StringTemplate(directoryGroup, STGroup)
 
@@ -17,6 +18,6 @@ main = do (command:parameters) <- getArgs
 -- | Publish HTML pages for the configured data files, using the templates in the specified directory.
 publish :: FilePath -> FilePath -> IO ()
 publish configFile templateDir = do config <- readConfig configFile
-                                    group <- directoryGroup templateDir :: IO (STGroup String)
+                                    group <- directoryGroup templateDir :: IO (STGroup ByteString)
                                     copyResources templateDir (outputRoot config)
                                     publishLeagues group config
