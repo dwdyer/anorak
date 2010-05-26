@@ -240,7 +240,7 @@ publishDivision templateGroup leagueName division = mapM_ (publishSeason templat
 publishSeason :: STGroup String -> String -> String -> Season -> IO ()
 publishSeason templateGroup leagueName divisionName season = do let dataFile = inputFile season
                                                                 modified <- isNewer dataFile (combine (outputDir season) "index.html")
-                                                                case modified of
+                                                                case modified || aggregated season || collated season of
                                                                     False -> print $ "Skipping unchanged file " ++ dataFile 
                                                                     True  -> do print $ "Processing " ++ dataFile
                                                                                 LeagueData teams results adj miniLeagues <- parseRLTFile dataFile

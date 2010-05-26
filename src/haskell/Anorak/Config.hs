@@ -20,7 +20,8 @@ data Season = Season {seasonName :: String,     -- ^ The name of the season (e.g
                       inputFile :: FilePath,    -- ^ Path to the season's data file.
                       outputDir :: FilePath,    -- ^ The directory to write the generated files to.
                       relativeLink :: FilePath, -- ^ Link relative to the web root.
-                      aggregated :: Bool        -- ^ Whether this is an aggregate of multiple seasons.
+                      aggregated :: Bool,       -- ^ Whether this is an aggregate of multiple seasons from the same division.
+                      collated :: Bool          -- ^ Whether this is the combination of multiple divisions from the same season.
                      } deriving (Data, Typeable)
 
 -- | A ConfigurationException is thrown when there is a problem processing the XML configuration file.
@@ -53,6 +54,7 @@ processSeasonTag baseDir outputDir tag = Season (getAttributeValue tag "name")
                                                 (makeAbsolute seasonDir outputDir)
                                                 ("../../../" ++ seasonDir ++ "/index.html")
                                                 ((getAttributeValue tag "aggregated") == "true")
+                                                ((getAttributeValue tag "collated") == "true")
                                          where seasonDir = getAttributeValue tag "output"
 
 -- | Simplifies the reading of XML attributes by assuming that the attribute is present.  Throws an exception if it is not.
