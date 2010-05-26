@@ -9,5 +9,15 @@
     <tr><td>Draws:</td><td class="number">$draws$</td></tr>
     <tr><td>Defeats:</td><td class="number">$defeats$</td></tr>
   </table>
+  <table>
+    <tr><th colspan="4" class="record"><h3>Biggest Home Wins</h3></th></tr>
+    $bigHomeWins:teamresult(dateformat="%e %b %Y")$
+    <tr><td colspan="4">&nbsp;</td></tr>
+    <tr><th colspan="4" class="record"><h3>Biggest Away Wins</h3></th></tr>
+    $bigAwayWins:teamresult(dateformat="%e %b %Y")$
+    <tr><td colspan="4">&nbsp;</td></tr>
+    <tr><th colspan="4" class="record"><h3>Highest Match Aggregates</h3></th></tr>
+    $highAggregates:teamresult(dateformat="%e %b %Y")$
+  </table>
 </div>
 

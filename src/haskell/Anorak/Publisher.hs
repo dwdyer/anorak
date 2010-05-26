@@ -187,6 +187,7 @@ generateTeamPage group dir metaData team results = do let record = buildRecord t
                                                           wins = won record
                                                           defeats = lost record
                                                           draws = drawn record
+                                                          (homeResults, awayResults) = partitionResults team results
                                                           attributes = [("team", AV team),
                                                                         ("results", AV $ map (convertResult team) results),
                                                                         ("matches", AV matches),
@@ -198,6 +199,9 @@ generateTeamPage group dir metaData team results = do let record = buildRecord t
                                                                         ("drawPercent", AV $ percentage draws matches),
                                                                         ("goalsFor", AV $ for record),
                                                                         ("goalsAgainst", AV $ against record),
+                                                                        ("bigHomeWins", AV $ map (convertResult team) $ biggestWins $ homeWins homeResults),
+                                                                        ("bigAwayWins", AV $ map (convertResult team) $ biggestWins $ awayWins awayResults),
+                                                                        ("highAggregates", AV $ map (convertResult team) $ highestAggregates results ),
                                                                         ("metaData", AV metaData)]
                                                       applyTemplateWithName group "team.html" dir (toHTMLFileName team) attributes
 

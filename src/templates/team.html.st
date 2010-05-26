@@ -8,12 +8,7 @@ $header(title=team)$
       <tr>
         <td>
           <table>
-            $results:{<tr>
-              <td class="date">$it.("day");format="%a %e %b %Y"$</td>
-              <td class="opposition"><a href="$it.("oppositionLink")$">$it.("opposition")$</a> ($it.("venue")$)</td>
-              <td class="score">$it.("scored")$ - $it.("conceded")$</td>
-              <td class="outcome">$it.("outcome")$</td>
-            </tr>}$
+            $results:teamresult(dateformat="%a %e %b %Y")$
           </table>
         </td>
         <td>
