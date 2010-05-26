@@ -1,5 +1,5 @@
 -- | Functions for calculating sequences.
-module Anorak.Sequences (getSequences, sequenceTables) where
+module Anorak.Sequences (getSequenceTables) where
 
 import Anorak.Results
 import Data.Map(Map, (!))
@@ -17,35 +17,37 @@ data SequenceType = Wins | Draws | Losses | Unbeaten | NoWin | Cleansheets | Con
 type TeamSequences = Map SequenceType (Seq TeamResult)
 -- | Combined team sequences maps SequenceType to both the current and longest sequence.
 type CombinedTeamSequences = Map SequenceType (Seq TeamResult, Seq TeamResult)
+-- | A Sequence table is a list of teams and their associated sequence of results.
+type SequenceTable = [(Team, Seq TeamResult)]
 
-sequenceTables :: Map Team TeamSequences -> Map String [(Team, Seq TeamResult)]
-sequenceTables sequences = Map.fromList [(show Wins, sequenceTable sequences Wins),
-                                         (show Draws, sequenceTable sequences Draws),
-                                         (show Losses, sequenceTable sequences Losses),
-                                         (show Unbeaten, sequenceTable sequences Unbeaten),
-                                         (show NoWin, sequenceTable sequences NoWin),
-                                         (show Cleansheets, sequenceTable sequences Cleansheets),
-                                         (show Conceded, sequenceTable sequences Conceded),
-                                         (show Scored, sequenceTable sequences Scored),        
-                                         (show NoGoal, sequenceTable sequences NoGoal)]
+-- | Given a map of results by team, calculate the current and longest sequences for each team.
+getSequenceTables :: Map Team [Result] -> (Map SequenceType SequenceTable, Map SequenceType SequenceTable)
+getSequenceTables results = (sequenceTables $ Map.map (Map.map fst) teamSequences, sequenceTables $ Map.map (Map.map snd) teamSequences)
+                            where teamSequences = sequencesByTeam results
 
-sequenceTable :: Map Team TeamSequences -> SequenceType -> [(Team, Seq TeamResult)]
-sequenceTable sequences seqType = sortSequences $ Map.toList (Map.map (flip (!) seqType) sequences)
+sequenceTables :: Map Team TeamSequences -> Map SequenceType SequenceTable
+sequenceTables sequences = Map.fromList [(Wins, sequenceTable sequences Wins),
+                                         (Draws, sequenceTable sequences Draws),
+                                         (Losses, sequenceTable sequences Losses),
+                                         (Unbeaten, sequenceTable sequences Unbeaten),
+                                         (NoWin, sequenceTable sequences NoWin),
+                                         (Cleansheets, sequenceTable sequences Cleansheets),
+                                         (Conceded, sequenceTable sequences Conceded),
+                                         (Scored, sequenceTable sequences Scored),        
+                                         (NoGoal, sequenceTable sequences NoGoal)]
+
+sequenceTable :: Map Team TeamSequences -> SequenceType -> SequenceTable
+sequenceTable sequences seqType = sortTable $ Map.toList (Map.map (flip (!) seqType) sequences)
 
 -- | Sort a sequence table.
-sortSequences :: [(Team, Seq TeamResult)] -> [(Team, Seq TeamResult)]
-sortSequences = sortBy compareSequence . filter (not.Seq.null.snd)
+sortTable :: SequenceTable -> SequenceTable
+sortTable = sortBy compareSequence . filter (not.Seq.null.snd)
 
 -- | Comparator for a list of sequences, longest first.
 compareSequence :: (Team, Seq TeamResult) -> (Team, Seq TeamResult) -> Ordering
 compareSequence (t1, s1) (t2, s2)
     | Seq.length s1 == Seq.length s2 = compare t1 t2
     | otherwise                      = comparing Seq.length s2 s1
-
--- | Given a map of results by team, calculate the current and longest sequences for each team.
-getSequences :: Map Team [Result] -> (Map Team TeamSequences, Map Team TeamSequences)
-getSequences results = (Map.map (Map.map fst) teamSequences, Map.map (Map.map snd) teamSequences)
-                       where teamSequences = sequencesByTeam results
 
 -- | Calculate current and longest sequences for each team.
 sequencesByTeam :: Map Team [Result] -> Map Team CombinedTeamSequences

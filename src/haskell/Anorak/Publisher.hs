@@ -8,12 +8,13 @@ import Anorak.Config
 import Anorak.Results
 import Anorak.RLTParser
 import Anorak.Sequences
+import Anorak.Aggregates
 import Anorak.Tables
 import Anorak.Utils
 import Char(isSpace, toLower)
 import Data.Data(Data)
 import Data.Map(Map)
-import qualified Data.Map as Map(assocs, empty, fromAscList, map, toList)
+import qualified Data.Map as Map(assocs, empty, fromAscList, map, mapKeys, toList)
 import Data.Sequence(Seq)
 import Data.Set(Set)
 import Data.Typeable(Typeable)
@@ -122,21 +123,28 @@ generateFormTables group dir results metaData = do let splitResults = splitHomeA
 
 -- | Generates current and longest sequences for home, away and all matches.
 generateSequences :: STGroup String -> FilePath -> Map Team [Result] -> MetaData -> IO ()
-generateSequences group dir results metaData = do let (overallCurrent, overallLongest) = getSequences results
+generateSequences group dir results metaData = do let (overallCurrent, overallLongest) = getSequenceTables results
                                                       splitResults = splitHomeAndAway results
-                                                      (homeCurrent, homeLongest) = getSequences $ Map.map fst splitResults
-                                                      (awayCurrent, awayLongest) = getSequences $ Map.map snd splitResults
+                                                      (homeCurrent, homeLongest) = getSequenceTables $ Map.map fst splitResults
+                                                      (awayCurrent, awayLongest) = getSequenceTables $ Map.map snd splitResults
                                                       attr = ("metaData", AV metaData)
-                                                  applyTemplate group "currentsequences.html" dir [("sequences", convertToTables overallCurrent), ("currentSequencesSelected", AV True), attr]
-                                                  applyTemplate group "longestsequences.html" dir [("sequences", convertToTables overallLongest), ("longestSequencesSelected", AV True), attr]
-                                                  applyTemplate group "homecurrentsequences.html" dir [("sequences", convertToTables homeCurrent), ("currentSequencesSelected", AV True), attr]
-                                                  applyTemplate group "homelongestsequences.html" dir [("sequences", convertToTables homeLongest), ("longestSequencesSelected", AV True), attr]
-                                                  applyTemplate group "awaycurrentsequences.html" dir [("sequences", convertToTables awayCurrent), ("currentSequencesSelected", AV True), attr]
-                                                  applyTemplate group "awaylongestsequences.html" dir [("sequences", convertToTables awayLongest), ("longestSequencesSelected", AV True), attr]
-                                                  where convertToTables = AV . Map.map insertLinks . sequenceTables
+                                                  applyTemplate group "currentsequences.html" dir [("sequences", convertTables overallCurrent), ("currentSequencesSelected", AV True), attr]
+                                                  applyTemplate group "longestsequences.html" dir [("sequences", convertTables overallLongest), ("longestSequencesSelected", AV True), attr]
+                                                  applyTemplate group "homecurrentsequences.html" dir [("sequences", convertTables homeCurrent), ("currentSequencesSelected", AV True), attr]
+                                                  applyTemplate group "homelongestsequences.html" dir [("sequences", convertTables homeLongest), ("longestSequencesSelected", AV True), attr]
+                                                  applyTemplate group "awaycurrentsequences.html" dir [("sequences", convertTables awayCurrent), ("currentSequencesSelected", AV True), attr]
+                                                  applyTemplate group "awaylongestsequences.html" dir [("sequences", convertTables awayLongest), ("longestSequencesSelected", AV True), attr]
+                                                  where convertTables = AV . Map.mapKeys show . Map.map insertLinks
+
+-- | Generates team aggregates for all matches.
+generateAggregates:: STGroup String -> FilePath -> Map Team [Result] -> MetaData -> IO ()
+generateAggregates group dir results metaData = do let aggregates = getAggregateTables results
+                                                       attr = ("metaData", AV metaData)
+                                                   applyTemplate group "aggregates.html" dir [("aggregates", convertTables aggregates), ("aggregatesSelected", AV True), attr]
+                                                   where convertTables = AV . Map.mapKeys show . Map.map insertLinks
 
 -- | Converts pairs of teams/sequences into triples that include a link to the team's page.
-insertLinks :: [(Team, Seq TeamResult)] -> [(Team, String, Seq TeamResult)]
+insertLinks :: [(Team, a)] -> [(Team, String, a)]
 insertLinks [] =            []
 insertLinks ((t, s):rest) = ((t, toHTMLFileName t, s):insertLinks rest)
 
@@ -218,6 +226,7 @@ generateStatsPages templateGroup targetDir (LeagueData _ results adj miniLeagues
                                                                                                 generateFormTables templateGroup targetDir teamResults metaData
                                                                                                 generateResults templateGroup targetDir results metaData
                                                                                                 generateSequences templateGroup targetDir teamResults metaData
+                                                                                                generateAggregates templateGroup targetDir teamResults metaData
                                                                                                 generateMiniLeagues templateGroup targetDir teamResults miniLeagues metaData
                                                                                                 generateTeamPages templateGroup targetDir teamResults metaData
 

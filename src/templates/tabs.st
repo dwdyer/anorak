@@ -14,6 +14,9 @@
   <div class="tab $if(longestSequencesSelected)$selectedtab$endif$">
     <a href="$if(longestSequencesSelected)$#$else$longestsequences.html$endif$" title="Longest sequences for each team (wins, draws, defeats, unbeaten runs, cleansheets, etc)">Longest Sequences</a>
   </div>
+  <div class="tab $if(aggregatesSelected)$selectedtab$endif$">
+    <a href="$if(aggregatesSelected)$#$else$aggregates.html$endif$" title="Total cleansheets, failures to score, etc.">Aggregates</a>
+  </div>
   $if(metaData.miniLeaguesLink)$
   <div class="tab $if(miniLeaguesSelected)$selectedtab$endif$">
     <a href="$if(miniLeaguesSelected)$#$else$$metaData.miniLeaguesLink$$endif$" title="Regional tables and selected other groups">Mini-Leagues</a>
