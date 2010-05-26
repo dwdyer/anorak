@@ -12,13 +12,13 @@ import List(sort)
 
 -- | A LeagueRecord contains data about the league performance of a single team.  It
 --   includes total number of wins, draws, defeats, goals scored and goals conceded.
-data LeagueRecord = LeagueRecord {team :: Team,                       -- ^ The team that this record relates to.
-                                  won :: Int,                         -- ^ The number of matches won by this team.
-                                  drawn :: Int,                       -- ^ The number of matches drawn by this team.
-                                  lost :: Int,                        -- ^ The number of matches lost by this team.
-                                  for :: Int,                         -- ^ The total number of goals scored by this team.
-                                  against :: Int,                     -- ^ The total number of goals conceded by this team.
-                                  adjustment :: Int                   -- ^ A points adjustment (can be positive or negative but is usually zero) to be applied to this team's total.
+data LeagueRecord = LeagueRecord {team :: !Team,                       -- ^ The team that this record relates to.
+                                  won :: !Int,                         -- ^ The number of matches won by this team.
+                                  drawn :: !Int,                       -- ^ The number of matches drawn by this team.
+                                  lost :: !Int,                        -- ^ The number of matches lost by this team.
+                                  for :: !Int,                         -- ^ The total number of goals scored by this team.
+                                  against :: !Int,                     -- ^ The total number of goals conceded by this team.
+                                  adjustment :: !Int                   -- ^ A points adjustment (can be positive or negative but is usually zero) to be applied to this team's total.
                                  }
 -- A LeagueRecord can be rendered as a String containing both member fields and
 -- derived fields.

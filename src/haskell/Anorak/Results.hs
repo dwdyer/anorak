@@ -16,11 +16,11 @@ import System.Locale(defaultTimeLocale)
 type Team = String
 
 -- | A match result consists of a date, two teams and the goals scored by each.
-data Result = Result {date :: Day,      -- ^ The day that the match was played.
-                      homeTeam :: Team, -- ^ The team playing at home.
-                      homeGoals :: Int, -- ^ The number of goals scored by the home team.
-                      awayTeam :: Team, -- ^ The visiting team.
-                      awayGoals :: Int  -- ^ The number of goals scored by the away team.
+data Result = Result {date :: !Day,      -- ^ The day that the match was played.
+                      homeTeam :: !Team, -- ^ The team playing at home.
+                      homeGoals :: !Int, -- ^ The number of goals scored by the home team.
+                      awayTeam :: !Team, -- ^ The visiting team.
+                      awayGoals :: !Int  -- ^ The number of goals scored by the away team.
                      }
 instance Show Result where
     show result = formatTime defaultTimeLocale "%e %b %Y: " (date result) ++
@@ -43,12 +43,12 @@ aggregate result = homeGoals result + awayGoals result
 
 -- | A TeamResult is another way of organising information about the result of the match, relative to
 --   a particular team.
-data TeamResult = TeamResult {day :: Day,
-                              opposition :: Team,
-                              venue :: Char,
-                              scored :: Int,
-                              conceded :: Int,
-                              outcome :: Char}
+data TeamResult = TeamResult {day :: !Day,
+                              opposition :: !Team,
+                              venue :: !Char,
+                              scored :: !Int,
+                              conceded :: !Int,
+                              outcome :: !Char}
 instance Show TeamResult where
     show result = formatTime defaultTimeLocale "%e %b %Y: " (day result) ++
                   opposition result ++ "(" ++ [venue result] ++ ") " ++ [outcome result] ++ " " ++
