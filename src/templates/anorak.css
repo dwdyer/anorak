@@ -75,4 +75,5 @@ th                       {margin-bottom: 1.385em;}
 /* Sortables */
 .sortable th             {cursor: pointer;}
 th.sorttable_nosort      {cursor: default;}
+.nosortindicator #sorttable_sortrevind {display: none;} /* Don't show triangle for default order. */
 
