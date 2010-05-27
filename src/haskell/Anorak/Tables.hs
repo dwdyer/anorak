@@ -3,7 +3,7 @@ module Anorak.Tables (buildRecord, formTable, goalDiff, LeagueRecord(..), league
 
 import Anorak.Results
 import Anorak.Utils(keep)
-import Data.Map(Map)
+import Data.Map(Map, (!))
 import qualified Data.Map as Map(elems, empty, filterWithKey, findWithDefault, map, mapWithKey)
 import Data.Ord(comparing)
 import Data.Set(Set)
@@ -84,13 +84,27 @@ addScoreToRecord (LeagueRecord team won drawn lost for against adjustment) score
 
 -- | Produces a standard league table with teams ordered in descending order of points.  Takes a map of teams to
 --   results and a map of points adjustments and returns a sorted list of league records.
-leagueTable :: Map Team [Result] -> Map Team Int -> [LeagueRecord]
-leagueTable teamResults adjustments = sort $ map (adjust adjustments) table
-                                      where table = Map.elems $ Map.mapWithKey buildRecord teamResults
+leagueTable :: Map Team [Result] -> Map Team Int -> Int -> [LeagueRecord]
+leagueTable teamResults adjustments 0     = sort $ map (adjust adjustments) table
+                                            where table = Map.elems $ Map.mapWithKey buildRecord teamResults
+leagueTable teamResults adjustments split = (updateTable top remainingFixtures) ++ (updateTable bottom remainingFixtures)
+                                            where before = leagueTable (Map.map (take split) teamResults) adjustments 0 -- Initial table based on early fixtures.
+                                                  (top, bottom) = splitAt (length before `div` 2) before -- Split league in half.
+                                                  remainingFixtures = Map.map (drop split) teamResults -- Keep remaining fixtures and apply to both halves before recombining.
+                                           
+
+-- | Update the specified table by applying remaining results for member teams.
+updateTable :: [LeagueRecord] -> Map Team [Result] -> [LeagueRecord]
+updateTable table results = map (updateRecord results) table
+
+-- | Update the specified league record by applying all of the remaining results for that team.
+updateRecord :: Map Team [Result] -> LeagueRecord -> LeagueRecord
+updateRecord results record = foldl (addResultToRecord t) record (results ! t)
+                              where t = team record
 
 -- | Produces a form table with teams ordered in descending order of points.
 formTable :: Map Team [Result] -> Int -> [(LeagueRecord, [TeamResult])]
-formTable teamResults n = map (attachForm formResults) $ leagueTable formResults Map.empty
+formTable teamResults n = map (attachForm formResults) $ leagueTable formResults Map.empty 0
                           where formResults = Map.map (keep n) teamResults
 
 attachForm :: Map Team [Result] -> LeagueRecord -> (LeagueRecord, [TeamResult])
@@ -103,7 +117,7 @@ adjust adjustments (LeagueRecord t w d l f a adj) = LeagueRecord t w d l f a (ad
 
 -- | Generate a league table that includes only results between the specified teams.
 miniLeagueTable :: Set Team -> Map Team [Result] -> [LeagueRecord]
-miniLeagueTable teams results = leagueTable filteredResults Map.empty
+miniLeagueTable teams results = leagueTable filteredResults Map.empty 0
                                 where filteredResults = Map.map (filter $ checkBothTeamsInSet teams) $ Map.filterWithKey (\k _ -> Set.member k teams) results
 
 checkBothTeamsInSet :: Set Team -> Result -> Bool

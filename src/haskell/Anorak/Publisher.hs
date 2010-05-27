@@ -109,12 +109,12 @@ applyTemplateWithName group templateName dir fileName attributes = case getStrin
                                                                                          where html = render $ setManyAttrib attributes template
 
 -- | Generates home, away and overall HTML league tables.
-generateLeagueTables :: STGroup ByteString -> FilePath -> Map Team [Result] -> Map Team Int -> MetaData -> IO ()
-generateLeagueTables group dir results adjustments metaData = do let splitResults = splitHomeAndAway results
-                                                                     attributes = [("tableSelected", AV True), ("metaData", AV metaData)]
-                                                                 applyTemplateWithName group "table.html" dir "index.html" (("table", AV $ leagueTable results adjustments):attributes)
-                                                                 applyTemplate group "hometable.html" dir (("table", AV $ leagueTable (Map.map fst splitResults) Map.empty):attributes)
-                                                                 applyTemplate group "awaytable.html" dir (("table", AV $ leagueTable (Map.map snd splitResults) Map.empty):attributes)
+generateLeagueTables :: STGroup ByteString -> FilePath -> Map Team [Result] -> Map Team Int -> MetaData -> Int -> IO ()
+generateLeagueTables group dir results adjustments metaData sp = do let splitResults = splitHomeAndAway results
+                                                                        attributes = [("tableSelected", AV True), ("metaData", AV metaData)]
+                                                                    applyTemplateWithName group "table.html" dir "index.html" (("table", AV $ leagueTable results adjustments sp):attributes)
+                                                                    applyTemplate group "hometable.html" dir (("table", AV $ leagueTable (Map.map fst splitResults) Map.empty 0):attributes)
+                                                                    applyTemplate group "awaytable.html" dir (("table", AV $ leagueTable (Map.map snd splitResults) Map.empty 0):attributes)
 
 generateFormTables :: STGroup ByteString -> FilePath -> Map Team [Result] -> MetaData -> IO ()
 generateFormTables group dir results metaData = do let splitResults = splitHomeAndAway results
@@ -222,15 +222,15 @@ toHTMLFileName name = map toLower (filter (not.isSpace) name) ++ ".html"
 -- | Generates all stats pages for a given data file.  First parameter is a template group, second parameter is a pair of paths,
 --   the first is the path to the data file, the second is the path to the directory in which the pages will be created.
 generateStatsPages :: STGroup ByteString -> FilePath -> LeagueData -> MetaData -> IO ()
-generateStatsPages templateGroup targetDir (LeagueData _ results adj miniLeagues) metaData = do let teamResults = resultsByTeam results
-                                                                                                createDirectoryIfMissing True targetDir
-                                                                                                generateLeagueTables templateGroup targetDir teamResults adj metaData
-                                                                                                generateFormTables templateGroup targetDir teamResults metaData
-                                                                                                generateResults templateGroup targetDir results metaData
-                                                                                                generateSequences templateGroup targetDir teamResults metaData
-                                                                                                generateAggregates templateGroup targetDir teamResults metaData
-                                                                                                generateMiniLeagues templateGroup targetDir teamResults miniLeagues metaData
-                                                                                                generateTeamPages templateGroup targetDir teamResults metaData
+generateStatsPages templateGroup targetDir (LeagueData _ results adj miniLeagues sp) metaData = do let teamResults = resultsByTeam results
+                                                                                                   createDirectoryIfMissing True targetDir
+                                                                                                   generateLeagueTables templateGroup targetDir teamResults adj metaData sp
+                                                                                                   generateFormTables templateGroup targetDir teamResults metaData
+                                                                                                   generateResults templateGroup targetDir results metaData
+                                                                                                   generateSequences templateGroup targetDir teamResults metaData
+                                                                                                   generateAggregates templateGroup targetDir teamResults metaData
+                                                                                                   generateMiniLeagues templateGroup targetDir teamResults miniLeagues metaData
+                                                                                                   generateTeamPages templateGroup targetDir teamResults metaData
 
 -- | Determine which file the "Mini-Leagues" tab should link to (derived from the name of the first mini-league).
 --   If there are no mini-leagues then this function returns nothing and the tab should not be shown.
@@ -254,7 +254,7 @@ publishSeason templateGroup leagueName divisionName season = do let dataFile = i
                                                                 case modified || aggregated season || collated season of
                                                                     False -> print $ "Skipping unchanged file " ++ dataFile 
                                                                     True  -> do print $ "Processing " ++ dataFile
-                                                                                LeagueData teams results adj miniLeagues <- parseRLTFile dataFile
+                                                                                leagueData@(LeagueData _ _ _ miniLeagues _) <- parseRLTFile dataFile
                                                                                 let metaData = MetaData leagueName divisionName (seasonName season) (aggregated season) (getMiniLeaguesLink miniLeagues)
-                                                                                generateStatsPages templateGroup (outputDir season) (LeagueData teams results adj miniLeagues) metaData 
+                                                                                generateStatsPages templateGroup (outputDir season) leagueData metaData 
 

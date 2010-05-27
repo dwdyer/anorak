@@ -22,6 +22,7 @@ data Item = Fixture Result               -- ^ The result of a single football ma
           | Include FilePath             -- ^ The path to another RLT file that should be parsed and included.
           | Adjustment Team Int          -- ^ A number of points awarded to or deducted from an individual team.
           | MiniLeague String (Set Team) -- ^ A league within a league (e.g. The Big 4, London Clubs, North West Clubs, etc.)
+          | Rules Int Int Int            -- ^ Number of points for a win, points for a draw, and split point (zero for non-SPL-style leagues)
           | Metadata [String]            -- ^ Data about the league, such as which positions are promoted or relegated.
           | Comment String               -- ^ Comments about the data.
 
@@ -30,8 +31,8 @@ data RLTException = RLTException ParseError deriving (Typeable, Show)
 instance Exception RLTException 
 
 -- | League data is extracted from an RLT file.  It consists of a list of teams, a list of results,
---   a (probably empty) map of points adjustments, and a list of mini-leagues.
-data LeagueData = LeagueData (Set Team) [Result] (Map Team Int) [(String, Set Team)]
+--   a (probably empty) map of points adjustments, a list of mini-leagues, and the SPL-style split point (zero for sane leagues).
+data LeagueData = LeagueData (Set Team) [Result] (Map Team Int) [(String, Set Team)] Int
 
 -- | Parse results and points adjustments, discard meta-data and comments.  The function argument is
 --   the path of the data directory, used to resolve relative paths for include directives.
@@ -54,7 +55,7 @@ record = do fields <- sepBy1 field (char '|')
                 ("MINILEAGUE":name:teams)          -> return $ MiniLeague name $ Set.fromList teams
                 ("PRIZE":_)                        -> return $ Metadata fields
                 ("RELEGATION":_)                   -> return $ Metadata fields
-                ("RULES":_)                        -> return $ Metadata fields
+                ("RULES":win:draw:split:[])        -> return $ Rules (read win) (read draw) (read split)
                 (date:hTeam:hGoals:aTeam:aGoals:_) -> return $ Fixture $ Result day hTeam (read hGoals) aTeam (read aGoals)
                                                       -- RLT dates are 8-character strings in DDMMYYYY format.
                                                       where day = readTime defaultTimeLocale "%d%m%Y" date
@@ -73,16 +74,18 @@ comment = do char '#'
 -- | Takes a list of parsed items and discards comments and meta-data.  The remaining items are separated into a list
 --   of results and a map of net points adjustments by team.
 extractData :: FilePath -> [Item] -> LeagueData
-extractData _ []                                   = LeagueData Set.empty [] Map.empty []
-extractData dataDir (Fixture result:items)         = LeagueData (addTeams result t) (result:r) a m
-                                                     where (LeagueData t r a m) = extractData dataDir items
-extractData dataDir (Include path:items)           = LeagueData (Set.union t t') (r' ++ r) (Map.unionWith (+) a a') m
-                                                     where (LeagueData t r a m) = extractData dataDir items
-                                                           (LeagueData t' r' a' _) = unsafePerformIO $ parseRLTFile $ combine dataDir path
-extractData dataDir (Adjustment team amount:items) = LeagueData t r (Map.insertWith (+) team amount a) m
-                                                     where (LeagueData t r a m) = extractData dataDir items
-extractData dataDir (MiniLeague name teams:items)  = LeagueData t r a ((name, teams):m)
-                                                     where (LeagueData t r a m) = extractData dataDir items
+extractData _ []                                   = LeagueData Set.empty [] Map.empty [] 0
+extractData dataDir (Fixture result:items)         = LeagueData (addTeams result t) (result:r) a m s
+                                                     where (LeagueData t r a m s) = extractData dataDir items
+extractData dataDir (Include path:items)           = LeagueData (Set.union t t') (r' ++ r) (Map.unionWith (+) a a') m s
+                                                     where (LeagueData t r a m s) = extractData dataDir items
+                                                           (LeagueData t' r' a' _ s') = unsafePerformIO $ parseRLTFile $ combine dataDir path
+extractData dataDir (Adjustment team amount:items) = LeagueData t r (Map.insertWith (+) team amount a) m s
+                                                     where (LeagueData t r a m s) = extractData dataDir items
+extractData dataDir (MiniLeague name teams:items)  = LeagueData t r a ((name, teams):m) s
+                                                     where (LeagueData t r a m s) = extractData dataDir items
+extractData dataDir (Rules _ _ split:items)        = LeagueData t r a m split
+                                                     where (LeagueData t r a m _) = extractData dataDir items
 extractData dataDir (_:items)                      = extractData dataDir items -- Discard metadata.
 
 -- | Adds the home team and away team from a match to the set of all teams (if they are not already present).
