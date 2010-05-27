@@ -87,15 +87,15 @@ addScoreToRecord (LeagueRecord team won drawn lost for against adjustment) score
 leagueTable :: Map Team [Result] -> Map Team Int -> Int -> [LeagueRecord]
 leagueTable teamResults adjustments 0     = sort $ map (adjust adjustments) table
                                             where table = Map.elems $ Map.mapWithKey buildRecord teamResults
-leagueTable teamResults adjustments split = (updateTable top remainingFixtures) ++ (updateTable bottom remainingFixtures)
+leagueTable teamResults adjustments split = (updateSection top remainingFixtures) ++ (updateSection bottom remainingFixtures)
                                             where before = leagueTable (Map.map (take split) teamResults) adjustments 0 -- Initial table based on early fixtures.
                                                   (top, bottom) = splitAt (length before `div` 2) before -- Split league in half.
                                                   remainingFixtures = Map.map (drop split) teamResults -- Keep remaining fixtures and apply to both halves before recombining.
                                            
 
 -- | Update the specified table by applying remaining results for member teams.
-updateTable :: [LeagueRecord] -> Map Team [Result] -> [LeagueRecord]
-updateTable table results = sort $ map (updateRecord results) table
+updateSection :: [LeagueRecord] -> Map Team [Result] -> [LeagueRecord]
+updateSection table results = sort $ map (updateRecord results) table
 
 -- | Update the specified league record by applying all of the remaining results for that team.
 updateRecord :: Map Team [Result] -> LeagueRecord -> LeagueRecord
