@@ -95,7 +95,7 @@ leagueTable teamResults adjustments split = (updateTable top remainingFixtures) 
 
 -- | Update the specified table by applying remaining results for member teams.
 updateTable :: [LeagueRecord] -> Map Team [Result] -> [LeagueRecord]
-updateTable table results = map (updateRecord results) table
+updateTable table results = sort $ map (updateRecord results) table
 
 -- | Update the specified league record by applying all of the remaining results for that team.
 updateRecord :: Map Team [Result] -> LeagueRecord -> LeagueRecord
