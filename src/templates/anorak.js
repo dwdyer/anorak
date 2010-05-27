@@ -20,7 +20,7 @@ function configureSelector()
     leagues.options[i] = new Option(config.leagues[i].name, null, selected, selected);
   }
   updateDivisions();
-  addEvent(leagues, "change", updateDivisions);
+  addEvent(leagues, "change", function() {updateDivisions(); updateSeasons(); window.location.href = seasons.options[seasons.selectedIndex].value;});
   addEvent(divisions, "change", function() {updateSeasons(); window.location.href = seasons.options[seasons.selectedIndex].value;});
   addEvent(seasons, "change", function() {window.location.href = seasons.options[seasons.selectedIndex].value;});
 }
