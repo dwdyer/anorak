@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 
 -- | Core functionality for the Anorak system.
-module Anorak.Results (aggregate, awayWins, biggestWins, convertResult, form, highestAggregates, homeWins, partitionResults, Result(..), resultsByDate, resultsByTeam, splitHomeAndAway, Team, TeamResult(..)) where
+module Anorak.Results (aggregate, awayWins, biggestWins, convertResult, form, Goal(..), highestAggregates, homeWins, partitionResults, Result(..), resultsByDate, resultsByTeam, splitHomeAndAway, Team, TeamResult(..)) where
 
 import Anorak.Utils(takeAtLeast)
 import Data.Map(Map)
@@ -53,6 +53,12 @@ instance Show TeamResult where
     show result = formatTime defaultTimeLocale "%e %b %Y: " (day result) ++
                   opposition result ++ "(" ++ [venue result] ++ ") " ++ [outcome result] ++ " " ++
                   show (scored result) ++ "-" ++ show (conceded result)
+
+-- | The data about a goal consists of the name of the player who scored it and the minute of the match (1-90) in which it was scored.
+data Goal = Goal {scorer :: !String,
+                  minute :: !Int,
+                  goalType :: !String}
+    deriving (Eq, Show)
 
 -- | Convert a flat list of results into a mapping from team to list of results that that team was involved in.
 resultsByTeam :: [Result] -> Map Team [Result]
