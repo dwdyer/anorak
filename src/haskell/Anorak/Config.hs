@@ -64,8 +64,8 @@ processSeasonTag baseDir outputDir tag = Season (getAttributeValue tag "name")
                                                 (makeAbsolute (getAttributeValue tag "input") baseDir)
                                                 (makeAbsolute seasonDir outputDir)
                                                 ("../../../" ++ seasonDir ++ "/index.html")
-                                                ((getAttributeValue tag "aggregated") == "true")
-                                                ((getAttributeValue tag "collated") == "true")
+                                                (getBooleanAttribute tag "aggregated")
+                                                (getBooleanAttribute tag "collated")
                                          where seasonDir = getAttributeValue tag "output"
 
 -- | Simplifies the reading of XML attributes by assuming that the attribute is present.  Throws an exception if it is not.
@@ -73,6 +73,12 @@ getAttributeValue :: Element -> String -> String
 getAttributeValue element name = case findAttr (xmlName name) element of
                                      Nothing    -> throw . ConfigurationException $ "Missing attribute: " ++ name
                                      Just value -> value
+
+-- | Look up a named attribute.  If it is present and the value is "true", return True, else if it's not present or has some other value return False.
+getBooleanAttribute :: Element -> String -> Bool
+getBooleanAttribute element name = case findAttr (xmlName name) element of
+                                       Nothing    -> False
+                                       Just value -> value == "true"
 
 -- | Simple QNames.
 xmlName :: String -> QName
