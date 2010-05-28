@@ -1,7 +1,8 @@
+import sys
 from datetime import datetime
 import urllib
 from BeautifulSoup import BeautifulSoup, SoupStrainer
-from config import data
+from config import get_files_to_update
 from results import Result, parse_rlt, write_rlt
 
 def load_html(url, strainer=None):
@@ -41,4 +42,5 @@ def update_all(data_files):
         else:
             print "No new results for %s, skipping." % file
 
-update_all(data)
+print "Reading configuration file: %s" % sys.argv[1]
+update_all(get_files_to_update(sys.argv[1]))

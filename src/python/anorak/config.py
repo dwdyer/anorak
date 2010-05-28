@@ -1,14 +1,19 @@
-data = {
-#    "http://news.bbc.co.uk/sport1/hi/football/eng_prem/results/default.stm" : "../../../data/england/premier/2009-2010.rlt",
-#    "http://news.bbc.co.uk/sport1/hi/football/eng_div_1/results/default.stm" : "../../../data/england/championship/2009-2010.rlt",
-#    "http://news.bbc.co.uk/sport1/hi/football/eng_div_2/results/default.stm" : "../../../data/england/league1/2009-2010.rlt",
-#    "http://news.bbc.co.uk/sport1/hi/football/eng_div_3/results/default.stm" : "../../../data/england/league2/2009-2010.rlt",
-#    "http://news.bbc.co.uk/sport1/hi/football/eng_conf/conf_results/default.stm" : "../../../data/england/conference/2009-2010.rlt",
-#    "http://news.bbc.co.uk/sport1/hi/football/scot_prem/results/default.stm" : "../../../data/scotland/premier/2009-2010.rlt",
-#    "http://news.bbc.co.uk/sport1/hi/football/scot_div_1/div_1_results/default.stm" : "../../../data/scotland/division1/2009-2010.rlt",
-#    "http://news.bbc.co.uk/sport1/hi/football/scot_div_1/div_2_results/default.stm" : "../../../data/scotland/division2/2009-2010.rlt",
-#    "http://news.bbc.co.uk/sport1/hi/football/scot_div_1/div_3_results/default.stm" : "../../../data/scotland/division3/2009-2010.rlt",
-}
+from os.path import dirname, join
+from BeautifulSoup import BeautifulStoneSoup
+
+def get_files_to_update(config_path):
+    """Parse the specified config XML and return a dictionary of URLs to scrape and the data files that should be updated."""
+    with open(config_path) as config_file:
+        xml = config_file.read()
+    tags = BeautifulStoneSoup(xml, selfClosingTags=["season"])
+    # Find all seasons that specify a source URL for scraping.
+    tags = tags.findAll("season", src=True)
+    files = dict()
+    basedir = dirname(config_path)
+    for tag in tags:
+        files[tag["src"]] = join(basedir, tag["input"])
+    return files
+
 
 # Maps common team name variants to the canonical form of that team's name.
 aliases = {
@@ -96,8 +101,8 @@ aliases = {
     "Shrewsbury" : "Shrewsbury Town",
     "Southend" : "Southend United",
     "St Albans" : "St. Albans City",
-    "St Johnston" : "St. Johnston",
-    "St Mirren" : "St. Mirren".
+    "St Johnstone" : "St. Johnstone",
+    "St Mirren" : "St. Mirren",
     "Stalybridge" : "Stalybridge Celtic",
     "Stevenage" : "Stevenage Borough",
     "Stirling" : "Stirling Albion",
