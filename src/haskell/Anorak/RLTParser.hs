@@ -9,13 +9,14 @@ import Data.Map(Map)
 import qualified Data.Map as Map(empty, insertWith, unionWith)
 import Data.Set(Set)
 import qualified Data.Set as Set(empty, fromList, insert, union)
+import Data.Time.Calendar(Day)
 import Data.Time.Format(readTime)
 import Data.Typeable(Typeable)
 import List(concat, intersperse)
 import System.FilePath(combine, takeDirectory)
 import System.Locale(defaultTimeLocale)
 import System.IO.Unsafe(unsafePerformIO)
-import Text.ParserCombinators.Parsec((<|>), anyChar, char, eof, many1, manyTill, newline, noneOf, ParseError, parseFromFile, Parser, sepBy1)
+import Text.ParserCombinators.Parsec((<|>), anyChar, char, count, digit, eof, many1, manyTill, newline, noneOf, ParseError, parseFromFile, Parser, sepBy1, string, try)
 
 -- | An RLT file consists of many items (results, metadata and comments).
 data Item = Fixture Result               -- ^ The result of a single football match.
@@ -23,7 +24,6 @@ data Item = Fixture Result               -- ^ The result of a single football ma
           | Adjustment Team Int          -- ^ A number of points awarded to or deducted from an individual team.
           | MiniLeague String (Set Team) -- ^ A league within a league (e.g. The Big 4, London Clubs, North West Clubs, etc.)
           | Rules Int Int Int            -- ^ Number of points for a win, points for a draw, and split point (zero for non-SPL-style leagues)
-          | Metadata [String]            -- ^ Data about the league, such as which positions are promoted or relegated.
           | Comment String               -- ^ Comments about the data.
 
 -- | An RLTException is thrown when there is a problem parsing RLT input.
@@ -42,28 +42,74 @@ results dataDir = do list <- items
 
 -- | Each line of a data file is either a record (a match result or some metadata) or it is a comment.
 items :: Parser [Item]
-items = manyTill (comment <|> record) eof
+items = manyTill (result <|> comment <|> include <|> (try rules) <|> awarded <|> deducted <|> miniLeague <|> prize <|> relegation <|> fail "Unexpected record type.") eof
+
+-- | The INCLUDE directive has a single field, the path to an RLT file.
+include :: Parser Item
+include = do string "INCLUDE|"
+             path <- manyTill anyChar newline
+             return $ Include path
+
+-- | The AWARDED directive adds points to a teams' total.  It has two fields, team name and number of points.
+awarded :: Parser Item
+awarded = do string "AWARDED|"
+             team <- manyTill anyChar $ char '|'
+             amount <- manyTill digit $ newline
+             return $ Adjustment team $ read amount
+
+-- | The DEDUCTED directive removes points to a teams' total.  It has two fields, team name and number of points.
+deducted :: Parser Item
+deducted = do string "DEDUCTED|"
+              team <- manyTill anyChar $ char '|'
+              amount <- manyTill digit $ newline
+              return $ Adjustment team $ -read amount
+
+-- | The first field of the MINILEAGUE directive is the league's name, other fields are the member teams.
+miniLeague :: Parser Item
+miniLeague = do string "MINILEAGUE|"
+                name <- manyTill anyChar $ char '|'
+                teams <- sepBy1 (many1 $ noneOf "|\n") $ char '|' ; newline
+                return $ MiniLeague name $ Set.fromList teams
+
+-- | The optional RULES directive has three numeric fields, number of points for a win, number of points for a draw
+--   and number of games played by each team before the league splits in half (only applicable for the Scottish
+--   Premier League and similarly structured leagues, all others should be set to zero).
+rules :: Parser Item
+rules = do string "RULES|"
+           win <- manyTill digit $ char '|'
+           draw <- manyTill digit $ char '|'
+           split <- manyTill digit newline
+           return $ Rules (read win) (read draw) (read split)
+
+-- | The PRIZE directive identifies zones at the top of a division, first field is start position, second is end, third is name.
+prize :: Parser Item
+prize = do string "PRIZE|"
+           start <- manyTill digit $ char '|'
+           end <- manyTill digit $ char '|'
+           name <- manyTill anyChar newline
+           return $ Comment name -- Treat as a comment, it's ignored for now.
+
+-- | The RELEGATION directive identifies zones at the top of a division, first field is start position, second is end, third is name.
+relegation :: Parser Item
+relegation = do string "RELEGATION|"
+                start <- manyTill digit $ char '|'
+                end <- manyTill digit $ char '|'
+                name <- manyTill anyChar newline
+                return $ Comment name -- Treat as a comment, it's ignored for now.
 
 -- | A record is a list of fields delimited by pipe characters.
-record :: Parser Item
-record = do fields <- sepBy1 field (char '|')
-            newline
-            case fields of
-                ("INCLUDE":path:[])                -> return $ Include path
-                ("AWARDED":team:points:[])         -> return $ Adjustment team $ read points
-                ("DEDUCTED":team:points:[])        -> return $ Adjustment team $ -read points
-                ("MINILEAGUE":name:teams)          -> return $ MiniLeague name $ Set.fromList teams
-                ("PRIZE":_)                        -> return $ Metadata fields
-                ("RELEGATION":_)                   -> return $ Metadata fields
-                ("RULES":win:draw:split:[])        -> return $ Rules (read win) (read draw) (read split)
-                (date:hTeam:hGoals:aTeam:aGoals:_) -> return $ Fixture $ Result day hTeam (read hGoals) aTeam (read aGoals)
-                                                      -- RLT dates are 8-character strings in DDMMYYYY format.
-                                                      where day = readTime defaultTimeLocale "%d%m%Y" date
-                _                                  -> fail $ "Unexpected input: " ++ concat (intersperse "|" fields)
+result :: Parser Item
+result = do date <- rltDate ; char '|'
+            hTeam <- manyTill anyChar $ char '|'
+            hGoals <- manyTill digit $ char '|'
+            aTeam <- manyTill anyChar $ char '|'
+            aGoals <- manyTill digit $ newline
+            return $ Fixture $ Result date hTeam (read hGoals) aTeam (read aGoals)
 
--- | A field is one or more characters (not including pipes and newlines).
-field :: Parser String
-field = many1 (noneOf "|\n")
+-- | RLT dates are 8-character strings in DDMMYYYY format.
+rltDate :: Parser Day
+rltDate = do digits <- count 8 digit
+             return $ readTime defaultTimeLocale "%d%m%Y" digits
 
 -- | A comment starts with a hash and continues to the end of the line.
 comment :: Parser Item
@@ -86,7 +132,7 @@ extractData dataDir (MiniLeague name teams:items)  = LeagueData t r a ((name, te
                                                      where (LeagueData t r a m s) = extractData dataDir items
 extractData dataDir (Rules _ _ split:items)        = LeagueData t r a m split
                                                      where (LeagueData t r a m _) = extractData dataDir items
-extractData dataDir (_:items)                      = extractData dataDir items -- Discard metadata.
+extractData dataDir (_:items)                      = extractData dataDir items -- Discard comments.
 
 -- | Adds the home team and away team from a match to the set of all teams (if they are not already present).
 addTeams :: Result -> Set Team -> Set Team
@@ -99,6 +145,6 @@ parseRLTFile :: FilePath -> IO (LeagueData)
 parseRLTFile path = do let dataDir = takeDirectory path
                        contents <- parseFromFile (results dataDir) path
                        case contents of
-                           Left error        -> throw $ RLTException error
-                           Right leagueData  -> return leagueData
+                           Left error       -> throw $ RLTException error
+                           Right leagueData -> return leagueData
 
