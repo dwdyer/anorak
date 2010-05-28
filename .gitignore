@@ -1,6 +1,4 @@
-data
 dist
-output
 *.pyc
 *.swp
 .DS_Store

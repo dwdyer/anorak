@@ -10,22 +10,31 @@ import Data.Typeable(Typeable)
 import System.FilePath(takeDirectory)
 import Text.XML.Light(Element(..), findAttr, findChildren, parseXMLDoc, QName(..))
 
-data Configuration = Configuration {outputRoot :: FilePath, leagues :: [League]} deriving (Data, Typeable)
+data Configuration = Configuration {outputRoot :: FilePath,
+                                    templateDir :: FilePath,
+                                    leagues :: [League]}
+    deriving (Data, Typeable)
+
 -- | Configuration consists of a list of leagues, each with a name and one or more divisions.
-data League = League {leagueName :: String, divisions :: [Division]} deriving (Data, Typeable)
+data League = League {leagueName :: String, divisions :: [Division]}
+    deriving (Data, Typeable)
+
 -- | A division has a name and one or more seasons.
-data Division = Division {divisionName :: String, seasons :: [Season]} deriving (Data, Typeable)
+data Division = Division {divisionName :: String, seasons :: [Season]}
+    deriving (Data, Typeable)
+
 -- | A season has a name and is defined by the contents of a data file.
 data Season = Season {seasonName :: String,     -- ^ The name of the season (e.g. "1997/98").
                       inputFile :: FilePath,    -- ^ Path to the season's data file.
                       outputDir :: FilePath,    -- ^ The directory to write the generated files to.
                       relativeLink :: FilePath, -- ^ Link relative to the web root.
                       aggregated :: Bool,       -- ^ Whether this is an aggregate of multiple seasons from the same division.
-                      collated :: Bool          -- ^ Whether this is the combination of multiple divisions from the same season.
-                     } deriving (Data, Typeable)
+                      collated :: Bool}         -- ^ Whether this is the combination of multiple divisions from the same season.
+    deriving (Data, Typeable)
 
 -- | A ConfigurationException is thrown when there is a problem processing the XML configuration file.
-data ConfigurationException = ConfigurationException String deriving (Typeable, Show)
+data ConfigurationException = ConfigurationException String
+    deriving (Typeable, Show)
 instance Exception ConfigurationException
 
 -- | Load the specified XML file and return the league configurations that it contains.
@@ -37,8 +46,10 @@ readConfig file = do xml <- readFile file
                          Just element -> return $ convertXMLDocumentToConfig file element
 
 convertXMLDocumentToConfig :: FilePath -> Element -> Configuration
-convertXMLDocumentToConfig configFile element = Configuration outputDir leagues
-                                                where outputDir = makeAbsolute (getAttributeValue element "output") (takeDirectory configFile)
+convertXMLDocumentToConfig configFile element = Configuration outputDir templateDir leagues
+                                                where configDir = takeDirectory configFile
+                                                      outputDir = makeAbsolute (getAttributeValue element "output") configDir
+                                                      templateDir = makeAbsolute (getAttributeValue element "templates") configDir
                                                       inputDir = takeDirectory configFile
                                                       leagues = map (processLeagueTag inputDir outputDir) $ findChildren (xmlName "league") element
 
