@@ -3,12 +3,13 @@ from BeautifulSoup import BeautifulStoneSoup
 
 def get_files_to_update(config_path):
     """Parse the specified config XML and return a dictionary of URLs to scrape and the data files that should be updated."""
+    print "Reading configuration file: %s" % config_path
     with open(config_path) as config_file:
         xml = config_file.read()
     tags = BeautifulStoneSoup(xml, selfClosingTags=["season"])
     # Find all seasons that specify a source URL for scraping.
     tags = tags.findAll("season", src=True)
-    files = dict()
+    files = {}
     basedir = dirname(config_path)
     for tag in tags:
         files[tag["src"]] = join(basedir, tag["input"])
@@ -16,111 +17,14 @@ def get_files_to_update(config_path):
 
 
 # Maps common team name variants to the canonical form of that team's name.
-aliases = {
-    "AFC Telford" : "AFC Telford United",
-    "Airdrie Utd" : "Airdrie United",
-    "Albion" : "Albion Rovers",
-    "Aldershot" : "Aldershot Town",
-    "Alloa" : "Alloa Athletic",
-    "Ayr" : "Ayr United",
-    "Basingstoke" : "Basingstoke Town",
-    "Berwick" : "Berwick Rangers",
-    "Birmingham" : "Birmingham City",
-    "Blackburn" : "Blackburn Rovers",
-    "Bolton" : "Bolton Wanderers",
-    "Bradford" : "Bradford City",
-    "Brechin" : "Brechin City",
-    "Brighton" : "Brighton & Hove Albion",
-    "Cambridge Utd" : "Cambridge United",
-    "Cardiff" : "Cardiff City",
-    "Carlisle" : "Carlisle United",
-    "Charlton" : "Charlton Athletic",
-    "Cheltenham" : "Cheltenham Town",
-    "Chester" : "Chester City",
-    "Colchester" : "Colchester United",
-    "Corby" : "Corby Town",
-    "Coventry" : "Coventry City",
-    "Crewe" : "Crewe Alexandra",
-    "Dag & Red" : "Dagenham & Redbridge",
-    "Derby" : "Derby County",
-    "Doncaster" : "Doncaster Rovers",
-    "Dover" : "Dover Athletic",
-    "Dundee Utd" : "Dundee United",
-    "Dunfermline" : "Dunfermline Athletic",
-    "Eastbourne Boro" : "Eastbourne Borough",
-    "Elgin" : "Elgin City",
-    "Exeter" : "Exeter City",
-    "Forest Green" : "Forest Green Rovers",
-    "Forfar" : "Forfar Athletic",
-    "Gainsborough" : "Gainsborough Trinity",
-    "Gloucester" : "Gloucester City",
-    "Grimsby" : "Grimsby Town",
-    "Hamilton" : "Hamilton Academical",
-    "Hampton & Richmond" : "Hampton & Richmond Borough",
-    "Hartlepool" : "Hartlepool United",
-    "Havant and W" : "Havant & Waterlooville",
-    "Hearts" : "Heart of Midlothian",
-    "Hereford" : "Hereford United",
-    "Hinckley Utd" : "Hinckley United",
-    "Huddersfield" : "Huddersfield Town",
-    "Hull" : "Hull City",
-    "Hyde" : "Hyde United",
-    "Inverness CT": "Inverness Caledonian Thistle",
-    "Ipswich" : "Ipswich Town",
-    "Kettering" : "Kettering Town",
-    "Kidderminster" : "Kidderminster Harriers",
-    "Leicester" : "Leicester City",
-    "Luton" : "Luton Town",
-    "Macclesfield" : "Macclesfield Town",
-    "Maidenhead Utd" : "Maidenhead United",
-    "Man City" : "Manchester City",
-    "Man Utd" : "Manchester United",
-    "Mansfield" : "Mansfield Town",
-    "MK Dons" : "Milton Keynes Dons",
-    "Morton" : "Greenock Morton",
-    "Newcastle" : "Newcastle United",
-    "Northampton" : "Northampton Town",
-    "Northwich" : "Northwich Victoria",
-    "Norwich" : "Norwich City",
-    "Nottm Forest" : "Nottingham Forest",
-    "Oldham" : "Oldham Athletic",
-    "Oxford Utd" : "Oxford United",
-    "Peterborough" : "Peterborough United",
-    "Plymouth" : "Plymouth Argyle",
-    "Preston" : "Preston North End",
-    "QPR" : "Queens Park Rangers",
-    "Queen of South" : "Queen Of The South",
-    "Raith" : "Raith Rovers",
-    "Redditch" : "Redditch United",
-    "Rotherham" : "Rotherham United",
-    "Rushden & D'mnds" : "Rushden & Diamonds",
-    "Salisbury" : "Salisbury City",
-    "Scunthorpe" : "Scunthorpe United",
-    "Sheff Utd" : "Sheffield United",
-    "Sheff Wed" : "Sheffield Wednesday",
-    "Shrewsbury" : "Shrewsbury Town",
-    "Southend" : "Southend United",
-    "St Albans" : "St. Albans City",
-    "St Johnstone" : "St. Johnstone",
-    "St Mirren" : "St. Mirren",
-    "Stalybridge" : "Stalybridge Celtic",
-    "Stevenage" : "Stevenage Borough",
-    "Stirling" : "Stirling Albion",
-    "Stockport" : "Stockport County",
-    "Stoke" : "Stoke City",
-    "Swansea" : "Swansea City",
-    "Swindon" : "Swindon Town",
-    "Tranmere" : "Tranmere Rovers",
-    "Torquay" : "Torquay United",
-    "Tottenham" : "Tottenham Hotspur",
-    "Welling" : "Welling United",
-    "West Brom" : "West Bromwich Albion",
-    "West Ham" : "West Ham United",
-    "Weston-S-Mare" : "Weston-Super-Mare",
-    "Wigan" : "Wigan Athletic",
-    "Wolverhampton" : "Wolverhampton Wanderers",
-    "Worcester" : "Worcester City",
-    "Wycombe" : "Wycombe Wanderers",
-    "Yeovil" : "Yeovil Town",
-    "York" : "York City",
-}
+def load_aliases(mappings_path):
+    """Load mappings for team names.  Maps abbreviated forms to canonical names."""
+    print "Reading team name mapping file: %s" % mappings_path
+    with open(mappings_path) as mappings_file:
+        mappings = {}
+        line = mappings_file.readline().rstrip()
+        while line:
+            values = line.split("=")
+            mappings[values[0]] = values[1]
+            line = mappings_file.readline().rstrip()
+    return mappings
