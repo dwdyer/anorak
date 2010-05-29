@@ -16,7 +16,7 @@ import List(concat, intersperse)
 import System.FilePath(combine, takeDirectory)
 import System.Locale(defaultTimeLocale)
 import System.IO.Unsafe(unsafePerformIO)
-import Text.ParserCombinators.Parsec((<|>), anyChar, between, char, choice, count, digit, eof, many1, manyTill, newline, noneOf, optionMaybe, ParseError, parseFromFile, Parser, sepBy, sepBy1, spaces, string, try)
+import Text.ParserCombinators.Parsec((<|>), anyChar, between, char, count, digit, eof, many1, manyTill, newline, noneOf, optionMaybe, ParseError, parseFromFile, Parser, sepBy, sepBy1, spaces, string, try)
 
 -- | An RLT file consists of many items (results, metadata and comments).
 data Item = Fixture Result               -- ^ The result of a single football match.
@@ -119,7 +119,7 @@ score = do number <- many1 digit
 goal :: Parser Goal
 goal = do player <- many1 $ noneOf "0123456789,"
           minute <- many1 digit;
-          goalType <- choice [string "p", string "o", string ""]
+          goalType <- string "p" <|> string "o" <|> string ""
           return $ Goal player (read minute) goalType
 
 -- | RLT dates are 8-character strings in DDMMYYYY format.

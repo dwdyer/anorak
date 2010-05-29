@@ -62,7 +62,7 @@ instance ToSElem Goal where
 instance ToSElem TeamResult where
     toSElem result = SM $ Map.fromAscList [("conceded", toSElem $ conceded result),
                                            ("day", toSElem $ day result),
-                                           ("goals", toSElem $ goals result),
+                                           ("goals", toSElem $ reduceScorers $ goals result),
                                            ("opposition", toSElem $ opposition result),
                                            ("oppositionLink", STR . toHTMLFileName $ opposition result),
                                            ("outcome", toSElem $ outcome result),
@@ -98,9 +98,14 @@ reduceScorers goals = map (\s -> (s, reducedMap!s)) scorers
 addGoalToScorers :: Map String String -> Goal -> Map String String
 addGoalToScorers scorers goal = Map.alter (updateScorer goal) (scorer goal) scorers
                                 where updateScorer goal details = case details of
-                                                                      Nothing -> Just $ show $ minute goal
-                                                                      Just d  -> Just $ d ++ ", " ++ (show $ minute goal)
+                                                                      Nothing -> Just $ (goalTypeString goal) ++ (show $ minute goal)
+                                                                      Just d  -> Just $ d ++ ", " ++ (goalTypeString goal) ++ (show $ minute goal)
 
+goalTypeString :: Goal -> String
+goalTypeString goal = case goalType goal of
+                          "p" -> "pen "
+                          "o" -> "o.g. "
+                          _   -> ""
 
 -- | Returns a list of files (excluding sub-directories and hidden files)  in the specified directory.  The returned paths
 --   are fully-qualified.

@@ -4,10 +4,10 @@ $header(title="Results")$
   $tabs()$
   <div id="content">
     <h2>$metaData.division$ $metaData.season$ - Results</h2>
-    <table id="results">
+    <table id="resultswrapper">
       <tr>
         <td>
-          <table>
+          <table id="results">
             $results:matchday()$
           </table>
         </td>

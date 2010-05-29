@@ -47,13 +47,15 @@ th                       {margin-bottom: 1.385em;}
 .negative                {color: #660000;}
 .number                  {text-align: right; padding: 0 1em;}
 .number .details         {margin-left: 2.5em;}
-.opposition              {padding: 0 1em;}
-.outcome                 {font-family: monospace; text-align: center; padding-left: .5em;}
+.opposition              {padding: 0 1em; white-space: nowrap;}
+.outcome                 {font-family: monospace; text-align: center; padding-left: .5em; padding-right: 1em;}
 .adjustment              {position: absolute; vertical-align: super; color: #444444; font-weight: normal; font-size: smaller; margin-top: -.3em;}
 .points                  {font-weight: bold;}
 .position                {padding-right: 1em;}
 .positive                {color: #006600;}
 .score                   {font-weight: bold; padding: 0 1em; white-space: nowrap;}
+.scorers                 {padding-left: 1em; font-size: smaller; color: #7f7f7f; vertical-align: middle;}
+.scorer                  {white-space: nowrap;}
 
 
 /* Sequences */
@@ -65,12 +67,17 @@ th                       {margin-bottom: 1.385em;}
 
 
 /* Results/Records */
+#resultswrapper          {width: 100%;}
+#resultswrapper td       {vertical-align: top;}
 #results td              {vertical-align: top;}
-#resultsPie              {float: right;}
-#records                 {padding-left: 1.5em; margin-left: 1.5em; border-left: 1px solid #000000;}
+#resultsPie              {float: right; margin-right: 3em;}
+#records                 {padding-left: 1.5em; margin-left: 1.5em;}
+#records td              {vertical-align: top;}
+#keyresults              {width: 100%;}
 .record                  {text-align: left;}
 #totals .number          {font-weight: bold;}
-
+#teamrecords             {width: 100%;}
+#teamrecords>tbody>tr>td {vertical-align: top; width: 50%;}
 
 /* Sortables */
 .sortable th             {cursor: pointer;}

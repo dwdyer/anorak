@@ -8,7 +8,7 @@
     <tr><td>Draws:</td><td class="number">$draws$</td></tr>
     <tr><td>Away Wins:</td><td class="number">$awayWins$</td></tr>
   </table>
-  <table>
+  <table id="keyresults">
     <tr><th colspan="4" class="record"><h3>Biggest Home Wins</h3></th></tr>
     $bigHomeWins:result()$
     <tr><td colspan="4">&nbsp;</td></tr>

@@ -4,17 +4,10 @@ $header(title=team)$
   $tabs()$
   <div id="content">
     <h2>$team$ - $metaData.division$ $metaData.season$</h2>
+    $teamrecords()$
+    <h3>Full Results</h3>
     <table id="results">
-      <tr>
-        <td>
-          <table>
-            $results:teamresult(dateformat="%a %e %b %Y")$
-          </table>
-        </td>
-        <td>
-          $teamrecords()$
-        </td>
-      </tr>
+      $results:teamresult(dateformat="%a %e %b %Y";scorers="true")$
     </table>
     <div class="clearfloat"></div>
   </div>
