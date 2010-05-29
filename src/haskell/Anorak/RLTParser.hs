@@ -110,14 +110,14 @@ result = do date <- rltDate ; char '|'
 --   of the scorers and goal times.
 score :: Parser (Int, Maybe [Goal])
 score = do number <- many1 digit
-           goals <- optionMaybe $ between (char '(') (char ')') goals
+           goals <- optionMaybe $ between (char '[') (char ']') goals
            return $ (read number, goals)
-           where goals = sepBy1 (between spaces spaces goal) $ char ','
+           where goals = sepBy1 goal $ char ','
 
 goal :: Parser Goal
 goal = do player <- many1 $ noneOf "0123456789,"
-          minute <- many1 digit
-          goalType <- choice [string "p", string "og", string ""]
+          minute <- many1 digit;
+          goalType <- choice [string "p", string "o", string ""]
           return $ Goal player (read minute) goalType
 
 -- | RLT dates are 8-character strings in DDMMYYYY format.
