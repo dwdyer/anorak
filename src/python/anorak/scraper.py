@@ -1,9 +1,10 @@
-import sys
 from datetime import datetime
+import re
+import sys
 import urllib
 from BeautifulSoup import BeautifulSoup, SoupStrainer
 from config import get_files_to_update, load_aliases
-from results import Result, parse_rlt, write_rlt
+from results import Goal, Result, parse_rlt, write_rlt
 
 def load_html(url, strainer=None):
     """Loads the HTML at the specified URL and returns it as a BeautifulSoup object."""
@@ -11,6 +12,10 @@ def load_html(url, strainer=None):
     html = urlReader.read()
     urlReader.close()
     return BeautifulSoup(html, convertEntities=BeautifulSoup.ALL_ENTITIES, parseOnlyThese=strainer)
+
+
+# Regex to separate a goal scorer's name from the list of minutes in which they scored.
+scorer_regex = re.compile(r"(\D+?)\s\(([\w\s,\+]+)\)")
 
 def scrape_bbc_results(results_page_url, aliases):
     """Scrapes the specified BBC web page for football results.  Returns a list of Result objects."""
@@ -22,15 +27,42 @@ def scrape_bbc_results(results_page_url, aliases):
             date = datetime.strptime(tag.b.string, "%A, %d %B %Y").date()
         else:
             # 'c1' indicates home team, 'c2' is hyphen-separated score, 'c3' is away team.
-            home_team_cell = tag.tr.find("td", attrs={"class":"c1"}).b
-            home_team = home_team_cell.string.extract() if home_team_cell.a == None else home_team_cell.a.string.extract()
-            home_team = home_team if not home_team in aliases else aliases[home_team]
+            (home_team, home_goals) = parse_team(tag.tr.find("td", attrs={"class":"c1"}), aliases)
             score = tag.tr.find("td", attrs={"class":"c2"}).b.string.extract().split("-")
-            away_team_cell = tag.tr.find("td", attrs={"class":"c3"}).b
-            away_team = away_team_cell.string.extract() if away_team_cell.a == None else away_team_cell.a.string.extract()
-            away_team = away_team if not away_team in aliases else aliases[away_team]
-            results.append(Result(date, home_team, int(score[0]), away_team, int(score[1])))
+            (away_team, away_goals) = parse_team(tag.tr.find("td", attrs={"class":"c3"}), aliases)
+            home_score = int(score[0])
+            away_score = int(score[1])
+            assert home_score == len(home_goals), "Number of %s goals (%d) does not match home score (%d)." % (home_team, len(home_goals), home_score)
+            assert away_score == len(away_goals), "Number of %s goals (%d) does not match away score (%d)." % (away_team, len(away_goals), away_score)
+            results.append(Result(date, home_team, home_score, away_team, away_score, home_goals, away_goals))
     return results
+
+
+def parse_team(tag, aliases = {}):
+    """Extracts a team name and list of goal-scorers from an HTML fragment. Returns a 2-item tuple."""
+    team = tag.b.string.extract() if tag.b.a == None else tag.b.a.string.extract()
+    team = team if not team in aliases else aliases[team]
+    scorer_list = tag.find("p", attrs={"class":"scorer"}).findAll(text=True)
+    goals = []
+    for record in scorer_list:
+        match = scorer_regex.match(record)
+        goals.extend(parse_goals(match.group(1), match.group(2)))
+    goals.sort()
+    return (team, goals)
+
+
+# Regex for parsing a single goal time and any "pen"/"og" modifiers.
+goal_regex = re.compile(r"([a-z]*)\s?(\d+)(?:\+(\d+))?")
+
+def parse_goals(scorer, text):
+    """Parse the goal (or goals) scored by a goal scorer in a particular game.  Returns a list of that player's goals in the game."""
+    goals = []
+    records = text.split(", ")
+    for record in records:
+        match = goal_regex.match(record)
+        goals.append(Goal(scorer, int(match.group(2)), match.group(1)[0] if match.group(1) else None))
+    return goals
+    
 
 def update_all(data_files, aliases):
     for url, file in data_files.items():
