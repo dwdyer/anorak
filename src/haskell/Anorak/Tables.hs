@@ -72,8 +72,8 @@ buildRecord team = foldl (addResultToRecord team) (LeagueRecord team 0 0 0 0 0 0
 --   match, the match is ignored.
 addResultToRecord :: Team -> LeagueRecord -> Result -> LeagueRecord
 addResultToRecord team record result 
-    | team == homeTeam result = addScoreToRecord record (homeGoals result) (awayGoals result)
-    | team == awayTeam result = addScoreToRecord record (awayGoals result) (homeGoals result)
+    | team == homeTeam result = addScoreToRecord record (homeScore result) (awayScore result)
+    | team == awayTeam result = addScoreToRecord record (awayScore result) (homeScore result)
     | otherwise               = record
 
 addScoreToRecord :: LeagueRecord -> Int -> Int -> LeagueRecord

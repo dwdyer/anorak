@@ -15,12 +15,12 @@ import Char(isSpace, toLower)
 import Data.ByteString(ByteString)
 import qualified Data.ByteString as BS(writeFile)
 import Data.Data(Data)
-import Data.Map(Map)
-import qualified Data.Map as Map(assocs, empty, fromAscList, map, mapKeys, toList)
+import Data.Map(Map, (!))
+import qualified Data.Map as Map(alter, assocs, empty, fromAscList, map, mapKeys, toList)
 import Data.Sequence(Seq)
 import Data.Set(Set)
 import Data.Typeable(Typeable)
-import List(isPrefixOf, isSuffixOf)
+import List(isPrefixOf, isSuffixOf, nub)
 import Monad(filterM)
 import System.Directory(createDirectoryIfMissing, doesFileExist, getDirectoryContents)
 import System.FilePath(combine)
@@ -44,17 +44,25 @@ instance ToSElem LeagueRecord where
                                            ("teamLink", STR . toHTMLFileName $ team record),
                                            ("won", toSElem $ won record)]
 instance ToSElem Result where
-    toSElem result = SM $ Map.fromAscList [("awayGoals", toSElem $ awayGoals result),
+    toSElem result = SM $ Map.fromAscList [("awayGoals", toSElem $ reduceScorers $ awayGoals result),
+                                           ("awayScore", toSElem $ awayScore result),
                                            ("awayTeam", toSElem $ awayTeam result),
                                            ("awayTeamLink", STR . toHTMLFileName $ awayTeam result),
                                            ("date", toSElem $ date result),
-                                           ("homeGoals", toSElem $ homeGoals result),
+                                           ("homeGoals", toSElem $ reduceScorers $ homeGoals result),
+                                           ("homeScore", toSElem $ homeScore result),
                                            ("homeTeam", toSElem $ homeTeam result),
                                            ("homeTeamLink", STR . toHTMLFileName $ homeTeam result)]
+
+instance ToSElem Goal where
+    toSElem goal = SM $ Map.fromAscList [("minute", toSElem $ minute goal),
+                                         ("scorer", toSElem $ scorer goal),
+                                         ("type", toSElem $ goalType goal)]
 
 instance ToSElem TeamResult where
     toSElem result = SM $ Map.fromAscList [("conceded", toSElem $ conceded result),
                                            ("day", toSElem $ day result),
+                                           ("goals", toSElem $ goals result),
                                            ("opposition", toSElem $ opposition result),
                                            ("oppositionLink", STR . toHTMLFileName $ opposition result),
                                            ("outcome", toSElem $ outcome result),
@@ -79,6 +87,20 @@ adjustmentString adj
     | adj < 0   = Just $ show adj
     | adj > 0   = Just $ "+" ++ show adj
     | otherwise = Nothing
+
+-- | If a player has scored more than one goal in the game, combine those goals into a single entry.
+--   Returns a list of pairs, first item is the player's name, second is a string containing details of their goals.
+reduceScorers :: [Goal] -> [(String, String)]
+reduceScorers goals = map (\s -> (s, reducedMap!s)) scorers
+                      where reducedMap = foldl (addGoalToScorers) Map.empty goals
+                            scorers = nub $ map (scorer) goals
+
+addGoalToScorers :: Map String String -> Goal -> Map String String
+addGoalToScorers scorers goal = Map.alter (updateScorer goal) (scorer goal) scorers
+                                where updateScorer goal details = case details of
+                                                                      Nothing -> Just $ show $ minute goal
+                                                                      Just d  -> Just $ d ++ ", " ++ (show $ minute goal)
+
 
 -- | Returns a list of files (excluding sub-directories and hidden files)  in the specified directory.  The returned paths
 --   are fully-qualified.

@@ -32,7 +32,7 @@ generateFeatures dataFile = do LeagueData _ results _ _ _ <- parseRLTFile dataFi
 -- | Given a list of results, return a list of features and associated match outcomes.
 extractFeatures :: [Result] -> Map Team TeamFeatures -> Map Team TeamFeatures -> Map Team TeamFeatures -> [MatchFeatures]
 extractFeatures [] _ _ _ = []
-extractFeatures (r@(Result _ hteam _ ateam _):rs) overall home away
+extractFeatures (r@(Result _ hteam _ ateam _ _ _):rs) overall home away
     -- If we don't have features for the teams involved we initialise them from this result, but we can't generate
     -- match features from nothing so we skip the result and continue with subsequent results.
     | not $ haveFeatures hteam ateam overall home away = otherFeatures
@@ -52,7 +52,7 @@ updateRecords team result teamRecords = Map.insert team features teamRecords
                                                                         
 -- | Create the intial team features from a team's first result.
 initialFeatures :: Team -> Result -> TeamFeatures
-initialFeatures team (Result _ ht hg _ ag)
+initialFeatures team (Result _ ht hg _ ag _ _)
     | hg == ag              = TeamFeatures 0 1 (fromIntegral hg) (fromIntegral ag)
     | team == ht && hg > ag = TeamFeatures 1 0 (fromIntegral hg) (fromIntegral ag)
     | team == ht && hg < ag = TeamFeatures 0 0 (fromIntegral hg) (fromIntegral ag)
@@ -61,7 +61,7 @@ initialFeatures team (Result _ ht hg _ ag)
 
 -- | Update a team's form record with the result of the specified match.
 addResultToFeatures :: Team -> TeamFeatures -> Result -> TeamFeatures
-addResultToFeatures team features (Result _ hteam hgoals ateam agoals)
+addResultToFeatures team features (Result _ hteam hgoals ateam agoals _ _)
     | team == hteam = addScoreToFeatures features hgoals agoals
     | team == ateam = addScoreToFeatures features agoals hgoals
     | otherwise     = features
@@ -82,7 +82,7 @@ getResultFeatures result overallRecords homeRecords awayRecords = MatchFeatures 
 
 -- | Maps a result to one of three possible outcome types (home win, away win or draw).
 getOutcome :: Result -> Outcome
-getOutcome (Result _ _ hgoals _ agoals)
+getOutcome (Result _ _ hgoals _ agoals _ _)
     | hgoals > agoals = HomeWin
     | agoals > hgoals = AwayWin
     | otherwise       = Draw

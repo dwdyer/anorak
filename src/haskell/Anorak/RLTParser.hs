@@ -16,7 +16,7 @@ import List(concat, intersperse)
 import System.FilePath(combine, takeDirectory)
 import System.Locale(defaultTimeLocale)
 import System.IO.Unsafe(unsafePerformIO)
-import Text.ParserCombinators.Parsec((<|>), anyChar, between, char, choice, count, digit, eof, many1, manyTill, newline, noneOf, optionMaybe, ParseError, parseFromFile, Parser, sepBy1, spaces, string, try)
+import Text.ParserCombinators.Parsec((<|>), anyChar, between, char, choice, count, digit, eof, many1, manyTill, newline, noneOf, optionMaybe, ParseError, parseFromFile, Parser, sepBy, sepBy1, spaces, string, try)
 
 -- | An RLT file consists of many items (results, metadata and comments).
 data Item = Fixture Result               -- ^ The result of a single football match.
@@ -104,15 +104,17 @@ result = do date <- rltDate ; char '|'
             hGoals <- score ; char '|'
             aTeam <- manyTill anyChar $ char '|'
             aGoals <- score ; newline
-            return $ Fixture $ Result date hTeam (fst hGoals) aTeam (fst aGoals)
+            return $ Fixture $ Result date hTeam (fst hGoals) aTeam (fst aGoals) (snd hGoals) (snd aGoals)
 
 -- | A score is the number of goals scored by one team in a game and, depending on the detail in the data, a list
 --   of the scorers and goal times.
-score :: Parser (Int, Maybe [Goal])
+score :: Parser (Int, [Goal])
 score = do number <- many1 digit
            goals <- optionMaybe $ between (char '[') (char ']') goals
-           return $ (read number, goals)
-           where goals = sepBy1 goal $ char ','
+           case goals of
+               Nothing -> return $ (read number, [])
+               Just g  -> return $ (read number, g)
+           where goals = sepBy goal $ char ','
 
 goal :: Parser Goal
 goal = do player <- many1 $ noneOf "0123456789,"

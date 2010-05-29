@@ -16,17 +16,18 @@ import System.Locale(defaultTimeLocale)
 type Team = String
 
 -- | A match result consists of a date, two teams and the goals scored by each.
-data Result = Result {date :: !Day,      -- ^ The day that the match was played.
-                      homeTeam :: !Team, -- ^ The team playing at home.
-                      homeGoals :: !Int, -- ^ The number of goals scored by the home team.
-                      awayTeam :: !Team, -- ^ The visiting team.
-                      awayGoals :: !Int  -- ^ The number of goals scored by the away team.
-                     }
+data Result = Result {date :: !Day,        -- ^ The day that the match was played.
+                      homeTeam :: !Team,   -- ^ The team playing at home.
+                      homeScore :: !Int,   -- ^ The number of goals scored by the home team.
+                      awayTeam :: !Team,   -- ^ The visiting team.
+                      awayScore :: !Int,   -- ^ The number of goals scored by the away team.
+                      homeGoals :: [Goal], -- ^ An optional list of home goals.
+                      awayGoals :: [Goal]} -- ^ An optional list of away goals.
 instance Show Result where
     show result = formatTime defaultTimeLocale "%e %b %Y: " (date result) ++
                   homeTeam result ++ " " ++
-                  show (homeGoals result) ++ " - " ++
-                  show (awayGoals result) ++ " " ++
+                  show (homeScore result) ++ " - " ++
+                  show (awayScore result) ++ " " ++
                   awayTeam result
 instance Eq Result where
     (==) result1 result2 = date result1 == date result2
@@ -39,7 +40,7 @@ instance Ord Result where
 
 -- | Returns the match aggregate (total number of goals).
 aggregate :: Result -> Int
-aggregate result = homeGoals result + awayGoals result
+aggregate result = homeScore result + awayScore result
 
 -- | A TeamResult is another way of organising information about the result of the match, relative to
 --   a particular team.
@@ -48,7 +49,8 @@ data TeamResult = TeamResult {day :: !Day,
                               venue :: !Char,
                               scored :: !Int,
                               conceded :: !Int,
-                              outcome :: !Char}
+                              outcome :: !Char,
+                              goals :: [Goal]}
 instance Show TeamResult where
     show result = formatTime defaultTimeLocale "%e %b %Y: " (day result) ++
                   opposition result ++ "(" ++ [venue result] ++ ") " ++ [outcome result] ++ " " ++
@@ -87,26 +89,26 @@ partitionResults team = partition (\x -> team == homeTeam x)
 -- | Maps a single result for a particular team to a character ('W', 'D' or 'L').
 form :: Team -> Result -> Char
 form team result
-    | homeGoals result == awayGoals result                                = 'D'
-    | (homeTeam result == team && homeGoals result > awayGoals result)
-      || (awayTeam result == team && awayGoals result > homeGoals result) = 'W'
+    | homeScore result == awayScore result                                = 'D'
+    | (homeTeam result == team && homeScore result > awayScore result)
+      || (awayTeam result == team && awayScore result > homeScore result) = 'W'
     | otherwise                                                           = 'L'
 
 -- | Converts a Result into a TeamResult for the specified team.
 convertResult :: Team -> Result -> TeamResult
 convertResult team result
-    | team == homeTeam result = TeamResult (date result) (awayTeam result) 'H' (homeGoals result) (awayGoals result) (form team result)
-    | otherwise               = TeamResult (date result) (homeTeam result) 'A' (awayGoals result) (homeGoals result) (form team result)
+    | team == homeTeam result = TeamResult (date result) (awayTeam result) 'H' (homeScore result) (awayScore result) (form team result) (homeGoals result)
+    | otherwise               = TeamResult (date result) (homeTeam result) 'A' (awayScore result) (homeScore result) (form team result) (awayGoals result)
 
 -- | Returns the margin of victory for a result (zero if it is a draw).
 margin :: Result -> Int
-margin result = abs $ homeGoals result - awayGoals result
+margin result = abs $ homeScore result - awayScore result
 
 homeWins :: [Result] -> [Result]
-homeWins = filter (\r -> homeGoals r > awayGoals r)
+homeWins = filter (\r -> homeScore r > awayScore r)
 
 awayWins :: [Result] -> [Result]
-awayWins = filter (\r -> homeGoals r < awayGoals r)
+awayWins = filter (\r -> homeScore r < awayScore r)
 
 biggestWins :: [Result] -> [Result]
 biggestWins results = takeAtLeast 3 $ groupBy (\r1 r2 -> margin r1 == margin r2) sortedResults
