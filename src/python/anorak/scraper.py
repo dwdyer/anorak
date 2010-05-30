@@ -27,46 +27,53 @@ def scrape_bbc_results(results_page_url, team_aliases = {}, player_aliases = {})
             date = datetime.strptime(tag.b.string, "%A, %d %B %Y").date()
         else:
             # 'c1' indicates home team, 'c2' is hyphen-separated score, 'c3' is away team.
-            (home_team, home_goals) = parse_team(tag.tr.find("td", attrs={"class":"c1"}), team_aliases, player_aliases)
+            home_team_tag = tag.tr.find("td", attrs={"class":"c1"})
+            home_team = home_team_tag.b.string.extract() if home_team_tag.b.a == None else home_team_tag.b.a.string.extract()
+            home_team = team_aliases.get(home_team, home_team)
+            away_team_tag = tag.tr.find("td", attrs={"class":"c3"})
+            away_team = away_team_tag.b.string.extract() if away_team_tag.b.a == None else away_team_tag.b.a.string.extract()
+            away_team = team_aliases.get(away_team, away_team)
+
+            home_goals = parse_goals(home_team_tag.find("p", attrs={"class":"scorer"}).findAll(text=True), home_team, away_team, player_aliases)
+            away_goals = parse_goals(away_team_tag.find("p", attrs={"class":"scorer"}).findAll(text=True), away_team, home_team, player_aliases)
+
             score = tag.tr.find("td", attrs={"class":"c2"}).b.string.extract().split("-")
-            (away_team, away_goals) = parse_team(tag.tr.find("td", attrs={"class":"c3"}), team_aliases, player_aliases)
             home_score = int(score[0])
             away_score = int(score[1])
-            assert home_score == len(home_goals), "Number of %s goals (%d) does not match home score (%d)." % (home_team, len(home_goals), home_score)
-            assert away_score == len(away_goals), "Number of %s goals (%d) does not match away score (%d)." % (away_team, len(away_goals), away_score)
+
+            if home_score != len(home_goals):
+                print "%s - Number of %s goals (%d) does not match home score (%d)." % (date, home_team, len(home_goals), home_score)
+            if away_score != len(away_goals):
+                print "%s - Number of %s goals (%d) does not match away score (%d)." % (date, away_team, len(away_goals), away_score)
             results.append(Result(date, home_team, home_score, away_team, away_score, home_goals, away_goals))
     return results
 
 
-def parse_team(tag, team_aliases = {}, player_aliases = {}):
-    """Extracts a team name and list of goal-scorers from an HTML fragment. Returns a 2-item tuple."""
-    team = tag.b.string.extract() if tag.b.a == None else tag.b.a.string.extract()
-    if team in team_aliases:
-        team = team_aliases[team]
-    scorer_list = tag.find("p", attrs={"class":"scorer"}).findAll(text=True)
+def parse_goals(tag, team, opponent, player_aliases = {}):
+    """Extracts a list of goal-scorers from an HTML fragment."""
     goals = []
-    for record in scorer_list:
+    for record in tag:
         match = scorer_regex.match(record)
         player = match.group(1)
-        if (team, player) in player_aliases:
-            player = player_aliases[(team, player)]
-        else:
-            print "Unknown %s player %s" % (team, player)
-        goals.extend(parse_goals(player, match.group(2)))
+        goals.extend(parse_scorer(player, team, opponent, match.group(2), player_aliases))
     goals.sort()
-    return (team, goals)
+    return goals
 
 
 # Regex for parsing a single goal time and any "pen"/"og" modifiers.
 goal_regex = re.compile(r"([a-z]*)\s?(\d+)(?:\+(\d+))?")
 
-def parse_goals(scorer, text):
-    """Parse the goal (or goals) scored by a goal scorer in a particular game.  Returns a list of that player's goals in the game."""
+def parse_scorer(player, player_team, opponent, text, player_aliases = {}):
+    """Parse the goals scored by a player in a particular game."""
     goals = []
     records = text.split(", ")
     for record in records:
         match = goal_regex.match(record)
-        goals.append(Goal(scorer, int(match.group(2)), match.group(1)[0] if match.group(1) else None))
+        type = match.group(1)[0] if match.group(1) else None
+        team = opponent if type == "o" else player_team # Own-goals are scored by players on the other team.
+        if not (team, player) in player_aliases:
+            print "Unknown %s player %s" % (team, player)
+        goals.append(Goal(player_aliases.get((team, player), player), int(match.group(2)), type))
     return goals
     
 
