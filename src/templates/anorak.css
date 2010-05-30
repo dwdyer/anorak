@@ -65,7 +65,6 @@ th                       {margin-bottom: 1.385em;}
 .sequence table .number  {width: 3em; font-weight: bold;}
 .mainsequences           {border-bottom: 1px solid #000000;}
 
-
 /* Results/Records */
 #resultswrapper          {width: 100%;}
 #resultswrapper td       {vertical-align: top;}
@@ -78,6 +77,10 @@ th                       {margin-bottom: 1.385em;}
 #totals .number          {font-weight: bold;}
 #teamrecords             {width: 100%;}
 #teamrecords>tbody>tr>td {vertical-align: top; width: 50%;}
+
+/* Goals */
+#scorers td              {padding-right: 1em;}
+#scorers .number         {font-weight: bold;}
 
 /* Sortables */
 .sortable th             {cursor: pointer;}

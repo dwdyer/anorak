@@ -10,6 +10,7 @@ import Anorak.RLTParser
 import Anorak.Sequences
 import Anorak.Aggregates
 import Anorak.Tables
+import Anorak.Goals
 import Anorak.Utils
 import Char(isSpace, toLower)
 import Data.ByteString(ByteString)
@@ -21,7 +22,7 @@ import Data.Sequence(Seq)
 import Data.Set(Set)
 import Data.Typeable(Typeable)
 import List(isPrefixOf, isSuffixOf, nub)
-import Monad(filterM)
+import Monad(filterM, unless)
 import System.Directory(createDirectoryIfMissing, doesFileExist, getDirectoryContents)
 import System.FilePath(combine)
 import Text.StringTemplate(getStringTemplate, render, setManyAttrib, STGroup, stShowsToSE)
@@ -79,6 +80,7 @@ data MetaData = MetaData {league :: String,
                           division :: String,
                           season :: String,
                           isAggregated :: Bool,
+                          scorers :: Bool,
                           miniLeaguesLink :: Maybe String} deriving (Data, Typeable)
 
 -- | Convert points adjustment into a string with +/- sign, or Nothing if there is no adjustment.
@@ -174,7 +176,7 @@ generateAggregates group dir results metaData = do let aggregates = getAggregate
 
 -- | Converts pairs of teams/sequences into triples that include a link to the team's page.
 insertLinks :: [(Team, a)] -> [(Team, String, a)]
-insertLinks [] =            []
+insertLinks []            = []
 insertLinks ((t, s):rest) = ((t, toHTMLFileName t, s):insertLinks rest)
 
 generateResults :: STGroup ByteString -> FilePath -> [Result] -> MetaData -> IO ()
@@ -242,6 +244,12 @@ generateTeamPage group dir metaData team results = do let record = buildRecord t
                                                                         ("metaData", AV metaData)]
                                                       applyTemplateWithName group "team.html" dir (toHTMLFileName team) attributes
 
+-- | Generates the top scorers list (only if there are scorers in the data).
+generateGoals:: STGroup ByteString -> FilePath -> [Result] -> MetaData -> IO ()
+generateGoals group dir results metaData = do let scorers = topGoalScorers results
+                                                  attr = ("metaData", AV metaData)
+                                              unless (length scorers == 0) $ applyTemplate group "goals.html" dir [("scorers", AV $ insertLinks $ scorers), ("goalsSelected", AV True), attr]
+
 -- | Convert a string for use as a filename (converts to lower case and eliminates whitespace).
 toHTMLFileName :: String -> String
 toHTMLFileName name = map toLower (filter (not.isSpace) name) ++ ".html"
@@ -258,6 +266,7 @@ generateStatsPages templateGroup targetDir (LeagueData _ results adj miniLeagues
                                                                                                    generateAggregates templateGroup targetDir teamResults metaData
                                                                                                    generateMiniLeagues templateGroup targetDir teamResults miniLeagues metaData
                                                                                                    generateTeamPages templateGroup targetDir teamResults metaData
+                                                                                                   generateGoals templateGroup targetDir results metaData
 
 -- | Determine which file the "Mini-Leagues" tab should link to (derived from the name of the first mini-league).
 --   If there are no mini-leagues then this function returns nothing and the tab should not be shown.
@@ -276,12 +285,13 @@ publishDivision :: STGroup ByteString -> String -> Division -> IO ()
 publishDivision templateGroup leagueName division = mapM_ (publishSeason templateGroup leagueName (divisionName division)) $ seasons division
 
 publishSeason :: STGroup ByteString -> String -> String -> Season -> IO ()
-publishSeason templateGroup leagueName divisionName season = do let dataFile = inputFile season
-                                                                modified <- isNewer dataFile (combine (outputDir season) "index.html")
-                                                                case modified || aggregated season || collated season of
-                                                                    False -> print $ "Skipping unchanged file " ++ dataFile 
-                                                                    True  -> do print $ "Processing " ++ dataFile
-                                                                                leagueData@(LeagueData _ _ _ miniLeagues _) <- parseRLTFile dataFile
-                                                                                let metaData = MetaData leagueName divisionName (seasonName season) (aggregated season) (getMiniLeaguesLink miniLeagues)
-                                                                                generateStatsPages templateGroup (outputDir season) leagueData metaData 
+publishSeason templateGroup lgName divName season = do let dataFile = inputFile season
+                                                       modified <- isNewer dataFile (combine (outputDir season) "index.html")
+                                                       case modified || aggregated season || collated season of
+                                                           False -> print $ "Skipping unchanged file " ++ dataFile 
+                                                           True  -> do print $ "Processing " ++ dataFile
+                                                                       leagueData@(LeagueData _ results _ miniLeagues _) <- parseRLTFile dataFile
+                                                                       let scorers = hasScorers results
+                                                                           metaData = MetaData lgName divName (seasonName season) (aggregated season) scorers (getMiniLeaguesLink miniLeagues)
+                                                                       generateStatsPages templateGroup (outputDir season) leagueData metaData 
 

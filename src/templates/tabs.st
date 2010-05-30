@@ -8,6 +8,11 @@
   <div class="tab $if(formSelected)$selectedtab$endif$">
     <a href="$if(formSelected)$#$else$formtable.html$endif$" title="Form tables (including home and away form)">Form</a>
   </div>
+  $if(metaData.scorers)$
+  <div class="tab $if(goalsSelected)$selectedtab$endif$">
+    <a href="$if(goalsSelected)$#$else$goals.html$endif$" title="Leading goal-scorers, hat-tricks, etc.">Goals</a>
+  </div>
+  $endif$
   <div class="tab $if(currentSequencesSelected)$selectedtab$endif$">
     <a href="$if(currentSequencesSelected)$#$else$currentsequences.html$endif$" title="Current unbroken sequences (wins, draws, defeats, unbeaten runs, cleansheets, etc)">Current Sequences</a>
   </div>
