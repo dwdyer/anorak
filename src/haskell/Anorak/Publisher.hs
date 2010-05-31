@@ -215,28 +215,29 @@ generateTeamPages group dir teamResults metaData = mapM_ (uncurry $ generateTeam
 
 -- | Generate the overview page for an individual team.
 generateTeamPage :: STGroup ByteString -> FilePath -> MetaData -> Team -> [Result] -> IO ()
-generateTeamPage group dir metaData team results = do let record = buildRecord team results
-                                                          matches = played record
-                                                          wins = won record
-                                                          defeats = lost record
-                                                          draws = drawn record
-                                                          (homeResults, awayResults) = partitionResults team results
+generateTeamPage group dir metaData team results = do let (homeResults, awayResults) = partitionResults team results
+                                                          teamResults = map (convertResult team) results
                                                           attributes = [("team", AV team),
-                                                                        ("results", AV $ map (convertResult team) results),
-                                                                        ("matches", AV matches),
-                                                                        ("wins", AV wins),
-                                                                        ("winPercent", AV $ percentage wins matches),
-                                                                        ("defeats", AV defeats),
-                                                                        ("defeatPercent", AV $ percentage defeats matches),
-                                                                        ("draws", AV draws),
-                                                                        ("drawPercent", AV $ percentage draws matches),
-                                                                        ("goalsFor", AV $ for record),
-                                                                        ("goalsAgainst", AV $ against record),
+                                                                        ("results", AV teamResults),
+                                                                        ("record", AV $ getSummary team results),
+                                                                        ("homeRecord", AV $ getSummary team homeResults),
+                                                                        ("awayRecord", AV $ getSummary team awayResults),
                                                                         ("bigHomeWins", AV . map (convertResult team) . biggestWins $ homeWins homeResults),
                                                                         ("bigAwayWins", AV . map (convertResult team) . biggestWins $ awayWins awayResults),
-                                                                        ("highAggregates", AV . map (convertResult team) $ highestAggregates results ),
+                                                                        ("highAggregates", AV . map (convertResult team) $ highestAggregates results),
+                                                                        ("scorers", AV $ teamGoalScorers teamResults),
                                                                         ("metaData", AV metaData)]
                                                       applyTemplateWithName group "team.html" dir (toHTMLFileName team) attributes
+
+getSummary :: Team -> [Result] -> (Int, Float, Int, Float, Int, Float)
+getSummary team results = (won record,
+                           percentage (won record) matches,
+                           drawn record,
+                           percentage (drawn record) matches,
+                           lost record,
+                           percentage (lost record) matches)
+                          where record = buildRecord team results
+                                matches = played record
 
 -- | Generates the top scorers list (only if there are scorers in the data).
 generateGoals:: STGroup ByteString -> FilePath -> [Result] -> MetaData -> IO ()

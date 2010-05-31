@@ -4,7 +4,7 @@ body                     {font-family: sans-serif; font-size: 62.5%; line-height
 h2                       {font-family: serif; font-size: 2.7em; margin-bottom: .6666em;}
 h3                       {font-family: serif; font-size: 1.8em; margin-bottom: 1.286em;}
 p                        {font-size: 1.3em; margin-bottom: 1.385em;}
-table                    {font-size: 1.3em; border-spacing: 0; margin-bottom: 1.385em;}
+table                    {font-size: 1.3em; border-spacing: 0;}
 table table              {font-size: inherit;}
 table h3                 {font-family: serif; font-size: 1.385em; margin-bottom: 0;}
 td                       {margin-bottom: 1.385em;}
@@ -47,7 +47,7 @@ th                       {margin-bottom: 1.385em;}
 .negative                {color: #660000;}
 .number                  {text-align: right; padding: 0 1em;}
 .number .details         {margin-left: 2.5em;}
-.opposition              {padding: 0 1em; white-space: nowrap;}
+.opposition              {padding-right: 1em; white-space: nowrap;}
 .outcome                 {font-family: monospace; text-align: center; padding-left: .5em; padding-right: 1em;}
 .adjustment              {position: absolute; vertical-align: super; color: #444444; font-weight: normal; font-size: smaller; margin-top: -.3em;}
 .points                  {font-weight: bold;}
@@ -61,26 +61,36 @@ th                       {margin-bottom: 1.385em;}
 /* Sequences */
 .sequences               {margin-bottom: 1.385em;}
 .sequence                {vertical-align: top; width: 33.33%; white-space: nowrap;}
-.sequence table          {width: 100%; padding-right: 1em;}
+.sequence table          {width: 100%; padding-right: 1em; margin-bottom: 1.385em;}
 .sequence table .number  {width: 3em; font-weight: bold;}
-.mainsequences           {border-bottom: 1px solid #000000;}
+.mainsequences           {border-bottom: 1px solid #000000; margin-bottom: 1.385em;}
 
 /* Results/Records */
 #resultswrapper          {width: 100%;}
 #resultswrapper td       {vertical-align: top;}
+#totals                  {margin-bottom: 1.385em;}
+#totals .number          {font-weight: bold;}
 #results td              {vertical-align: top;}
-#resultsPie              {float: right; margin-right: 3em;}
 #records                 {padding-left: 1.5em; margin-left: 1.5em;}
 #records td              {vertical-align: top;}
-#keyresults              {width: 100%;}
-.record                  {text-align: left;}
-#totals .number          {font-weight: bold;}
-#teamrecords             {width: 100%;}
-#teamrecords>tbody>tr>td {vertical-align: top; width: 50%;}
+#resultsPie              {float: right; margin-right: 3em;}
 
-/* Goals */
+#keyresults              {width: 100%;}
+#keyresults>tbody>tr>th  {text-align: left;}
+
+/* Team page */
+#teamrecords             {width: 100%; margin-bottom: 1.385em;}
+#teamrecords td          {vertical-align: top;}
+#teamrecords>tbody>tr>td {min-width: 160px;}
+#piecharts               {width: 300px; padding-right: 2em;}
+#scorers                 {width: 100%; padding-left: 2em;}
+#scorers th              {text-align: left;}
 #scorers td              {padding-right: 1em;}
 #scorers .number         {font-weight: bold;}
+
+/* Goals */
+#topscorers td           {padding-right: 1em;}
+#topscorers .number      {font-weight: bold;}
 
 /* Sortables */
 .sortable th             {cursor: pointer;}
