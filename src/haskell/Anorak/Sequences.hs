@@ -2,7 +2,7 @@
 module Anorak.Sequences (getSequenceTables) where
 
 import Anorak.Results
-import Data.List(sortBy)
+import Data.List(foldl', sortBy)
 import Data.Map(Map, (!))
 import qualified Data.Map as Map(fromList, map, mapWithKey, toList)
 import Data.Ord(comparing)
@@ -56,7 +56,7 @@ sequencesByTeam results = Map.map sequences teamResults
 
 -- | Calculate current and longest sequences for a team given their results.
 sequences :: [TeamResult] -> CombinedTeamSequences
-sequences = foldl addResultToAllSequences emptySequences
+sequences = foldl' addResultToAllSequences emptySequences
 
 -- | Create an empty CombinedTeamSequences structure.
 emptySequences:: CombinedTeamSequences

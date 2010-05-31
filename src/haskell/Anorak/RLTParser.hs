@@ -5,7 +5,7 @@ module Anorak.RLTParser (LeagueData(LeagueData), parseRLTFile, RLTException) whe
 
 import Anorak.Results
 import Control.Exception(Exception, throw)
-import Data.List(concat, intersperse)
+import Data.List(concat, foldl', intersperse)
 import Data.Map(Map)
 import qualified Data.Map as Map(empty, insertWith, unionWith)
 import Data.Set(Set)
@@ -55,21 +55,21 @@ awarded :: Parser Item
 awarded = do string "AWARDED|"
              team <- manyTill anyChar $ char '|'
              amount <- manyTill digit newline
-             return $ Adjustment team $ read amount
+             return . Adjustment team $ read amount
 
 -- | The DEDUCTED directive removes points to a teams' total.  It has two fields, team name and number of points.
 deducted :: Parser Item
 deducted = do string "DEDUCTED|"
               team <- manyTill anyChar $ char '|'
               amount <- manyTill digit newline
-              return $ Adjustment team $ -read amount
+              return . Adjustment team $ -read amount
 
 -- | The first field of the MINILEAGUE directive is the league's name, other fields are the member teams.
 miniLeague :: Parser Item
 miniLeague = do string "MINILEAGUE|"
                 name <- manyTill anyChar $ char '|'
                 teams <- sepBy1 (many1 $ noneOf "|\n") $ char '|' ; newline
-                return $ MiniLeague name $ Set.fromList teams
+                return . MiniLeague name $ Set.fromList teams
 
 -- | The optional RULES directive has three numeric fields, number of points for a win, number of points for a draw
 --   and number of games played by each team before the league splits in half (only applicable for the Scottish
@@ -104,7 +104,7 @@ result = do date <- rltDate ; char '|'
             hGoals <- score ; char '|'
             aTeam <- manyTill anyChar $ char '|'
             aGoals <- score ; newline
-            return $ Fixture $ Result date hTeam (fst hGoals) aTeam (fst aGoals) (snd hGoals) (snd aGoals)
+            return . Fixture $ Result date hTeam (fst hGoals) aTeam (fst aGoals) (snd hGoals) (snd aGoals)
 
 -- | A score is the number of goals scored by one team in a game and, depending on the detail in the data, a list
 --   of the scorers and goal times.
@@ -141,7 +141,7 @@ extractData dataDir (Fixture result:items)         = LeagueData (addTeams result
                                                      where (LeagueData t r a m s) = extractData dataDir items
 extractData dataDir (Include path:items)           = LeagueData (Set.union t t') (r' ++ r) (Map.unionWith (+) a a') m s
                                                      where (LeagueData t r a m s) = extractData dataDir items
-                                                           (LeagueData t' r' a' _ s') = unsafePerformIO $ parseRLTFile $ combine dataDir path
+                                                           (LeagueData t' r' a' _ s') = unsafePerformIO . parseRLTFile $ combine dataDir path
 extractData dataDir (Adjustment team amount:items) = LeagueData t r (Map.insertWith (+) team amount a) m s
                                                      where (LeagueData t r a m s) = extractData dataDir items
 extractData dataDir (MiniLeague name teams:items)  = LeagueData t r a ((name, teams):m) s

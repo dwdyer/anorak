@@ -2,7 +2,7 @@
 module Anorak.Aggregates (getAggregateTables) where
 
 import Anorak.Results
-import Data.List(sortBy)
+import Data.List(foldl', sortBy)
 import Data.Map(Map, (!))
 import qualified Data.Map as Map(fromList, map, mapWithKey, toList)
 import Data.Ord(comparing)
@@ -38,7 +38,7 @@ aggregatesByTeam results = Map.map aggregates teamResults
 
 -- | Given a list of results for a particular team, generate a map of aggregates.
 aggregates :: [TeamResult] -> Map AggregateType Int
-aggregates = foldl addResultToAllAggregates $ Map.fromList [(Cleansheets, 0), (Blanks, 0), (BoreDraws, 0), (ScoreDraws, 0)]
+aggregates = foldl' addResultToAllAggregates $ Map.fromList [(Cleansheets, 0), (Blanks, 0), (BoreDraws, 0), (ScoreDraws, 0)]
 
 addResultToAllAggregates :: Map AggregateType Int -> TeamResult -> Map AggregateType Int
 addResultToAllAggregates aggregates result = Map.mapWithKey (addResultToAggregates result) aggregates

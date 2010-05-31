@@ -17,7 +17,7 @@ import Data.ByteString(ByteString)
 import qualified Data.ByteString as BS(writeFile)
 import Data.Char(isSpace, toLower)
 import Data.Data(Data)
-import Data.List(isPrefixOf, isSuffixOf, nub)
+import Data.List(foldl', isPrefixOf, isSuffixOf, nub)
 import Data.Map(Map, (!))
 import qualified Data.Map as Map(alter, assocs, empty, fromAscList, map, mapKeys, toList)
 import Data.Sequence(Seq)
@@ -30,7 +30,7 @@ import Text.StringTemplate.Classes(ToSElem(toSElem), SElem(SM, STR))
 import Text.StringTemplate.GenericStandard()
 
 instance ToSElem LeagueRecord where
-    toSElem record = SM $ Map.fromAscList [("adjustment", toSElem $ adjustmentString $ adjustment record),
+    toSElem record = SM $ Map.fromAscList [("adjustment", toSElem . adjustmentString $ adjustment record),
                                            ("against", toSElem $ against record),
                                            ("average", stShowsToSE $ pointsPerGame record),
                                            ("drawn", toSElem $ drawn record),
@@ -45,12 +45,12 @@ instance ToSElem LeagueRecord where
                                            ("teamLink", STR . toHTMLFileName $ team record),
                                            ("won", toSElem $ won record)]
 instance ToSElem Result where
-    toSElem result = SM $ Map.fromAscList [("awayGoals", toSElem $ reduceScorers $ awayGoals result),
+    toSElem result = SM $ Map.fromAscList [("awayGoals", toSElem . reduceScorers $ awayGoals result),
                                            ("awayScore", toSElem $ awayScore result),
                                            ("awayTeam", toSElem $ awayTeam result),
                                            ("awayTeamLink", STR . toHTMLFileName $ awayTeam result),
                                            ("date", toSElem $ date result),
-                                           ("homeGoals", toSElem $ reduceScorers $ homeGoals result),
+                                           ("homeGoals", toSElem.reduceScorers $ homeGoals result),
                                            ("homeScore", toSElem $ homeScore result),
                                            ("homeTeam", toSElem $ homeTeam result),
                                            ("homeTeamLink", STR . toHTMLFileName $ homeTeam result)]
@@ -58,7 +58,7 @@ instance ToSElem Result where
 instance ToSElem TeamResult where
     toSElem result = SM $ Map.fromAscList [("conceded", toSElem $ conceded result),
                                            ("day", toSElem $ day result),
-                                           ("goals", toSElem $ reduceScorers $ goals result),
+                                           ("goals", toSElem . reduceScorers $ goals result),
                                            ("opposition", toSElem $ opposition result),
                                            ("oppositionLink", STR . toHTMLFileName $ opposition result),
                                            ("outcome", toSElem $ outcome result),
@@ -89,7 +89,7 @@ adjustmentString adj
 --   Returns a list of pairs, first item is the player's name, second is a string containing details of their goals.
 reduceScorers :: [Goal] -> [(String, String)]
 reduceScorers goals = map (\s -> (s, reducedMap!s)) scorers
-                      where reducedMap = foldl addGoalToScorers Map.empty goals
+                      where reducedMap = foldl' addGoalToScorers Map.empty goals
                             scorers = nub $ map scorer goals
 
 addGoalToScorers :: Map String String -> Goal -> Map String String
@@ -182,7 +182,7 @@ generateResults group dir results metaData = do let homeWinMatches = homeWins re
                                                     drawCount = matchCount - homeWinCount - awayWinCount
                                                     goalCount = sum $ map aggregate results
                                                     highAggregates = highestAggregates results
-                                                applyTemplate group "results.html" dir [("results", AV $ reverse . Map.toList $ resultsByDate results), -- Reverse to list most recent first.
+                                                applyTemplate group "results.html" dir [("results", AV . reverse . Map.toList $ resultsByDate results), -- Reverse to list most recent first.
                                                                                         ("matches", AV matchCount),
                                                                                         ("homeWins", AV homeWinCount),
                                                                                         ("homeWinPercent", AV $ percentage homeWinCount matchCount),
@@ -232,9 +232,9 @@ generateTeamPage group dir metaData team results = do let record = buildRecord t
                                                                         ("drawPercent", AV $ percentage draws matches),
                                                                         ("goalsFor", AV $ for record),
                                                                         ("goalsAgainst", AV $ against record),
-                                                                        ("bigHomeWins", AV $ map (convertResult team) $ biggestWins $ homeWins homeResults),
-                                                                        ("bigAwayWins", AV $ map (convertResult team) $ biggestWins $ awayWins awayResults),
-                                                                        ("highAggregates", AV $ map (convertResult team) $ highestAggregates results ),
+                                                                        ("bigHomeWins", AV . map (convertResult team) . biggestWins $ homeWins homeResults),
+                                                                        ("bigAwayWins", AV . map (convertResult team) . biggestWins $ awayWins awayResults),
+                                                                        ("highAggregates", AV . map (convertResult team) $ highestAggregates results ),
                                                                         ("metaData", AV metaData)]
                                                       applyTemplateWithName group "team.html" dir (toHTMLFileName team) attributes
 

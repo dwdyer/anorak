@@ -3,7 +3,7 @@ module Anorak.Tables (buildRecord, formTable, goalDiff, LeagueRecord(..), league
 
 import Anorak.Results
 import Anorak.Utils(keep)
-import Data.List(sort)
+import Data.List(foldl', sort)
 import Data.Map(Map, (!))
 import qualified Data.Map as Map(elems, empty, filterWithKey, findWithDefault, map, mapWithKey)
 import Data.Ord(comparing)
@@ -66,7 +66,7 @@ pointsPerGame record = fromIntegral (points record) / fromIntegral (played recor
 -- | Builds a LeagueRecord for the specified team, including all of the results (from those provided) in which that
 --   team was involved.
 buildRecord :: Team -> [Result] -> LeagueRecord
-buildRecord team = foldl (addResultToRecord team) (LeagueRecord team 0 0 0 0 0 0)
+buildRecord team = foldl' (addResultToRecord team) (LeagueRecord team 0 0 0 0 0 0)
 
 -- | Adds a single match result to a particular team's league record.  If the specified team was not involved in that
 --   match, the match is ignored.
@@ -99,7 +99,7 @@ updateSection table results = sort $ map (updateRecord results) table
 
 -- | Update the specified league record by applying all of the remaining results for that team.
 updateRecord :: Map Team [Result] -> LeagueRecord -> LeagueRecord
-updateRecord results record = foldl (addResultToRecord t) record (results ! t)
+updateRecord results record = foldl' (addResultToRecord t) record (results ! t)
                               where t = team record
 
 -- | Produces a form table with teams ordered in descending order of points.
