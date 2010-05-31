@@ -1,4 +1,4 @@
-module Anorak.Goals (hasScorers, topGoalScorers) where
+module Anorak.Goals (topGoalScorers) where
 
 import Anorak.Results
 import List(groupBy, sortBy)
@@ -13,8 +13,3 @@ topGoalScorers results = sortBy (\(_, (_, g1)) (_, (_, g2)) -> compare g2 g1) $ 
 extractGoals :: Result -> [(Goal, Team)]
 extractGoals result = getGoals (homeTeam) (homeGoals) ++ getGoals (awayTeam) (awayGoals)
                       where getGoals ft fg = map (\g -> (g, ft result)) $ fg result
-
--- | Check to see whether there is any goal-scorer information in the data.
-hasScorers :: [Result] -> Bool
-hasScorers []     = False
-hasScorers (r:rs) = (length $ homeGoals r) > 0 || (length $ awayGoals r) > 0 || hasScorers rs

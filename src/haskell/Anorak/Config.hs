@@ -28,6 +28,7 @@ data Season = Season {seasonName :: String,     -- ^ The name of the season (e.g
                       inputFile :: FilePath,    -- ^ Path to the season's data file.
                       outputDir :: FilePath,    -- ^ The directory to write the generated files to.
                       relativeLink :: FilePath, -- ^ Link relative to the web root.
+                      scorers :: Bool,          -- ^ Whether goal-scorer data should be used if present.
                       aggregated :: Bool,       -- ^ Whether this is an aggregate of multiple seasons from the same division.
                       collated :: Bool}         -- ^ Whether this is the combination of multiple divisions from the same season.
     deriving (Data, Typeable)
@@ -64,6 +65,7 @@ processSeasonTag baseDir outputDir tag = Season (getAttributeValue tag "name")
                                                 (makeAbsolute (getAttributeValue tag "input") baseDir)
                                                 (makeAbsolute seasonDir outputDir)
                                                 ("../../../" ++ seasonDir ++ "/index.html")
+                                                (getBooleanAttribute tag "scorers")
                                                 (getBooleanAttribute tag "aggregated")
                                                 (getBooleanAttribute tag "collated")
                                          where seasonDir = getAttributeValue tag "output"

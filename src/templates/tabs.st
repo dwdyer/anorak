@@ -8,7 +8,7 @@
   <div class="tab $if(formSelected)$selectedtab$endif$">
     <a href="$if(formSelected)$#$else$formtable.html$endif$" title="Form tables (including home and away form)">Form</a>
   </div>
-  $if(metaData.scorers)$
+  $if(metaData.hasScorers)$
   <div class="tab $if(goalsSelected)$selectedtab$endif$">
     <a href="$if(goalsSelected)$#$else$goals.html$endif$" title="Leading goal-scorers, hat-tricks, etc.">Goals</a>
   </div>

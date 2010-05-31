@@ -80,7 +80,7 @@ data MetaData = MetaData {league :: String,
                           division :: String,
                           season :: String,
                           isAggregated :: Bool,
-                          scorers :: Bool,
+                          hasScorers :: Bool,
                           miniLeaguesLink :: Maybe String} deriving (Data, Typeable)
 
 -- | Convert points adjustment into a string with +/- sign, or Nothing if there is no adjustment.
@@ -266,7 +266,7 @@ generateStatsPages templateGroup targetDir (LeagueData _ results adj miniLeagues
                                                                                                    generateAggregates templateGroup targetDir teamResults metaData
                                                                                                    generateMiniLeagues templateGroup targetDir teamResults miniLeagues metaData
                                                                                                    generateTeamPages templateGroup targetDir teamResults metaData
-                                                                                                   generateGoals templateGroup targetDir results metaData
+                                                                                                   unless (not $ hasScorers metaData) $ generateGoals templateGroup targetDir results metaData
 
 -- | Determine which file the "Mini-Leagues" tab should link to (derived from the name of the first mini-league).
 --   If there are no mini-leagues then this function returns nothing and the tab should not be shown.
@@ -291,7 +291,6 @@ publishSeason templateGroup lgName divName season = do let dataFile = inputFile 
                                                            False -> print $ "Skipping unchanged file " ++ dataFile 
                                                            True  -> do print $ "Processing " ++ dataFile
                                                                        leagueData@(LeagueData _ results _ miniLeagues _) <- parseRLTFile dataFile
-                                                                       let scorers = hasScorers results
-                                                                           metaData = MetaData lgName divName (seasonName season) (aggregated season) scorers (getMiniLeaguesLink miniLeagues)
+                                                                       let metaData = MetaData lgName divName (seasonName season) (aggregated season) (scorers season) (getMiniLeaguesLink miniLeagues)
                                                                        generateStatsPages templateGroup (outputDir season) leagueData metaData 
 
