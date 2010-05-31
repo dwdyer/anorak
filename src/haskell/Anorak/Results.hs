@@ -4,12 +4,12 @@
 module Anorak.Results (aggregate, awayWins, biggestWins, convertResult, form, Goal(..), highestAggregates, homeWins, partitionResults, Result(..), resultsByDate, resultsByTeam, splitHomeAndAway, Team, TeamResult(..)) where
 
 import Anorak.Utils(takeAtLeast)
+import Data.List(groupBy, partition, sortBy)
 import Data.Map(Map)
 import qualified Data.Map as Map(empty, insertWith, mapWithKey)
 import Data.Ord(comparing)
 import Data.Time.Calendar(Day(..))
 import Data.Time.Format(formatTime)
-import List(groupBy, partition, sortBy)
 import System.Locale(defaultTimeLocale)
 
 -- | A team is represented simply by its name.
@@ -112,9 +112,9 @@ awayWins = filter (\r -> homeScore r < awayScore r)
 
 biggestWins :: [Result] -> [Result]
 biggestWins results = takeAtLeast 3 $ groupBy (\r1 r2 -> margin r1 == margin r2) sortedResults
-                      where sortedResults = sortBy (\r1 r2 -> comparing margin r2 r1) results
+                      where sortedResults = sortBy (flip $ comparing margin) results
 
 highestAggregates :: [Result] -> [Result]
 highestAggregates results = takeAtLeast 3 $ groupBy (\r1 r2 -> aggregate r1 == aggregate r2) sortedResults
-                            where sortedResults = sortBy (\r1 r2 -> comparing aggregate r2 r1) results
+                            where sortedResults = sortBy (flip $ comparing aggregate) results
 

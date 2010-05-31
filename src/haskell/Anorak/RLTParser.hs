@@ -5,6 +5,7 @@ module Anorak.RLTParser (LeagueData(LeagueData), parseRLTFile, RLTException) whe
 
 import Anorak.Results
 import Control.Exception(Exception, throw)
+import Data.List(concat, intersperse)
 import Data.Map(Map)
 import qualified Data.Map as Map(empty, insertWith, unionWith)
 import Data.Set(Set)
@@ -12,7 +13,6 @@ import qualified Data.Set as Set(empty, fromList, insert, union)
 import Data.Time.Calendar(Day)
 import Data.Time.Format(readTime)
 import Data.Typeable(Typeable)
-import List(concat, intersperse)
 import System.FilePath(combine, takeDirectory)
 import System.Locale(defaultTimeLocale)
 import System.IO.Unsafe(unsafePerformIO)
@@ -36,13 +36,13 @@ data LeagueData = LeagueData (Set Team) [Result] (Map Team Int) [(String, Set Te
 
 -- | Parse results and points adjustments, discard meta-data and comments.  The function argument is
 --   the path of the data directory, used to resolve relative paths for include directives.
-results :: FilePath -> Parser (LeagueData)
+results :: FilePath -> Parser LeagueData
 results dataDir = do list <- items
                      return (extractData dataDir list)
 
 -- | Each line of a data file is either a record (a match result or some metadata) or it is a comment.
 items :: Parser [Item]
-items = manyTill (result <|> comment <|> include <|> (try rules) <|> awarded <|> deducted <|> miniLeague <|> prize <|> relegation <|> fail "Unexpected record type.") eof
+items = manyTill (result <|> comment <|> include <|> try rules <|> awarded <|> deducted <|> miniLeague <|> prize <|> relegation <|> fail "Unexpected record type.") eof
 
 -- | The INCLUDE directive has a single field, the path to an RLT file.
 include :: Parser Item
@@ -54,14 +54,14 @@ include = do string "INCLUDE|"
 awarded :: Parser Item
 awarded = do string "AWARDED|"
              team <- manyTill anyChar $ char '|'
-             amount <- manyTill digit $ newline
+             amount <- manyTill digit newline
              return $ Adjustment team $ read amount
 
 -- | The DEDUCTED directive removes points to a teams' total.  It has two fields, team name and number of points.
 deducted :: Parser Item
 deducted = do string "DEDUCTED|"
               team <- manyTill anyChar $ char '|'
-              amount <- manyTill digit $ newline
+              amount <- manyTill digit newline
               return $ Adjustment team $ -read amount
 
 -- | The first field of the MINILEAGUE directive is the league's name, other fields are the member teams.
@@ -112,8 +112,8 @@ score :: Parser (Int, [Goal])
 score = do number <- many1 digit
            goals <- optionMaybe $ between (char '[') (char ']') goals
            case goals of
-               Nothing -> return $ (read number, [])
-               Just g  -> return $ (read number, g)
+               Nothing -> return (read number, [])
+               Just g  -> return (read number, g)
            where goals = sepBy goal $ char ','
 
 goal :: Parser Goal
@@ -157,7 +157,7 @@ addTeams result = Set.insert (awayTeam result) . Set.insert (homeTeam result)
 -- | Parses the specified RLT file and returns a list of teams, a list of results, a map of any points adjustments,
 --   and a list of any configured mini-leagues (each represented by name/teams pair).
 --   Throws an RLTException if there is a problem parsing the file.
-parseRLTFile :: FilePath -> IO (LeagueData)
+parseRLTFile :: FilePath -> IO LeagueData
 parseRLTFile path = do let dataDir = takeDirectory path
                        contents <- parseFromFile (results dataDir) path
                        case contents of

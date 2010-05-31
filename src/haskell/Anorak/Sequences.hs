@@ -2,12 +2,12 @@
 module Anorak.Sequences (getSequenceTables) where
 
 import Anorak.Results
+import Data.List(sortBy)
 import Data.Map(Map, (!))
 import qualified Data.Map as Map(fromList, map, mapWithKey, toList)
 import Data.Ord(comparing)
 import Data.Sequence(Seq, (|>))
 import qualified Data.Sequence as Seq(empty, length, null)
-import List(sortBy)
 
 -- | The supported sequence types.
 data SequenceType = Wins | Draws | Losses | Unbeaten | NoWin | Cleansheets | Conceded | Scored | NoGoal
@@ -37,7 +37,7 @@ sequenceTables sequences = Map.fromList [(Wins, sequenceTable sequences Wins),
                                          (NoGoal, sequenceTable sequences NoGoal)]
 
 sequenceTable :: Map Team TeamSequences -> SequenceType -> SequenceTable
-sequenceTable sequences seqType = sortTable $ Map.toList (Map.map (flip (!) seqType) sequences)
+sequenceTable sequences seqType = sortTable $ Map.toList (Map.map (! seqType) sequences)
 
 -- | Sort a sequence table.
 sortTable :: SequenceTable -> SequenceTable

@@ -6,6 +6,7 @@ module Anorak.Config (Configuration(..), ConfigurationException, Division(..), L
 import Anorak.Utils(makeAbsolute)
 import Control.Exception(Exception, throw)
 import Data.Data(Data)
+import Data.Maybe(fromMaybe)
 import Data.Typeable(Typeable)
 import System.FilePath(takeDirectory)
 import Text.XML.Light(Element(..), findAttr, findChildren, parseXMLDoc, QName(..))
@@ -43,7 +44,7 @@ readConfig :: FilePath -> IO Configuration
 readConfig file = do xml <- readFile file
                      let document = parseXMLDoc xml
                      case document of
-                         Nothing      -> throw (ConfigurationException "Invalid XML configuration.")
+                         Nothing      -> throw . ConfigurationException $ "Invalid XML configuration."
                          Just element -> return $ convertXMLDocumentToConfig file element
 
 convertXMLDocumentToConfig :: FilePath -> Element -> Configuration
@@ -72,9 +73,8 @@ processSeasonTag baseDir outputDir tag = Season (getAttributeValue tag "name")
 
 -- | Simplifies the reading of XML attributes by assuming that the attribute is present.  Throws an exception if it is not.
 getAttributeValue :: Element -> String -> String
-getAttributeValue element name = case findAttr (xmlName name) element of
-                                     Nothing    -> throw . ConfigurationException $ "Missing attribute: " ++ name
-                                     Just value -> value
+getAttributeValue element name = fromMaybe (throw . ConfigurationException $ "Missing attribute: " ++ name)
+                                           (findAttr (xmlName name) element)
 
 -- | Look up a named attribute.  If it is present and the value is "true", return True, else if it's not present or has some other value return False.
 getBooleanAttribute :: Element -> String -> Bool

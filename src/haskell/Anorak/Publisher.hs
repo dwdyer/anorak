@@ -12,17 +12,17 @@ import Anorak.Aggregates
 import Anorak.Tables
 import Anorak.Goals
 import Anorak.Utils
-import Char(isSpace, toLower)
+import Control.Monad(filterM, unless)
 import Data.ByteString(ByteString)
 import qualified Data.ByteString as BS(writeFile)
+import Data.Char(isSpace, toLower)
 import Data.Data(Data)
+import Data.List(isPrefixOf, isSuffixOf, nub)
 import Data.Map(Map, (!))
 import qualified Data.Map as Map(alter, assocs, empty, fromAscList, map, mapKeys, toList)
 import Data.Sequence(Seq)
 import Data.Set(Set)
 import Data.Typeable(Typeable)
-import List(isPrefixOf, isSuffixOf, nub)
-import Monad(filterM, unless)
 import System.Directory(createDirectoryIfMissing, doesFileExist, getDirectoryContents)
 import System.FilePath(combine)
 import Text.StringTemplate(getStringTemplate, render, setManyAttrib, STGroup, stShowsToSE)
@@ -55,11 +55,6 @@ instance ToSElem Result where
                                            ("homeTeam", toSElem $ homeTeam result),
                                            ("homeTeamLink", STR . toHTMLFileName $ homeTeam result)]
 
-instance ToSElem Goal where
-    toSElem goal = SM $ Map.fromAscList [("minute", toSElem $ minute goal),
-                                         ("scorer", toSElem $ scorer goal),
-                                         ("type", toSElem $ goalType goal)]
-
 instance ToSElem TeamResult where
     toSElem result = SM $ Map.fromAscList [("conceded", toSElem $ conceded result),
                                            ("day", toSElem $ day result),
@@ -87,21 +82,20 @@ data MetaData = MetaData {league :: String,
 adjustmentString :: Int -> Maybe String
 adjustmentString adj
     | adj < 0   = Just $ show adj
-    | adj > 0   = Just $ "+" ++ show adj
+    | adj > 0   = Just $ '+' : show adj
     | otherwise = Nothing
 
 -- | If a player has scored more than one goal in the game, combine those goals into a single entry.
 --   Returns a list of pairs, first item is the player's name, second is a string containing details of their goals.
 reduceScorers :: [Goal] -> [(String, String)]
 reduceScorers goals = map (\s -> (s, reducedMap!s)) scorers
-                      where reducedMap = foldl (addGoalToScorers) Map.empty goals
-                            scorers = nub $ map (scorer) goals
+                      where reducedMap = foldl addGoalToScorers Map.empty goals
+                            scorers = nub $ map scorer goals
 
 addGoalToScorers :: Map String String -> Goal -> Map String String
 addGoalToScorers scorers goal = Map.alter (updateScorer goal) (scorer goal) scorers
-                                where updateScorer goal details = case details of
-                                                                      Nothing -> Just $ (goalTypeString goal) ++ (show $ minute goal)
-                                                                      Just d  -> Just $ d ++ ", " ++ (goalTypeString goal) ++ (show $ minute goal)
+                                where updateScorer goal Nothing   = Just $ goalTypeString goal ++ show (minute goal)
+                                      updateScorer goal (Just d)  = Just $ d ++ ", " ++ goalTypeString goal ++ show (minute goal)
 
 goalTypeString :: Goal -> String
 goalTypeString goal = case goalType goal of
@@ -177,7 +171,7 @@ generateAggregates group dir results metaData = do let aggregates = getAggregate
 -- | Converts pairs of teams/sequences into triples that include a link to the team's page.
 insertLinks :: [(Team, a)] -> [(Team, String, a)]
 insertLinks []            = []
-insertLinks ((t, s):rest) = ((t, toHTMLFileName t, s):insertLinks rest)
+insertLinks ((t, s):rest) = (t, toHTMLFileName t, s):insertLinks rest
 
 generateResults :: STGroup ByteString -> FilePath -> [Result] -> MetaData -> IO ()
 generateResults group dir results metaData = do let homeWinMatches = homeWins results
@@ -208,7 +202,7 @@ generateMiniLeagues group dir results miniLeagues metaData = do let tabs = map (
                                                                 mapM_ (generateMiniLeague group dir results tabs metaData) miniLeagues
 
 generateMiniLeague :: STGroup ByteString -> FilePath -> Map Team [Result] -> [(String, String)] -> MetaData -> (String, Set Team) -> IO ()
-generateMiniLeague group dir results tabs metaData (name, teams) = do let selectedTabs = map (\(n, f) -> (n, f, (n == name))) tabs -- Add a boolean "selected" flag to each tab.
+generateMiniLeague group dir results tabs metaData (name, teams) = do let selectedTabs = map (\(n, f) -> (n, f, n == name)) tabs -- Add a boolean "selected" flag to each tab.
                                                                           attributes = [("table", AV $ miniLeagueTable teams results),
                                                                                         ("miniLeaguesSelected", AV True),
                                                                                         ("name", AV name),
@@ -248,7 +242,7 @@ generateTeamPage group dir metaData team results = do let record = buildRecord t
 generateGoals:: STGroup ByteString -> FilePath -> [Result] -> MetaData -> IO ()
 generateGoals group dir results metaData = do let scorers = topGoalScorers results
                                                   attr = ("metaData", AV metaData)
-                                              unless (length scorers == 0) $ applyTemplate group "goals.html" dir [("scorers", AV $ insertLinks $ scorers), ("goalsSelected", AV True), attr]
+                                              unless (null scorers) $ applyTemplate group "goals.html" dir [("scorers", AV $ insertLinks scorers), ("goalsSelected", AV True), attr]
 
 -- | Convert a string for use as a filename (converts to lower case and eliminates whitespace).
 toHTMLFileName :: String -> String

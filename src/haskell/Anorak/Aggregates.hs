@@ -2,10 +2,10 @@
 module Anorak.Aggregates (getAggregateTables) where
 
 import Anorak.Results
-import Data.Ord(comparing)
+import Data.List(sortBy)
 import Data.Map(Map, (!))
 import qualified Data.Map as Map(fromList, map, mapWithKey, toList)
-import List(sortBy)
+import Data.Ord(comparing)
 
 -- | The supported aggregate types.
 data AggregateType = Cleansheets | Blanks | BoreDraws | ScoreDraws
@@ -20,7 +20,7 @@ getAggregateTables results = Map.fromList [(Cleansheets, aggregateTable teamAggr
                              where teamAggregates = aggregatesByTeam results
 
 aggregateTable :: Map Team (Map AggregateType Int) -> AggregateType -> [(Team, Int)]
-aggregateTable aggregates aggType = sortTable $ Map.toList (Map.map (flip (!) aggType) aggregates)
+aggregateTable aggregates aggType = sortTable $ Map.toList (Map.map (! aggType) aggregates)
 
 -- | Sort aggregate table in descending order.
 sortTable :: [(Team, Int)] -> [(Team, Int)]

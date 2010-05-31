@@ -3,12 +3,12 @@ module Anorak.Tables (buildRecord, formTable, goalDiff, LeagueRecord(..), league
 
 import Anorak.Results
 import Anorak.Utils(keep)
+import Data.List(sort)
 import Data.Map(Map, (!))
 import qualified Data.Map as Map(elems, empty, filterWithKey, findWithDefault, map, mapWithKey)
 import Data.Ord(comparing)
 import Data.Set(Set)
 import qualified Data.Set as Set(member)
-import List(sort)
 
 -- | A LeagueRecord contains data about the league performance of a single team.  It
 --   includes total number of wins, draws, defeats, goals scored and goals conceded.
@@ -87,7 +87,7 @@ addScoreToRecord (LeagueRecord team won drawn lost for against adjustment) score
 leagueTable :: Map Team [Result] -> Map Team Int -> Int -> [LeagueRecord]
 leagueTable teamResults adjustments 0     = sort $ map (adjust adjustments) table
                                             where table = Map.elems $ Map.mapWithKey buildRecord teamResults
-leagueTable teamResults adjustments split = (updateSection top remainingFixtures) ++ (updateSection bottom remainingFixtures)
+leagueTable teamResults adjustments split = updateSection top remainingFixtures ++ updateSection bottom remainingFixtures
                                             where before = leagueTable (Map.map (take split) teamResults) adjustments 0 -- Initial table based on early fixtures.
                                                   (top, bottom) = splitAt (length before `div` 2) before -- Split league in half.
                                                   remainingFixtures = Map.map (drop split) teamResults -- Keep remaining fixtures and apply to both halves before recombining.
