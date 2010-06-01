@@ -7,7 +7,7 @@ $header(title=team)$
     $teamrecords()$
     <h3>Full Results</h3>
     <table id="results">
-      $results:teamresult(dateformat="%a %e %b %Y";showOutcome="true";showScorers="true")$
+      $results:teamresult(dateformat="%a %e %b %Y";showOutcome="true";showScorers=metaData.hasScorers)$
     </table>
     <div class="clearfloat"></div>
   </div>

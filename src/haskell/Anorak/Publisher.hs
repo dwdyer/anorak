@@ -243,7 +243,8 @@ getSummary team results = (won record,
 generateGoals:: STGroup ByteString -> FilePath -> [Result] -> MetaData -> IO ()
 generateGoals group dir results metaData = do let scorers = topGoalScorers results
                                                   attr = ("metaData", AV metaData)
-                                              unless (null scorers) $ applyTemplate group "goals.html" dir [("scorers", AV $ insertLinks scorers), ("goalsSelected", AV True), attr]
+                                              unless (null scorers) $ applyTemplate group "goals.html" dir [("scorers", AV $ addLinks scorers), ("goalsSelected", AV True), attr]
+                                              where addLinks = map (\(player, goals, teams) -> (player, goals, map (\t -> (t, toHTMLFileName t)) teams))
 
 -- | Convert a string for use as a filename (converts to lower case and eliminates whitespace).
 toHTMLFileName :: String -> String
