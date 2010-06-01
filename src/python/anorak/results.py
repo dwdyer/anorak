@@ -1,4 +1,7 @@
+# Data types for results plus functions for reading and writing RLT files.
+
 from datetime import datetime
+import re
 
 class Result:
     def __init__(self, date, home_team, home_score, away_team, away_score, home_goals = [], away_goals = []):
@@ -43,7 +46,7 @@ class Goal:
         return cmp(self.minute, other.minute)
 
 
-def parse_rlt(rlt_path):
+def parse_rlt(rlt_path, player_aliases = {}):
     """Read an RLT file and return a list of results and a list of metadata records."""
     with open(rlt_path) as rlt:
         line = rlt.readline()
@@ -53,11 +56,34 @@ def parse_rlt(rlt_path):
             if line[0].isdigit():
                 fields = line.split("|")
                 date = datetime.strptime(fields[0], "%d%m%Y").date()
-                results.append(Result(date, fields[1], int(fields[2]), fields[3], int(fields[4])))
+                (home_goals, home_scorers) = parse_score(fields[2], fields[1], player_aliases)
+                (away_goals, away_scorers) = parse_score(fields[4], fields[3], player_aliases)
+                results.append(Result(date, fields[1], home_goals, fields[3], away_goals, home_scorers, away_scorers))
             else:
                 metadata.append(line)
             line = rlt.readline()
     return (results, metadata)
+
+# Regex to separate score and scorers.
+score_regex = re.compile(r"(\d+)(?:\[(.+?)\])?")
+# Regex to match an RLT goal scorer entry.
+goal_regex = re.compile(r"(\D+)(\d+)([po]?)")
+
+def parse_score(text, team, player_aliases = {}):
+    """Parse the score field of an RLT record and return a tuple containing the scorer and scorers."""
+    match = score_regex.match(text)
+    score = int(match.group(1))
+    scorers = match.group(2)
+    goals = []
+    if scorers:
+        items = scorers.split(",")
+        for goal in items:
+            match = goal_regex.match(goal)
+            scorer = player_aliases.get((team, match.group(1)), match.group(1))
+            goals.append(Goal(scorer, match.group(2), match.group(3)))
+    return (score, goals)
+
+
 
 def write_rlt(rlt_path, results, metadata):
     """Write a new RLT file with the specified file name containing the specified results and metadata."""

@@ -1,3 +1,5 @@
+# Update RLT files by scraping the latest results from the web.
+
 from datetime import datetime
 import re
 import sys
