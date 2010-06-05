@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE ExistentialQuantification #-}
 
 -- | HTML publishing module for the Anorak system.
@@ -19,9 +18,10 @@ import Data.Char(isSpace, toLower)
 import Data.Data(Data)
 import Data.List(foldl', isPrefixOf, isSuffixOf, nub)
 import Data.Map(Map, (!))
-import qualified Data.Map as Map(alter, assocs, empty, fromAscList, map, mapKeys, toList)
+import qualified Data.Map as Map(alter, assocs, empty, fromAscList, insert, map, mapKeys, keys, toList)
 import Data.Sequence(Seq)
 import Data.Set(Set)
+import qualified Data.Set as Set(toList)
 import Data.Typeable(Typeable)
 import System.Directory(createDirectoryIfMissing, doesFileExist, getDirectoryContents)
 import System.FilePath(combine)
@@ -42,25 +42,21 @@ instance ToSElem LeagueRecord where
                                            ("points", toSElem $ points record),
                                            ("positiveGD", toSElem $ goalDiff record > 0), -- Goal difference could be neither +ve or -ve (i.e. zero).
                                            ("team", STR $ team record),
-                                           ("teamLink", STR . toHTMLFileName $ team record),
                                            ("won", toSElem $ won record)]
 instance ToSElem Result where
     toSElem result = SM $ Map.fromAscList [("awayGoals", toSElem . reduceScorers $ awayGoals result),
                                            ("awayScore", toSElem $ awayScore result),
                                            ("awayTeam", toSElem $ awayTeam result),
-                                           ("awayTeamLink", STR . toHTMLFileName $ awayTeam result),
                                            ("date", toSElem $ date result),
                                            ("homeGoals", toSElem.reduceScorers $ homeGoals result),
                                            ("homeScore", toSElem $ homeScore result),
-                                           ("homeTeam", toSElem $ homeTeam result),
-                                           ("homeTeamLink", STR . toHTMLFileName $ homeTeam result)]
+                                           ("homeTeam", toSElem $ homeTeam result)]
 
 instance ToSElem TeamResult where
     toSElem result = SM $ Map.fromAscList [("conceded", toSElem $ conceded result),
                                            ("day", toSElem $ day result),
                                            ("goals", toSElem . reduceScorers $ goals result),
                                            ("opposition", toSElem $ opposition result),
-                                           ("oppositionLink", STR . toHTMLFileName $ opposition result),
                                            ("outcome", toSElem $ outcome result),
                                            ("scored", toSElem $ scored result),
                                            ("venue", toSElem $ venue result)]
@@ -76,7 +72,16 @@ data MetaData = MetaData {league :: String,
                           season :: String,
                           isAggregated :: Bool,
                           hasScorers :: Bool,
-                          miniLeaguesLink :: Maybe String} deriving (Data, Typeable)
+                          teamLinks :: Map String String,
+                          miniLeaguesLink :: Maybe String}
+instance ToSElem MetaData where
+    toSElem meta = SM $ Map.fromAscList [("division", STR $ division meta),
+                                         ("hasScorers", STR . show $ hasScorers meta),
+                                         ("isAggregated", STR . show $ isAggregated meta),
+                                         ("league", STR $ league meta),
+                                         ("miniLeaguesLink", toSElem $ miniLeaguesLink meta),
+                                         ("season", STR $ season meta),
+                                         ("teamLinks", SM $ Map.map toSElem $ teamLinks meta)]
 
 -- | Convert points adjustment into a string with +/- sign, or Nothing if there is no adjustment.
 adjustmentString :: Int -> Maybe String
@@ -152,26 +157,20 @@ generateSequences group dir results metaData = do let (overallCurrent, overallLo
                                                       splitResults = splitHomeAndAway results
                                                       (homeCurrent, homeLongest) = getSequenceTables $ Map.map fst splitResults
                                                       (awayCurrent, awayLongest) = getSequenceTables $ Map.map snd splitResults
-                                                      attr = ("metaData", AV metaData)
-                                                  applyTemplate group "currentsequences.html" dir [("sequences", convertTables overallCurrent), ("currentSequencesSelected", AV True), attr]
-                                                  applyTemplate group "longestsequences.html" dir [("sequences", convertTables overallLongest), ("longestSequencesSelected", AV True), attr]
-                                                  applyTemplate group "homecurrentsequences.html" dir [("sequences", convertTables homeCurrent), ("currentSequencesSelected", AV True), attr]
-                                                  applyTemplate group "homelongestsequences.html" dir [("sequences", convertTables homeLongest), ("longestSequencesSelected", AV True), attr]
-                                                  applyTemplate group "awaycurrentsequences.html" dir [("sequences", convertTables awayCurrent), ("currentSequencesSelected", AV True), attr]
-                                                  applyTemplate group "awaylongestsequences.html" dir [("sequences", convertTables awayLongest), ("longestSequencesSelected", AV True), attr]
-                                                  where convertTables = AV . Map.mapKeys show . Map.map insertLinks
+                                                      attributes = [("metaData", AV metaData)]
+                                                  applyTemplate group "currentsequences.html" dir (("sequences", convertTables overallCurrent):("currentSequencesSelected", AV True):attributes)
+                                                  applyTemplate group "longestsequences.html" dir (("sequences", convertTables overallLongest):("longestSequencesSelected", AV True):attributes)
+                                                  applyTemplate group "homecurrentsequences.html" dir (("sequences", convertTables homeCurrent):("currentSequencesSelected", AV True):attributes)
+                                                  applyTemplate group "homelongestsequences.html" dir (("sequences", convertTables homeLongest):("longestSequencesSelected", AV True):attributes)
+                                                  applyTemplate group "awaycurrentsequences.html" dir (("sequences", convertTables awayCurrent):("currentSequencesSelected", AV True):attributes)
+                                                  applyTemplate group "awaylongestsequences.html" dir (("sequences", convertTables awayLongest):("longestSequencesSelected", AV True):attributes)
+                                                  where convertTables = AV . Map.mapKeys show
 
 -- | Generates team aggregates for all matches.
 generateAggregates:: STGroup ByteString -> FilePath -> Map Team [Result] -> MetaData -> IO ()
 generateAggregates group dir results metaData = do let aggregates = getAggregateTables results
-                                                       attr = ("metaData", AV metaData)
-                                                   applyTemplate group "aggregates.html" dir [("aggregates", convertTables aggregates), ("aggregatesSelected", AV True), attr]
-                                                   where convertTables = AV . Map.mapKeys show . Map.map insertLinks
-
--- | Converts pairs of teams/sequences into triples that include a link to the team's page.
-insertLinks :: [(Team, a)] -> [(Team, String, a)]
-insertLinks []            = []
-insertLinks ((t, s):rest) = (t, toHTMLFileName t, s):insertLinks rest
+                                                       attributes = [("metaData", AV metaData)]
+                                                   applyTemplate group "aggregates.html" dir (("aggregates", AV . Map.mapKeys show $ aggregates):("aggregatesSelected", AV True):attributes)
 
 generateResults :: STGroup ByteString -> FilePath -> [Result] -> MetaData -> IO ()
 generateResults group dir results metaData = do let homeWinMatches = homeWins results
@@ -242,18 +241,22 @@ getSummary team results = (won record,
 -- | Generates the top scorers list (only if there are scorers in the data).
 generateGoals:: STGroup ByteString -> FilePath -> [Result] -> MetaData -> IO ()
 generateGoals group dir results metaData = do let scorers = topGoalScorers results
-                                                  attr = ("metaData", AV metaData)
-                                              unless (null scorers) $ applyTemplate group "goals.html" dir [("scorers", AV $ addLinks scorers), ("goalsSelected", AV True), attr]
-                                              where addLinks = map (\(player, goals, teams) -> (player, goals, map (\t -> (t, toHTMLFileName t)) teams))
+                                                  attributes = [("metaData", AV metaData)]
+                                              unless (null scorers) $ applyTemplate group "goals.html" dir (("scorers", AV scorers):("goalsSelected", AV True):attributes)
 
 -- | Convert a string for use as a filename (converts to lower case and eliminates whitespace).
 toHTMLFileName :: String -> String
 toHTMLFileName name = map toLower (filter (not.isSpace) name) ++ ".html"
 
+-- | Take a list of team names and return mappings for the associated team pages.
+mapTeamNames :: [String] -> Map String String
+mapTeamNames = foldl' (\m t -> Map.insert t (toHTMLFileName t) m) Map.empty
+
 -- | Generates all stats pages for a given data file.  First parameter is a template group, second parameter is a pair of paths,
 --   the first is the path to the data file, the second is the path to the directory in which the pages will be created.
 generateStatsPages :: STGroup ByteString -> FilePath -> LeagueData -> MetaData -> IO ()
 generateStatsPages templateGroup targetDir (LeagueData _ results adj miniLeagues sp) metaData = do let teamResults = resultsByTeam results
+                                                                                                       teamLinks = mapTeamNames $ Map.keys teamResults
                                                                                                    createDirectoryIfMissing True targetDir
                                                                                                    generateLeagueTables templateGroup targetDir teamResults adj metaData sp
                                                                                                    generateFormTables templateGroup targetDir teamResults metaData
@@ -271,22 +274,23 @@ getMiniLeaguesLink []            = Nothing
 getMiniLeaguesLink ((name, _):_) = Just $ toHTMLFileName name
 
 publishLeagues :: STGroup ByteString -> Configuration -> IO ()
-publishLeagues templateGroup config = do applyTemplate templateGroup "selector.json" (outputRoot config) [("config", AV config)]
-                                         mapM_ (publishLeague templateGroup) $ leagues config
+publishLeagues templates config = do applyTemplate templates "selector.json" (outputRoot config) [("config", AV config)]
+                                     mapM_ (publishLeague templates) $ leagues config
 
 publishLeague :: STGroup ByteString -> League -> IO ()
-publishLeague templateGroup league = mapM_ (publishDivision templateGroup (leagueName league)) $ divisions league
+publishLeague templates league = mapM_ (publishDivision templates (leagueName league)) $ divisions league
 
 publishDivision :: STGroup ByteString -> String -> Division -> IO ()
 publishDivision templateGroup leagueName division = mapM_ (publishSeason templateGroup leagueName (divisionName division)) $ seasons division
 
 publishSeason :: STGroup ByteString -> String -> String -> Season -> IO ()
-publishSeason templateGroup lgName divName season = do let dataFile = inputFile season
-                                                       modified <- isNewer dataFile (combine (outputDir season) "index.html")
-                                                       case modified || aggregated season || collated season of
-                                                           False -> print $ "Skipping unchanged file " ++ dataFile 
-                                                           True  -> do print $ "Processing " ++ dataFile
-                                                                       leagueData@(LeagueData _ results _ miniLeagues _) <- parseRLTFile dataFile
-                                                                       let metaData = MetaData lgName divName (seasonName season) (aggregated season) (scorers season) (getMiniLeaguesLink miniLeagues)
-                                                                       generateStatsPages templateGroup (outputDir season) leagueData metaData 
+publishSeason templates lgName divName season = do let dataFile = inputFile season
+                                                   modified <- isNewer dataFile (combine (outputDir season) "index.html")
+                                                   case modified || aggregated season || collated season of
+                                                       False -> print $ "Skipping unchanged file " ++ dataFile 
+                                                       True  -> do print $ "Processing " ++ dataFile
+                                                                   leagueData@(LeagueData teams results _ miniLeagues _) <- parseRLTFile dataFile
+                                                                   let teamLinks = mapTeamNames $ Set.toList teams
+                                                                       metaData = MetaData lgName divName (seasonName season) (aggregated season) (scorers season) teamLinks (getMiniLeaguesLink miniLeagues)
+                                                                   generateStatsPages templates (outputDir season) leagueData metaData 
 

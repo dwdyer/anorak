@@ -11,7 +11,7 @@ $header(title="Goals")$
     $scorers:{
       <tr>
         <td>$it.("0")$</td>
-        <td>$it.("2"):{<a href="$it.("1")$">$it.("0")$</a>};separator=" / "$</td>
+        <td>$it.("2"):{<a href="$metaData.teamLinks.(it)$">$it$</a>};separator=" / "$</td>
         <td class="number">$it.("1")$</td>
       </tr>}$
     </table>

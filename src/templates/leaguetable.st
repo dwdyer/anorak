@@ -16,7 +16,7 @@
   <tbody>
     $table:{<tr>
       <td class="position">$i$.</td>
-      <td><a href="$it.teamLink$">$it.team$</a></td>
+      <td><a href="$metaData.teamLinks.(it.team)$">$it.team$</a></td>
       <td class="number">$it.played$</td>
       <td class="number">$it.won$</td>
       <td class="number">$it.drawn$</td>
