@@ -11,7 +11,7 @@ import Text.StringTemplate(directoryGroup, STGroup)
 main :: IO ()
 main = do (command:parameters) <- getArgs
           case command of
-            "publish"  -> publish (head parameters)
+            "publish"  -> publish $ head parameters
             "features" -> generateFeatures $ head parameters
             _          -> print $ "Unknown option: " ++ command
 

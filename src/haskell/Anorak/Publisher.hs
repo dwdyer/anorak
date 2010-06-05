@@ -226,7 +226,7 @@ generateTeamPage group dir metaData team results = do let (homeResults, awayResu
                                                                         ("highAggregates", AV . map (convertResult team) $ highestAggregates results),
                                                                         ("scorers", AV $ teamGoalScorers teamResults),
                                                                         ("metaData", AV metaData)]
-                                                      applyTemplateWithName group "team.html" dir (toHTMLFileName team) attributes
+                                                      applyTemplateWithName group "team.html" dir (teamLinks metaData ! team) attributes
 
 getSummary :: Team -> [Result] -> (Int, Float, Int, Float, Int, Float)
 getSummary team results = (won record,
@@ -256,7 +256,6 @@ mapTeamNames = foldl' (\m t -> Map.insert t (toHTMLFileName t) m) Map.empty
 --   the first is the path to the data file, the second is the path to the directory in which the pages will be created.
 generateStatsPages :: STGroup ByteString -> FilePath -> LeagueData -> MetaData -> IO ()
 generateStatsPages templateGroup targetDir (LeagueData _ results adj miniLeagues sp) metaData = do let teamResults = resultsByTeam results
-                                                                                                       teamLinks = mapTeamNames $ Map.keys teamResults
                                                                                                    createDirectoryIfMissing True targetDir
                                                                                                    generateLeagueTables templateGroup targetDir teamResults adj metaData sp
                                                                                                    generateFormTables templateGroup targetDir teamResults metaData
