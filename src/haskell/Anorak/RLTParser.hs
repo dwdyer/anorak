@@ -10,13 +10,11 @@ import Data.Map(Map)
 import qualified Data.Map as Map(empty, insertWith, unionWith)
 import Data.Set(Set)
 import qualified Data.Set as Set(empty, fromList, insert, union)
-import Data.Time.Calendar(Day)
-import Data.Time.Format(readTime)
+import Data.Time.Calendar(Day, fromGregorian)
 import Data.Typeable(Typeable)
 import System.FilePath(combine, takeDirectory)
-import System.Locale(defaultTimeLocale)
 import System.IO.Unsafe(unsafePerformIO)
-import Text.ParserCombinators.Parsec((<|>), anyChar, between, char, count, digit, eof, many1, manyTill, newline, noneOf, optionMaybe, ParseError, parseFromFile, Parser, sepBy, sepBy1, spaces, string, try)
+import Text.ParserCombinators.Parsec((<|>), anyChar, between, char, count, digit, eof, many1, manyTill, newline, noneOf, option, ParseError, parseFromFile, Parser, sepBy, sepBy1, spaces, string, try)
 
 -- | An RLT file consists of many items (results, metadata and comments).
 data Item = Fixture Result               -- ^ The result of a single football match.
@@ -110,10 +108,8 @@ result = do date <- rltDate ; char '|'
 --   of the scorers and goal times.
 score :: Parser (Int, [Goal])
 score = do number <- many1 digit
-           goals <- optionMaybe $ between (char '[') (char ']') goals
-           case goals of
-               Nothing -> return (read number, [])
-               Just g  -> return (read number, g)
+           goals <- option [] $ between (char '[') (char ']') goals
+           return (read number, goals)
            where goals = sepBy goal $ char ','
 
 goal :: Parser Goal
@@ -124,8 +120,10 @@ goal = do player <- many1 $ noneOf "0123456789,"
 
 -- | RLT dates are 8-character strings in DDMMYYYY format.
 rltDate :: Parser Day
-rltDate = do digits <- count 8 digit
-             return $ readTime defaultTimeLocale "%d%m%Y" digits
+rltDate = do day <- count 2 digit
+             month <- count 2 digit
+             year <- count 4 digit
+             return $ fromGregorian (read year) (read month) (read day)
 
 -- | A comment starts with a hash and continues to the end of the line.
 comment :: Parser Item
