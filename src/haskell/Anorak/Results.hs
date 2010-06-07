@@ -4,6 +4,8 @@
 module Anorak.Results (aggregate, awayWins, biggestWins, convertResult, form, Goal(..), highestAggregates, homeWins, partitionResults, Result(..), resultsByDate, resultsByTeam, splitHomeAndAway, Team, TeamResult(..)) where
 
 import Anorak.Utils(takeAtLeast)
+import Data.ByteString.Char8(ByteString)
+import qualified Data.ByteString.Char8 as BS(unpack)
 import Data.List(groupBy, partition, sortBy)
 import Data.Map(Map)
 import qualified Data.Map as Map(empty, insertWith, mapWithKey)
@@ -13,7 +15,7 @@ import Data.Time.Format(formatTime)
 import System.Locale(defaultTimeLocale)
 
 -- | A team is represented simply by its name.
-type Team = String
+type Team = ByteString
 
 -- | A match result consists of a date, two teams and the goals scored by each.
 data Result = Result {date :: !Day,        -- ^ The day that the match was played.
@@ -25,10 +27,10 @@ data Result = Result {date :: !Day,        -- ^ The day that the match was playe
                       awayGoals :: [Goal]} -- ^ An optional list of away goals.
 instance Show Result where
     show result = formatTime defaultTimeLocale "%e %b %Y: " (date result) ++
-                  homeTeam result ++ " " ++
+                  BS.unpack (homeTeam result) ++ " " ++
                   show (homeScore result) ++ " - " ++
                   show (awayScore result) ++ " " ++
-                  awayTeam result
+                  BS.unpack (awayTeam result)
 instance Eq Result where
     (==) result1 result2 = date result1 == date result2
                            && homeTeam result1 == homeTeam result2
@@ -53,13 +55,13 @@ data TeamResult = TeamResult {day :: !Day,
                               goals :: [Goal]}
 instance Show TeamResult where
     show result = formatTime defaultTimeLocale "%e %b %Y: " (day result) ++
-                  opposition result ++ "(" ++ [venue result] ++ ") " ++ [outcome result] ++ " " ++
+                  BS.unpack (opposition result) ++ "(" ++ [venue result] ++ ") " ++ [outcome result] ++ " " ++
                   show (scored result) ++ "-" ++ show (conceded result)
 
 -- | The data about a goal consists of the name of the player who scored it and the minute of the match (1-90) in which it was scored.
-data Goal = Goal {scorer :: !String,
+data Goal = Goal {scorer :: !ByteString,
                   minute :: !Int,
-                  goalType :: !String}
+                  goalType :: !ByteString}
     deriving (Eq, Show)
 
 -- | Convert a flat list of results into a mapping from team to list of results that that team was involved in.

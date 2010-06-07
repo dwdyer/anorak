@@ -1,4 +1,5 @@
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 -- | HTML publishing module for the Anorak system.
 module Anorak.Publisher (copyResources, publishLeagues) where
@@ -12,8 +13,8 @@ import Anorak.Tables
 import Anorak.Goals
 import Anorak.Utils
 import Control.Monad(filterM, unless)
-import Data.ByteString(ByteString)
-import qualified Data.ByteString as BS(writeFile)
+import Data.ByteString.Char8(ByteString)
+import qualified Data.ByteString.Char8 as BS(append, filter, map, unpack, writeFile)
 import Data.Char(isSpace, toLower)
 import Data.Data(Data)
 import Data.List(foldl', isPrefixOf, isSuffixOf, nub)
@@ -41,7 +42,7 @@ instance ToSElem LeagueRecord where
                                            ("played", toSElem $ played record),
                                            ("points", toSElem $ points record),
                                            ("positiveGD", toSElem $ goalDiff record > 0), -- Goal difference could be neither +ve or -ve (i.e. zero).
-                                           ("team", STR $ team record),
+                                           ("team", toSElem $ team record),
                                            ("won", toSElem $ won record)]
 instance ToSElem Result where
     toSElem result = SM $ Map.fromAscList [("awayGoals", toSElem . reduceScorers $ awayGoals result),
@@ -92,15 +93,15 @@ adjustmentString adj
 
 -- | If a player has scored more than one goal in the game, combine those goals into a single entry.
 --   Returns a list of pairs, first item is the player's name, second is a string containing details of their goals.
-reduceScorers :: [Goal] -> [(String, String)]
+reduceScorers :: [Goal] -> [(ByteString, String)]
 reduceScorers goals = map (\s -> (s, reducedMap!s)) scorers
                       where reducedMap = foldl' addGoalToScorers Map.empty goals
                             scorers = nub $ map scorer goals
 
-addGoalToScorers :: Map String String -> Goal -> Map String String
+addGoalToScorers :: Map ByteString String -> Goal -> Map ByteString String
 addGoalToScorers scorers goal = Map.alter (updateScorer goal) (scorer goal) scorers
-                                where updateScorer goal Nothing   = Just $ goalTypeString goal ++ show (minute goal)
-                                      updateScorer goal (Just d)  = Just $ d ++ ", " ++ goalTypeString goal ++ show (minute goal)
+                                where updateScorer goal Nothing  = Just $ goalTypeString goal ++ show (minute goal)
+                                      updateScorer goal (Just d) = Just $ d ++ ", " ++ goalTypeString goal ++ show (minute goal)
 
 goalTypeString :: Goal -> String
 goalTypeString goal = case goalType goal of
@@ -196,11 +197,11 @@ generateResults group dir results metaData = do let homeWinMatches = homeWins re
                                                                                         ("resultsSelected", AV True),
                                                                                         ("metaData", AV metaData)]
 
-generateMiniLeagues :: STGroup ByteString -> FilePath -> Map Team [Result] -> [(String, Set Team)] -> MetaData -> IO ()
+generateMiniLeagues :: STGroup ByteString -> FilePath -> Map Team [Result] -> [(ByteString, Set Team)] -> MetaData -> IO ()
 generateMiniLeagues group dir results miniLeagues metaData = do let tabs = map ((\n -> (n, toHTMLFileName n)).fst) miniLeagues -- Each tab is a display name and a file name.
                                                                 mapM_ (generateMiniLeague group dir results tabs metaData) miniLeagues
 
-generateMiniLeague :: STGroup ByteString -> FilePath -> Map Team [Result] -> [(String, String)] -> MetaData -> (String, Set Team) -> IO ()
+generateMiniLeague :: STGroup ByteString -> FilePath -> Map Team [Result] -> [(ByteString, String)] -> MetaData -> (ByteString, Set Team) -> IO ()
 generateMiniLeague group dir results tabs metaData (name, teams) = do let selectedTabs = map (\(n, f) -> (n, f, n == name)) tabs -- Add a boolean "selected" flag to each tab.
                                                                           attributes = [("table", AV $ miniLeagueTable teams results),
                                                                                         ("miniLeaguesSelected", AV True),
@@ -226,7 +227,7 @@ generateTeamPage group dir metaData team results = do let (homeResults, awayResu
                                                                         ("highAggregates", AV . map (convertResult team) $ highestAggregates results),
                                                                         ("scorers", AV $ teamGoalScorers teamResults),
                                                                         ("metaData", AV metaData)]
-                                                      applyTemplateWithName group "team.html" dir (teamLinks metaData ! team) attributes
+                                                      applyTemplateWithName group "team.html" dir (teamLinks metaData ! BS.unpack team) attributes
 
 getSummary :: Team -> [Result] -> (Int, Float, Int, Float, Int, Float)
 getSummary team results = (won record,
@@ -245,12 +246,12 @@ generateGoals group dir results metaData = do let scorers = topGoalScorers resul
                                               unless (null scorers) $ applyTemplate group "goals.html" dir (("scorers", AV scorers):("goalsSelected", AV True):attributes)
 
 -- | Convert a string for use as a filename (converts to lower case and eliminates whitespace).
-toHTMLFileName :: String -> String
-toHTMLFileName name = map toLower (filter (not.isSpace) name) ++ ".html"
+toHTMLFileName :: ByteString -> String
+toHTMLFileName name = BS.unpack $ BS.map toLower (BS.filter (not.isSpace) name) `BS.append` ".html"
 
 -- | Take a list of team names and return mappings for the associated team pages.
-mapTeamNames :: [String] -> Map String String
-mapTeamNames = foldl' (\m t -> Map.insert t (toHTMLFileName t) m) Map.empty
+mapTeamNames :: [Team] -> Map String String
+mapTeamNames = foldl' (\m t -> Map.insert (BS.unpack t) (toHTMLFileName t) m) Map.empty
 
 -- | Generates all stats pages for a given data file.  First parameter is a template group, second parameter is a pair of paths,
 --   the first is the path to the data file, the second is the path to the directory in which the pages will be created.
@@ -268,7 +269,7 @@ generateStatsPages templateGroup targetDir (LeagueData _ results adj miniLeagues
 
 -- | Determine which file the "Mini-Leagues" tab should link to (derived from the name of the first mini-league).
 --   If there are no mini-leagues then this function returns nothing and the tab should not be shown.
-getMiniLeaguesLink :: [(String, Set Team)] -> Maybe String
+getMiniLeaguesLink :: [(ByteString, Set Team)] -> Maybe String
 getMiniLeaguesLink []            = Nothing
 getMiniLeaguesLink ((name, _):_) = Just $ toHTMLFileName name
 

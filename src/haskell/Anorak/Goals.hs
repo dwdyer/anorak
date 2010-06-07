@@ -1,12 +1,15 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Anorak.Goals (teamGoalScorers, topGoalScorers) where
 
 import Anorak.Results
 import Anorak.Utils(takeAtLeast)
+import Data.ByteString.Char8(ByteString)
 import Data.List(foldl', groupBy, nub, sortBy)
 import Data.Ord(comparing)
 
 -- | Generate a list of all goal scorers for a given set of results.
-topGoalScorers :: [Result] -> [(String, Int, [Team])]
+topGoalScorers :: [Result] -> [(ByteString, Int, [Team])]
 topGoalScorers results = takeAtLeast 25 $ groupBy (\(_, n, _) (_, m, _) -> n == m) scorers
                          where goals = concatMap extractGoals results
                                byScorer = groupByScorer (scorer.fst) $ filter ((/=) "o".goalType.fst) goals -- Omit own goals and group by scorer.
@@ -18,11 +21,11 @@ extractGoals result = getGoals homeTeam homeGoals ++ getGoals awayTeam awayGoals
 
 -- | Sort and group by scorer.  The type g could be either Goal or (Goal, Team), so the first argument
 --   is the function to extract the scorer.
-groupByScorer :: (g -> String) -> [g] -> [[g]]
+groupByScorer :: (g -> ByteString) -> [g] -> [[g]]
 groupByScorer fs = groupBy (\a b -> fs a == fs b) . sortBy (comparing fs)
 
 -- | Generate a list of goal scorers for a particular team.
-teamGoalScorers :: [TeamResult] -> [(String, Int)]
+teamGoalScorers :: [TeamResult] -> [(ByteString, Int)]
 teamGoalScorers results = sortBy (flip $ comparing snd) $ map (\s -> (scorer $ head s, length s)) byScorer
                           where teamGoals = concatMap goals results
                                 byScorer = groupByScorer scorer $ filter ((/=) "o".goalType) teamGoals -- Omit own goals and group by scorer.

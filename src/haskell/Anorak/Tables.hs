@@ -3,6 +3,7 @@ module Anorak.Tables (buildRecord, formTable, goalDiff, LeagueRecord(..), league
 
 import Anorak.Results
 import Anorak.Utils(keep)
+import qualified Data.ByteString.Char8 as BS(unpack)
 import Data.List(foldl', sort)
 import Data.Map(Map, (!))
 import qualified Data.Map as Map(elems, empty, filterWithKey, findWithDefault, map, mapWithKey)
@@ -23,7 +24,7 @@ data LeagueRecord = LeagueRecord {team :: !Team,                       -- ^ The 
 -- A LeagueRecord can be rendered as a String containing both member fields and
 -- derived fields.
 instance Show LeagueRecord where
-    show record = team record ++
+    show record = BS.unpack (team record) ++
                   " P" ++ show (played record) ++
                   " W" ++ show (won record) ++
                   " D" ++ show (drawn record) ++
