@@ -31,6 +31,10 @@
           <td>$it.("0")$</td>
           <td class="number">$it.("1")$</td>
         </tr>}$
+        <tr class="owngoals">
+          <td>Own Goals</td>
+          <td class="number">$ownGoals$</td>
+        </tr>
       </table>
       $endif$
     </td>

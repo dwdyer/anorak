@@ -220,6 +220,7 @@ generateTeamPages group dir teamResults positions metaData = mapM_ (\(team, resu
 generateTeamPage :: STGroup ByteString -> FilePath -> Team -> [Result] -> [(Day, Int)] -> MetaData -> IO ()
 generateTeamPage group dir team results positions metaData = do let (homeResults, awayResults) = partitionResults team results
                                                                     teamResults = map (convertResult team) results
+                                                                    (goalScorers, ownGoals) = teamGoalScorers teamResults
                                                                     attributes = [("team", AV team),
                                                                                   ("results", AV teamResults),
                                                                                   ("record", AV $ getSummary team results),
@@ -228,7 +229,8 @@ generateTeamPage group dir team results positions metaData = do let (homeResults
                                                                                   ("bigHomeWins", AV . map (convertResult team) . biggestWins $ homeWins homeResults),
                                                                                   ("bigAwayWins", AV . map (convertResult team) . biggestWins $ awayWins awayResults),
                                                                                   ("highAggregates", AV . map (convertResult team) $ highestAggregates results),
-                                                                                  ("scorers", AV $ teamGoalScorers teamResults),
+                                                                                  ("scorers", AV goalScorers),
+                                                                                  ("ownGoals", AV $ show ownGoals),
                                                                                   ("positions", AV positions),
                                                                                   ("teamCount", AV . Map.size $ teamLinks metaData),
                                                                                   ("metaData", AV metaData)]

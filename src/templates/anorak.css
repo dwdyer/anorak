@@ -81,11 +81,12 @@ th                       {margin-bottom: 1.385em;}
 #teamrecords             {width: 100%; margin-bottom: 1.385em;}
 #teamrecords td          {vertical-align: top;}
 #teamrecords>tbody>tr>td {min-width: 160px;}
-#charts               {width: 300px; padding-right: 2em;}
+#charts                  {width: 300px; padding-right: 2em;}
 #scorers                 {width: 100%; padding-left: 2em;}
 #scorers th              {text-align: left;}
 #scorers td              {padding-right: 1em;}
-#scorers .number         {font-weight: bold;}
+#scorers .number         {font-weight: bold; padding-right: 0;}
+.owngoals td             {border-top: 1px dotted #666666; font-style: italic;}
 
 /* Goals */
 #topscorers td           {padding-right: 1em;}
