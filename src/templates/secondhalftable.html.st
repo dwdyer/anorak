@@ -1,11 +1,11 @@
-$header(title="Away League Table")$
+$header(title="Second Half League Table")$
 <div id="centre">
   $selector()$
   $tabs()$
   <div id="content">
-    <h2>$metaData.division$ $metaData.season$ - Away League Table</h2>
+    <h2>$metaData.division$ $metaData.season$ - Second Half League Table</h2>
     <p>
-      This table includes <strong>away matches only</strong>.  
+      This table is based on goals scored in the <strong>second half only</strong> of league matches.  
       You can change the sort order by clicking on the column headings.
     </p>
     $leaguetable()$
@@ -17,17 +17,15 @@ $header(title="Away League Table")$
     <div class="tab">
       <a href="hometable.html">Home</a>
     </div>
-    <div class="tab selectedtab">
-      <a href="#">Away</a>
+    <div class="tab">
+      <a href="awaytable.html">Away</a>
     </div>
-    $if(metaData.hasScorers)$
     <div class="tab">
       <a href="firsthalftable.html">First Half</a>
     </div>
-    <div class="tab">
-      <a href="secondhalftable.html">Second Half</a>
+    <div class="tab selectedtab">
+      <a href="#">Second Half</a>
     </div>
-    $endif$
   </div>
 </div>
 $footer()$

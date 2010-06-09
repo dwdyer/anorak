@@ -1,14 +1,27 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 
 -- | Core functionality for the Anorak system.
-module Anorak.Results (aggregate, awayWins, biggestWins, convertResult, form, Goal(..), highestAggregates, homeWins, partitionResults, Result(..), resultsByDate, resultsByTeam, splitHomeAndAway, Team, TeamResult(..)) where
+module Anorak.Results (aggregate,
+                       awayWins,
+                       biggestWins,
+                       convertResult,
+                       form,
+                       Goal(..),
+                       highestAggregates,
+                       homeWins,
+                       partitionResults,
+                       prepareResults,
+                       Result(..),
+                       Results(..),
+                       Team,
+                       TeamResult(..)) where
 
 import Anorak.Utils(equal, takeAtLeast)
 import Data.ByteString.Char8(ByteString)
 import qualified Data.ByteString.Char8 as BS(unpack)
 import Data.List(groupBy, partition, sortBy)
 import Data.Map(Map)
-import qualified Data.Map as Map(empty, insertWith, mapWithKey)
+import qualified Data.Map as Map(empty, insertWith, map, mapWithKey)
 import Data.Ord(comparing)
 import Data.Time.Calendar(Day(..))
 import Data.Time.Format(formatTime)
@@ -64,6 +77,15 @@ data Goal = Goal {scorer :: !ByteString,
                   goalType :: !ByteString}
     deriving (Eq, Show)
 
+-- | Data structure for holding the different variants of the results data set.
+data Results = Results {list :: ![Result],
+                        byTeam :: !(Map Team [Result]),
+                        homeOnly :: !(Map Team [Result]),
+                        awayOnly :: !(Map Team [Result]),
+                        byDate :: !(Map Day [Result]),
+                        firstHalf :: Map Team [Result],
+                        secondHalf :: Map Team [Result]}
+                        
 -- | Convert a flat list of results into a mapping from team to list of results that that team was involved in.
 resultsByTeam :: [Result] -> Map Team [Result]
 resultsByTeam []          = Map.empty
@@ -119,4 +141,24 @@ biggestWins results = takeAtLeast 3 $ groupBy (equal margin) sortedResults
 highestAggregates :: [Result] -> [Result]
 highestAggregates results = takeAtLeast 3 $ groupBy (equal aggregate) sortedResults
                             where sortedResults = sortBy (flip $ comparing aggregate) results
+
+-- | Covert a list of 90-minute results into hypothetical first-half and second-half results.
+splitFirstAndSecondHalf :: [Result] -> ([Result], [Result])
+splitFirstAndSecondHalf = unzip . map splitResult
+
+-- | Convert a single 90-minute result into hypothetical first-half and second-half results.
+splitResult :: Result -> (Result, Result)
+splitResult (Result d ht hs at as hg ag) = (firstHalfResult, secondHalfResult)
+                                           where (fstHalfHGoals, sndHalfHGoals) = partition ((<= 45).minute) hg
+                                                 (fstHalfAGoals, sndHalfAGoals) = partition ((<= 45).minute) ag
+                                                 firstHalfResult = Result d ht (length fstHalfHGoals) at (length fstHalfAGoals) fstHalfHGoals fstHalfAGoals
+                                                 secondHalfResult = Result d ht (length sndHalfHGoals) at (length sndHalfAGoals) sndHalfHGoals sndHalfAGoals
+
+-- | Take a list of results and return a set of useful transformations of that data.
+prepareResults :: [Result] -> Results
+prepareResults results = Results results teamResults (Map.map fst homeAndAway) (Map.map snd homeAndAway) matchDays (resultsByTeam firstHalfResults) (resultsByTeam secondHalfResults)
+                         where teamResults = resultsByTeam results
+                               matchDays = resultsByDate results
+                               (firstHalfResults, secondHalfResults) = splitFirstAndSecondHalf results
+                               homeAndAway = splitHomeAndAway teamResults
 

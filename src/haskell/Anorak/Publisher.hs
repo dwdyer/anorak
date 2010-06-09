@@ -141,26 +141,25 @@ applyTemplateWithName group templateName dir fileName attributes = case getStrin
                                                                                          where html = render $ setManyAttrib attributes template
 
 -- | Generates home, away and overall HTML league tables.
-generateLeagueTables :: STGroup ByteString -> FilePath -> Map Team [Result] -> Map Team Int -> MetaData -> Int -> IO ()
-generateLeagueTables group dir results adjustments metaData sp = do let splitResults = splitHomeAndAway results
-                                                                        attributes = [("tableSelected", AV True), ("metaData", AV metaData)]
-                                                                    applyTemplateWithName group "table.html" dir "index.html" (("table", AV $ leagueTable results adjustments sp):attributes)
-                                                                    applyTemplate group "hometable.html" dir (("table", AV $ leagueTable (Map.map fst splitResults) Map.empty 0):attributes)
-                                                                    applyTemplate group "awaytable.html" dir (("table", AV $ leagueTable (Map.map snd splitResults) Map.empty 0):attributes)
+generateLeagueTables :: STGroup ByteString -> FilePath -> Results -> Map Team Int -> MetaData -> Int -> IO ()
+generateLeagueTables group dir results adjustments metaData sp = do let attributes = [("tableSelected", AV True), ("metaData", AV metaData)]
+                                                                    applyTemplateWithName group "table.html" dir "index.html" (("table", AV $ leagueTable (byTeam results) adjustments sp):attributes)
+                                                                    applyTemplate group "hometable.html" dir (("table", AV $ leagueTable (homeOnly results) Map.empty 0):attributes)
+                                                                    applyTemplate group "awaytable.html" dir (("table", AV $ leagueTable (awayOnly results) Map.empty 0):attributes)
+                                                                    unless (not $ hasScorers metaData) $ applyTemplate group "firsthalftable.html" dir (("table", AV $ leagueTable (firstHalf results) Map.empty 0):attributes)
+                                                                    unless (not $ hasScorers metaData) $ applyTemplate group "secondhalftable.html" dir (("table", AV $ leagueTable (secondHalf results) Map.empty 0):attributes)
 
-generateFormTables :: STGroup ByteString -> FilePath -> Map Team [Result] -> MetaData -> IO ()
-generateFormTables group dir results metaData = do let splitResults = splitHomeAndAway results
-                                                       attributes = [("formSelected", AV True), ("metaData", AV metaData)]
-                                                   applyTemplate group "formtable.html" dir (("table", AV $ formTable results 6):attributes)
-                                                   applyTemplate group "homeformtable.html" dir (("table", AV $ formTable (Map.map fst splitResults) 4):attributes)
-                                                   applyTemplate group "awayformtable.html" dir (("table", AV $ formTable (Map.map snd splitResults) 4):attributes)
+generateFormTables :: STGroup ByteString -> FilePath -> Results -> MetaData -> IO ()
+generateFormTables group dir results metaData = do let attributes = [("formSelected", AV True), ("metaData", AV metaData)]
+                                                   applyTemplate group "formtable.html" dir (("table", AV $ formTable (byTeam results) 6):attributes)
+                                                   applyTemplate group "homeformtable.html" dir (("table", AV $ formTable (homeOnly results) 4):attributes)
+                                                   applyTemplate group "awayformtable.html" dir (("table", AV $ formTable (awayOnly results) 4):attributes)
 
 -- | Generates current and longest sequences for home, away and all matches.
-generateSequences :: STGroup ByteString -> FilePath -> Map Team [Result] -> MetaData -> IO ()
-generateSequences group dir results metaData = do let (overallCurrent, overallLongest) = getSequenceTables results
-                                                      splitResults = splitHomeAndAway results
-                                                      (homeCurrent, homeLongest) = getSequenceTables $ Map.map fst splitResults
-                                                      (awayCurrent, awayLongest) = getSequenceTables $ Map.map snd splitResults
+generateSequences :: STGroup ByteString -> FilePath -> Results -> MetaData -> IO ()
+generateSequences group dir results metaData = do let (overallCurrent, overallLongest) = getSequenceTables $ byTeam results
+                                                      (homeCurrent, homeLongest) = getSequenceTables $ homeOnly results
+                                                      (awayCurrent, awayLongest) = getSequenceTables $ awayOnly results
                                                       attributes = [("metaData", AV metaData)]
                                                   applyTemplate group "currentsequences.html" dir (("sequences", convertTables overallCurrent):("currentSequencesSelected", AV True):attributes)
                                                   applyTemplate group "longestsequences.html" dir (("sequences", convertTables overallLongest):("longestSequencesSelected", AV True):attributes)
@@ -171,21 +170,21 @@ generateSequences group dir results metaData = do let (overallCurrent, overallLo
                                                   where convertTables = AV . Map.mapKeys show
 
 -- | Generates team aggregates for all matches.
-generateAggregates:: STGroup ByteString -> FilePath -> Map Team [Result] -> MetaData -> IO ()
-generateAggregates group dir results metaData = do let aggregates = getAggregateTables results
+generateAggregates:: STGroup ByteString -> FilePath -> Results -> MetaData -> IO ()
+generateAggregates group dir results metaData = do let aggregates = getAggregateTables $ byTeam results
                                                        attributes = [("metaData", AV metaData)]
                                                    applyTemplate group "aggregates.html" dir (("aggregates", AV . Map.mapKeys show $ aggregates):("aggregatesSelected", AV True):attributes)
 
-generateResults :: STGroup ByteString -> FilePath -> [Result] -> MetaData -> IO ()
-generateResults group dir results metaData = do let homeWinMatches = homeWins results
-                                                    awayWinMatches = awayWins results
-                                                    matchCount = length results
+generateResults :: STGroup ByteString -> FilePath -> Results -> MetaData -> IO ()
+generateResults group dir results metaData = do let homeWinMatches = homeWins $ list results
+                                                    awayWinMatches = awayWins $ list results
+                                                    matchCount = length $ list results
                                                     homeWinCount = length homeWinMatches
                                                     awayWinCount = length awayWinMatches
                                                     drawCount = matchCount - homeWinCount - awayWinCount
-                                                    goalCount = sum $ map aggregate results
-                                                    highAggregates = highestAggregates results
-                                                applyTemplate group "results.html" dir [("results", AV . Map.toDescList $ resultsByDate results),
+                                                    goalCount = sum $ map aggregate $ list results
+                                                    highAggregates = highestAggregates $ list results
+                                                applyTemplate group "results.html" dir [("results", AV . Map.toDescList $ byDate results),
                                                                                         ("matches", AV matchCount),
                                                                                         ("homeWins", AV homeWinCount),
                                                                                         ("homeWinPercent", AV $ percentage homeWinCount matchCount),
@@ -200,21 +199,21 @@ generateResults group dir results metaData = do let homeWinMatches = homeWins re
                                                                                         ("resultsSelected", AV True),
                                                                                         ("metaData", AV metaData)]
 
-generateMiniLeagues :: STGroup ByteString -> FilePath -> Map Team [Result] -> [(ByteString, Set Team)] -> MetaData -> IO ()
+generateMiniLeagues :: STGroup ByteString -> FilePath -> Results -> [(ByteString, Set Team)] -> MetaData -> IO ()
 generateMiniLeagues group dir results miniLeagues metaData = do let tabs = map ((\n -> (n, toHTMLFileName n)).fst) miniLeagues -- Each tab is a display name and a file name.
                                                                 mapM_ (generateMiniLeague group dir results tabs metaData) miniLeagues
 
-generateMiniLeague :: STGroup ByteString -> FilePath -> Map Team [Result] -> [(ByteString, String)] -> MetaData -> (ByteString, Set Team) -> IO ()
+generateMiniLeague :: STGroup ByteString -> FilePath -> Results -> [(ByteString, String)] -> MetaData -> (ByteString, Set Team) -> IO ()
 generateMiniLeague group dir results tabs metaData (name, teams) = do let selectedTabs = map (\(n, f) -> (n, f, n == name)) tabs -- Add a boolean "selected" flag to each tab.
-                                                                          attributes = [("table", AV $ miniLeagueTable teams results),
+                                                                          attributes = [("table", AV $ miniLeagueTable teams $ byTeam results),
                                                                                         ("miniLeaguesSelected", AV True),
                                                                                         ("name", AV name),
                                                                                         ("bottomTabs", AV selectedTabs),
                                                                                         ("metaData", AV metaData)]
                                                                       applyTemplateWithName group "minileague.html" dir (toHTMLFileName name) attributes
 
-generateTeamPages :: STGroup ByteString -> FilePath -> Map Team [Result] -> Map Team [(Day, Int)] -> MetaData -> IO ()
-generateTeamPages group dir teamResults positions metaData = mapM_ (\(team, results) -> generateTeamPage group dir team results (positions ! team) metaData) $ Map.assocs teamResults
+generateTeamPages :: STGroup ByteString -> FilePath -> Results -> Map Team [(Day, Int)] -> MetaData -> IO ()
+generateTeamPages group dir results positions metaData = mapM_ (\(team, res) -> generateTeamPage group dir team res (positions ! team) metaData) $ Map.assocs $ byTeam results
 
 -- | Generate the overview page for an individual team.
 generateTeamPage :: STGroup ByteString -> FilePath -> Team -> [Result] -> [(Day, Int)] -> MetaData -> IO ()
@@ -247,8 +246,8 @@ getSummary team results = (won record,
                                 matches = played record
 
 -- | Generates the top scorers list (only if there are scorers in the data).
-generateGoals:: STGroup ByteString -> FilePath -> [Result] -> MetaData -> IO ()
-generateGoals group dir results metaData = do let scorers = topGoalScorers results
+generateGoals:: STGroup ByteString -> FilePath -> Results -> MetaData -> IO ()
+generateGoals group dir results metaData = do let scorers = topGoalScorers $ list results
                                                   attributes = [("metaData", AV metaData)]
                                               unless (null scorers) $ applyTemplate group "goals.html" dir (("scorers", AV scorers):("goalsSelected", AV True):attributes)
 
@@ -263,17 +262,17 @@ mapTeamNames = foldl' (\m t -> Map.insert (BS.unpack t) (toHTMLFileName t) m) Ma
 -- | Generates all stats pages for a given data file.  First parameter is a template group, second parameter is a pair of paths,
 --   the first is the path to the data file, the second is the path to the directory in which the pages will be created.
 generateStatsPages :: STGroup ByteString -> FilePath -> LeagueData -> MetaData -> IO ()
-generateStatsPages templateGroup targetDir (LeagueData teams results adj miniLeagues sp) metaData = do let teamResults = resultsByTeam results
-                                                                                                           positions = leaguePositions teams (resultsByDate results) adj
-                                                                                                       createDirectoryIfMissing True targetDir
-                                                                                                       generateLeagueTables templateGroup targetDir teamResults adj metaData sp
-                                                                                                       generateFormTables templateGroup targetDir teamResults metaData
-                                                                                                       generateResults templateGroup targetDir results metaData
-                                                                                                       generateSequences templateGroup targetDir teamResults metaData
-                                                                                                       generateAggregates templateGroup targetDir teamResults metaData
-                                                                                                       generateMiniLeagues templateGroup targetDir teamResults miniLeagues metaData
-                                                                                                       generateTeamPages templateGroup targetDir teamResults positions metaData
-                                                                                                       unless (not $ hasScorers metaData) $ generateGoals templateGroup targetDir results metaData
+generateStatsPages templateGroup targetDir (LeagueData teams res adj miniLeagues sp) metaData = do let results = prepareResults res
+                                                                                                       positions = leaguePositions teams (byDate results) adj
+                                                                                                   createDirectoryIfMissing True targetDir
+                                                                                                   generateLeagueTables templateGroup targetDir results adj metaData sp
+                                                                                                   generateFormTables templateGroup targetDir results metaData
+                                                                                                   generateResults templateGroup targetDir results metaData
+                                                                                                   generateSequences templateGroup targetDir results metaData
+                                                                                                   generateAggregates templateGroup targetDir results metaData
+                                                                                                   generateMiniLeagues templateGroup targetDir results miniLeagues metaData
+                                                                                                   generateTeamPages templateGroup targetDir results positions metaData
+                                                                                                   unless (not $ hasScorers metaData) $ generateGoals templateGroup targetDir results metaData
 
 -- | Determine which file the "Mini-Leagues" tab should link to (derived from the name of the first mini-league).
 --   If there are no mini-leagues then this function returns nothing and the tab should not be shown.

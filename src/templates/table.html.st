@@ -20,6 +20,14 @@ $header(title="League Table")$
     <div class="tab">
       <a href="awaytable.html">Away</a>
     </div>
+    $if(metaData.hasScorers)$
+    <div class="tab">
+      <a href="firsthalftable.html">First Half</a>
+    </div>
+    <div class="tab">
+      <a href="secondhalftable.html">Second Half</a>
+    </div>
+    $endif$
   </div>
 </div>
 $footer()$
