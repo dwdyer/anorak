@@ -73,13 +73,15 @@ data MetaData = MetaData {league :: String,
                           division :: String,
                           season :: String,
                           isAggregated :: Bool,
+                          isCollated :: Bool,
                           hasScorers :: Bool,
                           teamLinks :: Map String String,
                           miniLeaguesLink :: Maybe String}
 instance ToSElem MetaData where
     toSElem meta = SM $ Map.fromAscList [("division", STR $ division meta),
-                                         ("hasScorers", STR . show $ hasScorers meta),
-                                         ("isAggregated", STR . show $ isAggregated meta),
+                                         ("hasScorers", toSElem $ hasScorers meta),
+                                         ("isAggregated", toSElem $ isAggregated meta),
+                                         ("isCollated", toSElem $ isCollated meta),
                                          ("league", STR $ league meta),
                                          ("miniLeaguesLink", toSElem $ miniLeaguesLink meta),
                                          ("season", STR $ season meta),
@@ -294,6 +296,6 @@ publishSeason templates lgName divName season = do let dataFile = inputFile seas
                                                        True  -> do print $ "Processing " ++ dataFile
                                                                    leagueData@(LeagueData teams results _ miniLeagues _) <- parseRLTFile dataFile
                                                                    let teamLinks = mapTeamNames $ Set.toList teams
-                                                                       metaData = MetaData lgName divName (seasonName season) (aggregated season) (scorers season) teamLinks (getMiniLeaguesLink miniLeagues)
+                                                                       metaData = MetaData lgName divName (seasonName season) (aggregated season) (collated season) (scorers season) teamLinks (getMiniLeaguesLink miniLeagues)
                                                                    generateStatsPages templates (outputDir season) leagueData metaData 
 
