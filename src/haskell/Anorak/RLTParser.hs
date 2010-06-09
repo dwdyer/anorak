@@ -76,7 +76,7 @@ miniLeague :: Parser Item
 miniLeague = do string "MINILEAGUE|"
                 name <- pipeTerminated
                 teams <- sepBy1 (takeWhile1 (notInClass "|\n")) pipe;
-                         return $ MiniLeague name $ Set.fromList teams
+                         return . MiniLeague name $ Set.fromList teams
 
 -- | The optional RULES directive has three numeric fields, number of points for a win, number of points for a draw
 --   and number of games played by each team before the league splits in half (only applicable for the Scottish

@@ -1,15 +1,16 @@
 -- | Functions for generating league tables (including form tables and mini-leagues).
-module Anorak.Tables (buildRecord, formTable, goalDiff, LeagueRecord(..), leagueTable, miniLeagueTable, played, points, pointsPerGame) where
+module Anorak.Tables (buildRecord, formTable, goalDiff, LeagueRecord(..), leaguePositions, leagueTable, miniLeagueTable, played, points, pointsPerGame) where
 
 import Anorak.Results
 import Anorak.Utils(keep)
 import qualified Data.ByteString.Char8 as BS(unpack)
-import Data.List(foldl', sort)
+import Data.List(foldl', sort, sortBy)
 import Data.Map(Map, (!))
-import qualified Data.Map as Map(elems, empty, filterWithKey, findWithDefault, map, mapWithKey)
+import qualified Data.Map as Map(adjust, adjustWithKey, elems, empty, filterWithKey, findWithDefault, fromAscList, map, mapAccum, mapWithKey)
 import Data.Ord(comparing)
 import Data.Set(Set)
-import qualified Data.Set as Set(member)
+import qualified Data.Set as Set(member, toAscList)
+import Data.Time.Calendar(Day)
 
 -- | A LeagueRecord contains data about the league performance of a single team.  It
 --   includes total number of wins, draws, defeats, goals scored and goals conceded.
@@ -92,7 +93,7 @@ leagueTable teamResults adjustments split = updateSection top remainingFixtures 
                                             where before = leagueTable (Map.map (take split) teamResults) adjustments 0 -- Initial table based on early fixtures.
                                                   (top, bottom) = splitAt (length before `div` 2) before -- Split league in half.
                                                   remainingFixtures = Map.map (drop split) teamResults -- Keep remaining fixtures and apply to both halves before recombining.
-                                           
+
 
 -- | Update the specified table by applying remaining results for member teams.
 updateSection :: [LeagueRecord] -> Map Team [Result] -> [LeagueRecord]
@@ -124,3 +125,25 @@ miniLeagueTable teams results = leagueTable filteredResults Map.empty 0
 checkBothTeamsInSet :: Set Team -> Result -> Bool
 checkBothTeamsInSet teams result = Set.member (homeTeam result) teams && Set.member (awayTeam result) teams
 
+-- | Calculate the league position of every team at the end of every match day.
+leaguePositions :: Set Team -> Map Day [Result] -> Map Team [(Day, Int)]
+leaguePositions teams results = foldr addPosition emptyPosMap positions
+                                where teamList = Set.toAscList teams
+                                      initialTable = Map.fromAscList [(t, LeagueRecord t 0 0 0 0 0 0) | t <- teamList]
+                                      recordsByDate = snd $ Map.mapAccum tableAccum initialTable results -- Map Day (May Team LeagueRecord)
+                                      tablesByDate = Map.map (sort.Map.elems) recordsByDate -- Map Day [LeagueRecord]
+                                      positions = concat . Map.elems $ Map.mapWithKey (\day recs -> zip3 (map team recs) (repeat day) [1..]) tablesByDate -- [(Team, Day, Int)]
+                                      emptyPosMap = Map.fromAscList [(t, []) | t <- teamList]
+                                      
+tableAccum :: Map Team LeagueRecord -> [Result] -> (Map Team LeagueRecord, Map Team LeagueRecord)
+tableAccum table results = (table', table')
+                           where table' = foldl' addResultToTable table results
+
+addResultToTable :: Map Team LeagueRecord -> Result -> Map Team LeagueRecord
+addResultToTable table result = Map.adjustWithKey update hTeam $ Map.adjustWithKey update aTeam table
+                                where update team record = addResultToRecord team record result
+                                      hTeam = homeTeam result
+                                      aTeam = awayTeam result
+                        
+addPosition :: (Team, Day, Int) -> Map Team [(Day, Int)] -> Map Team [(Day, Int)]
+addPosition (t, d, p) positions = Map.adjust ((d, p):) t positions

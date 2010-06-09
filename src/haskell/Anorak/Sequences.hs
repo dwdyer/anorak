@@ -75,15 +75,15 @@ addResultToAllSequences :: CombinedTeamSequences -> TeamResult -> CombinedTeamSe
 addResultToAllSequences sequences result = Map.mapWithKey (addResultToSequences result) sequences
 
 addResultToSequences :: TeamResult -> SequenceType -> (Seq TeamResult, Seq TeamResult) -> (Seq TeamResult, Seq TeamResult)
-addResultToSequences result Wins sequences        = addMatchingResultToSequences result (\r -> outcome r == 'W') sequences 
-addResultToSequences result Draws sequences       = addMatchingResultToSequences result (\r -> outcome r == 'D') sequences 
-addResultToSequences result Losses sequences      = addMatchingResultToSequences result (\r -> outcome r == 'L') sequences 
-addResultToSequences result Unbeaten sequences    = addMatchingResultToSequences result (\r -> outcome r /= 'L') sequences 
-addResultToSequences result NoWin sequences       = addMatchingResultToSequences result (\r -> outcome r /= 'W') sequences 
-addResultToSequences result Cleansheets sequences = addMatchingResultToSequences result (\r -> conceded r == 0) sequences 
-addResultToSequences result Conceded sequences    = addMatchingResultToSequences result (\r -> conceded r > 0) sequences 
-addResultToSequences result Scored sequences      = addMatchingResultToSequences result (\r -> scored r > 0) sequences 
-addResultToSequences result NoGoal sequences      = addMatchingResultToSequences result (\r -> scored r == 0) sequences 
+addResultToSequences result Wins sequences        = addMatchingResultToSequences result (('W' ==) . outcome) sequences 
+addResultToSequences result Draws sequences       = addMatchingResultToSequences result (('D' ==) . outcome) sequences 
+addResultToSequences result Losses sequences      = addMatchingResultToSequences result (('L' ==) . outcome) sequences 
+addResultToSequences result Unbeaten sequences    = addMatchingResultToSequences result (('L' /=) . outcome) sequences 
+addResultToSequences result NoWin sequences       = addMatchingResultToSequences result (('W' /=) . outcome) sequences 
+addResultToSequences result Cleansheets sequences = addMatchingResultToSequences result ((0 ==) . conceded) sequences 
+addResultToSequences result Conceded sequences    = addMatchingResultToSequences result ((0 <) . conceded) sequences 
+addResultToSequences result Scored sequences      = addMatchingResultToSequences result ((0 <) . scored) sequences 
+addResultToSequences result NoGoal sequences      = addMatchingResultToSequences result ((0 ==) . scored) sequences 
 
 addMatchingResultToSequences :: TeamResult -> (TeamResult -> Bool) -> (Seq TeamResult, Seq TeamResult) -> (Seq TeamResult, Seq TeamResult)
 addMatchingResultToSequences result predicate (current, overall)
