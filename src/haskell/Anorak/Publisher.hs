@@ -19,7 +19,7 @@ import Data.Char(isSpace, toLower)
 import Data.Data(Data)
 import Data.List(foldl', isPrefixOf, isSuffixOf, nub)
 import Data.Map(Map, (!))
-import qualified Data.Map as Map(alter, assocs, empty, fromAscList, insert, map, mapKeys, keys, toDescList)
+import qualified Data.Map as Map(alter, assocs, empty, fromAscList, insert, keys, map, mapKeys, size, toDescList)
 import Data.Sequence(Seq)
 import Data.Set(Set)
 import qualified Data.Set as Set(toList)
@@ -230,6 +230,7 @@ generateTeamPage group dir team results positions metaData = do let (homeResults
                                                                                   ("highAggregates", AV . map (convertResult team) $ highestAggregates results),
                                                                                   ("scorers", AV $ teamGoalScorers teamResults),
                                                                                   ("positions", AV $ positions),
+                                                                                  ("teamCount", AV . Map.size $ teamLinks metaData),
                                                                                   ("metaData", AV metaData)]
                                                                 applyTemplateWithName group "team.html" dir (teamLinks metaData ! BS.unpack team) attributes
 
