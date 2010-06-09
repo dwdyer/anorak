@@ -37,7 +37,7 @@ extractFeatures (r@(Result _ hteam _ ateam _ _ _):rs) overall home away
     -- match features from nothing so we skip the result and continue with subsequent results.
     | not $ haveFeatures hteam ateam overall home away = otherFeatures
     | otherwise                                        = getResultFeatures r overall home away : otherFeatures
-    where otherFeatures = extractFeatures rs (updateRecords ateam r (updateRecords hteam r overall)) (updateRecords hteam r home) (updateRecords ateam r away)
+    where otherFeatures = extractFeatures rs (updateRecords ateam r $ updateRecords hteam r overall) (updateRecords hteam r home) (updateRecords ateam r away)
 
 haveFeatures :: Team -> Team -> Map Team TeamFeatures -> Map Team TeamFeatures -> Map Team TeamFeatures -> Bool
 haveFeatures hteam ateam overall home away = Map.member hteam overall && Map.member ateam overall && Map.member hteam home && Map.member ateam away

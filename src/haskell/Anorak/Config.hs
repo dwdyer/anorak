@@ -11,17 +11,19 @@ import Data.Typeable(Typeable)
 import System.FilePath(takeDirectory)
 import Text.XML.Light(Element(..), findAttr, findChildren, parseXMLDoc, QName(..))
 
-data Configuration = Configuration {outputRoot :: FilePath,
-                                    templateDir :: FilePath,
-                                    leagues :: [League]}
+data Configuration = Configuration {outputRoot :: FilePath,  -- ^ The directory into which generated files are placed.
+                                    templateDir :: FilePath, -- ^ The location of the HStringTemplate templates to use.
+                                    leagues :: [League]}     -- ^ The leagues to generate statistics for.
     deriving (Data, Typeable)
 
 -- | Configuration consists of a list of leagues, each with a name and one or more divisions.
-data League = League {leagueName :: String, divisions :: [Division]}
+data League = League {leagueName :: String,    -- ^ The name of the league/hierarchy of leagues.
+                      divisions :: [Division]} -- ^ The divisions that constitute the league.
     deriving (Data, Typeable)
 
 -- | A division has a name and one or more seasons.
-data Division = Division {divisionName :: String, seasons :: [Season]}
+data Division = Division {divisionName :: String, -- ^ The name of the league division.
+                          seasons :: [Season]}    -- ^ One or more seasons for the specified division.
     deriving (Data, Typeable)
 
 -- | A season has a name and is defined by the contents of a data file.

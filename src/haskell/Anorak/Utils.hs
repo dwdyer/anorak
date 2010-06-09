@@ -1,5 +1,5 @@
 -- | Utility functions that are not specific to Anorak.
-module Anorak.Utils (copyToDirectory, keep, isNewer, makeAbsolute, percentage, takeAtLeast) where
+module Anorak.Utils (copyToDirectory, equal, fst3, keep, isNewer, makeAbsolute, percentage, snd3, takeAtLeast, trd3) where
 
 import System.Directory(copyFile, getModificationTime)
 import System.FilePath(combine, isRelative, replaceDirectory)
@@ -37,3 +37,18 @@ isNewer source destination = do sourceTime <- getModificationTime source
                                     Left e          -> if isDoesNotExistError e then return True else ioError e
                                     Right destTime  -> return $ sourceTime > destTime
 
+-- | Look-up the first item in a 3-tuple.
+fst3 :: (a, b, c) -> a
+fst3 (a, _, _) = a
+
+-- | Look-up the second item in a 3-tuple.
+snd3 :: (a, b, c) -> b
+snd3 (_, b, _) = b
+
+-- | Look-up the third item in a 3-tuple.
+trd3 :: (a, b, c) -> c
+trd3 (_, _, c) = c
+
+-- | Analogous to comparing in Data.Ord.  Allows for indirect equality checks.  Useful for use with groupBy.
+equal :: (Eq a) => (b -> a) -> b -> b -> Bool
+equal f x y = f x == f y

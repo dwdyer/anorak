@@ -185,7 +185,7 @@ generateResults group dir results metaData = do let homeWinMatches = homeWins re
                                                     drawCount = matchCount - homeWinCount - awayWinCount
                                                     goalCount = sum $ map aggregate results
                                                     highAggregates = highestAggregates results
-                                                applyTemplate group "results.html" dir [("results", AV . Map.toDescList $ resultsByDate results), -- Reverse to list most recent first.
+                                                applyTemplate group "results.html" dir [("results", AV . Map.toDescList $ resultsByDate results),
                                                                                         ("matches", AV matchCount),
                                                                                         ("homeWins", AV homeWinCount),
                                                                                         ("homeWinPercent", AV $ percentage homeWinCount matchCount),
@@ -229,7 +229,7 @@ generateTeamPage group dir team results positions metaData = do let (homeResults
                                                                                   ("bigAwayWins", AV . map (convertResult team) . biggestWins $ awayWins awayResults),
                                                                                   ("highAggregates", AV . map (convertResult team) $ highestAggregates results),
                                                                                   ("scorers", AV $ teamGoalScorers teamResults),
-                                                                                  ("positions", AV $ positions),
+                                                                                  ("positions", AV positions),
                                                                                   ("teamCount", AV . Map.size $ teamLinks metaData),
                                                                                   ("metaData", AV metaData)]
                                                                 applyTemplateWithName group "team.html" dir (teamLinks metaData ! BS.unpack team) attributes
@@ -262,7 +262,7 @@ mapTeamNames = foldl' (\m t -> Map.insert (BS.unpack t) (toHTMLFileName t) m) Ma
 --   the first is the path to the data file, the second is the path to the directory in which the pages will be created.
 generateStatsPages :: STGroup ByteString -> FilePath -> LeagueData -> MetaData -> IO ()
 generateStatsPages templateGroup targetDir (LeagueData teams results adj miniLeagues sp) metaData = do let teamResults = resultsByTeam results
-                                                                                                           positions = leaguePositions teams (resultsByDate results)
+                                                                                                           positions = leaguePositions teams (resultsByDate results) adj
                                                                                                        createDirectoryIfMissing True targetDir
                                                                                                        generateLeagueTables templateGroup targetDir teamResults adj metaData sp
                                                                                                        generateFormTables templateGroup targetDir teamResults metaData
@@ -297,6 +297,13 @@ publishSeason templates lgName divName season = do let dataFile = inputFile seas
                                                        True  -> do print $ "Processing " ++ dataFile
                                                                    leagueData@(LeagueData teams results _ miniLeagues _) <- parseRLTFile dataFile
                                                                    let teamLinks = mapTeamNames $ Set.toList teams
-                                                                       metaData = MetaData lgName divName (seasonName season) (aggregated season) (collated season) (scorers season) teamLinks (getMiniLeaguesLink miniLeagues)
+                                                                       metaData = MetaData lgName
+                                                                                           divName
+                                                                                           (seasonName season)
+                                                                                           (aggregated season)
+                                                                                           (collated season)
+                                                                                           (scorers season)
+                                                                                           teamLinks
+                                                                                           (getMiniLeaguesLink miniLeagues)
                                                                    generateStatsPages templates (outputDir season) leagueData metaData 
 

@@ -3,7 +3,7 @@
 -- | Core functionality for the Anorak system.
 module Anorak.Results (aggregate, awayWins, biggestWins, convertResult, form, Goal(..), highestAggregates, homeWins, partitionResults, Result(..), resultsByDate, resultsByTeam, splitHomeAndAway, Team, TeamResult(..)) where
 
-import Anorak.Utils(takeAtLeast)
+import Anorak.Utils(equal, takeAtLeast)
 import Data.ByteString.Char8(ByteString)
 import qualified Data.ByteString.Char8 as BS(unpack)
 import Data.List(groupBy, partition, sortBy)
@@ -113,10 +113,10 @@ awayWins :: [Result] -> [Result]
 awayWins = filter (\r -> homeScore r < awayScore r)
 
 biggestWins :: [Result] -> [Result]
-biggestWins results = takeAtLeast 3 $ groupBy (\r1 r2 -> margin r1 == margin r2) sortedResults
+biggestWins results = takeAtLeast 3 $ groupBy (equal margin) sortedResults
                       where sortedResults = sortBy (flip $ comparing margin) results
 
 highestAggregates :: [Result] -> [Result]
-highestAggregates results = takeAtLeast 3 $ groupBy (\r1 r2 -> aggregate r1 == aggregate r2) sortedResults
+highestAggregates results = takeAtLeast 3 $ groupBy (equal aggregate) sortedResults
                             where sortedResults = sortBy (flip $ comparing aggregate) results
 

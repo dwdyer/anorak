@@ -20,7 +20,7 @@ getAggregateTables results = Map.fromList [(Cleansheets, aggregateTable teamAggr
                              where teamAggregates = aggregatesByTeam results
 
 aggregateTable :: Map Team (Map AggregateType Int) -> AggregateType -> [(Team, Int)]
-aggregateTable aggregates aggType = sortTable $ Map.toList (Map.map (! aggType) aggregates)
+aggregateTable aggregates aggType = sortTable . Map.toList $ Map.map (! aggType) aggregates
 
 -- | Sort aggregate table in descending order.
 sortTable :: [(Team, Int)] -> [(Team, Int)]

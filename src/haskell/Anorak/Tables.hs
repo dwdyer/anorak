@@ -14,13 +14,13 @@ import Data.Time.Calendar(Day)
 
 -- | A LeagueRecord contains data about the league performance of a single team.  It
 --   includes total number of wins, draws, defeats, goals scored and goals conceded.
-data LeagueRecord = LeagueRecord {team :: !Team,                       -- ^ The team that this record relates to.
-                                  won :: !Int,                         -- ^ The number of matches won by this team.
-                                  drawn :: !Int,                       -- ^ The number of matches drawn by this team.
-                                  lost :: !Int,                        -- ^ The number of matches lost by this team.
-                                  for :: !Int,                         -- ^ The total number of goals scored by this team.
-                                  against :: !Int,                     -- ^ The total number of goals conceded by this team.
-                                  adjustment :: !Int                   -- ^ A points adjustment (can be positive or negative but is usually zero) to be applied to this team's total.
+data LeagueRecord = LeagueRecord {team :: !Team,     -- ^ The team that this record relates to.
+                                  won :: !Int,       -- ^ The number of matches won by this team.
+                                  drawn :: !Int,     -- ^ The number of matches drawn by this team.
+                                  lost :: !Int,      -- ^ The number of matches lost by this team.
+                                  for :: !Int,       -- ^ The total number of goals scored by this team.
+                                  against :: !Int,   -- ^ The total number of goals conceded by this team.
+                                  adjustment :: !Int -- ^ A points adjustment (can be positive or negative but is usually zero) to be applied to this team's total.
                                  }
 -- A LeagueRecord can be rendered as a String containing both member fields and
 -- derived fields.
@@ -90,10 +90,12 @@ leagueTable :: Map Team [Result] -> Map Team Int -> Int -> [LeagueRecord]
 leagueTable teamResults adjustments 0     = sort $ map (adjust adjustments) table
                                             where table = Map.elems $ Map.mapWithKey buildRecord teamResults
 leagueTable teamResults adjustments split = updateSection top remainingFixtures ++ updateSection bottom remainingFixtures
-                                            where before = leagueTable (Map.map (take split) teamResults) adjustments 0 -- Initial table based on early fixtures.
-                                                  (top, bottom) = splitAt (length before `div` 2) before -- Split league in half.
-                                                  remainingFixtures = Map.map (drop split) teamResults -- Keep remaining fixtures and apply to both halves before recombining.
-
+                                            where -- Create initial table based on early fixtures.
+                                                  before = leagueTable (Map.map (take split) teamResults) adjustments 0
+                                                  -- Split league in half.
+                                                  (top, bottom) = splitAt (length before `div` 2) before
+                                                  -- Keep remaining fixtures to be applied to both halves before recombining.
+                                                  remainingFixtures = Map.map (drop split) teamResults
 
 -- | Update the specified table by applying remaining results for member teams.
 updateSection :: [LeagueRecord] -> Map Team [Result] -> [LeagueRecord]
@@ -120,20 +122,25 @@ adjust adjustments (LeagueRecord t w d l f a adj) = LeagueRecord t w d l f a (ad
 -- | Generate a league table that includes only results between the specified teams.
 miniLeagueTable :: Set Team -> Map Team [Result] -> [LeagueRecord]
 miniLeagueTable teams results = leagueTable filteredResults Map.empty 0
-                                where filteredResults = Map.map (filter $ checkBothTeamsInSet teams) $ Map.filterWithKey (\k _ -> Set.member k teams) results
+                                where filteredResults = Map.map (filter $ bothTeamsInSet teams) $ Map.filterWithKey (\k _ -> Set.member k teams) results
 
-checkBothTeamsInSet :: Set Team -> Result -> Bool
-checkBothTeamsInSet teams result = Set.member (homeTeam result) teams && Set.member (awayTeam result) teams
+bothTeamsInSet :: Set Team -> Result -> Bool
+bothTeamsInSet teams result = Set.member (homeTeam result) teams && Set.member (awayTeam result) teams
 
 -- | Calculate the league position of every team at the end of every match day.
-leaguePositions :: Set Team -> Map Day [Result] -> Map Team [(Day, Int)]
-leaguePositions teams results = foldr addPosition emptyPosMap positions
-                                where teamList = Set.toAscList teams
-                                      initialTable = Map.fromAscList [(t, LeagueRecord t 0 0 0 0 0 0) | t <- teamList]
-                                      recordsByDate = snd $ Map.mapAccum tableAccum initialTable results -- Map Day (May Team LeagueRecord)
-                                      tablesByDate = Map.map (sort.Map.elems) recordsByDate -- Map Day [LeagueRecord]
-                                      positions = concat . Map.elems $ Map.mapWithKey (\day recs -> zip3 (map team recs) (repeat day) [1..]) tablesByDate -- [(Team, Day, Int)]
-                                      emptyPosMap = Map.fromAscList [(t, []) | t <- teamList]
+leaguePositions :: Set Team -> Map Day [Result] -> Map Team Int -> Map Team [(Day, Int)]
+leaguePositions teams results adj = foldr addPosition emptyPosMap positions
+                                    where teamList = Set.toAscList teams
+                                          -- Create an initial table containing a blank record for each team.
+                                          initialTable = Map.fromAscList [(t, LeagueRecord t 0 0 0 0 0 (Map.findWithDefault 0 t adj)) | t <- teamList]
+                                          -- Calculate the league table (Map Team LeagueRecord) for each date that games were played.
+                                          recordsByDate = snd $ Map.mapAccum tableAccum initialTable results
+                                          -- Convert the daily tables to ordered lists of LeagueRecords.
+                                          tablesByDate = Map.map (sort.Map.elems) recordsByDate
+                                          -- Convert the previous data structure to a list of triples (team, date, position).
+                                          positions = concat . Map.elems $ Map.mapWithKey (\day recs -> zip3 (map team recs) (repeat day) [1..]) tablesByDate
+                                          -- An initial map, with one entry for each team, into which the above triples are folded.
+                                          emptyPosMap = Map.fromAscList [(t, []) | t <- teamList]
                                       
 tableAccum :: Map Team LeagueRecord -> [Result] -> (Map Team LeagueRecord, Map Team LeagueRecord)
 tableAccum table results = (table', table')
@@ -146,4 +153,4 @@ addResultToTable table result = Map.adjustWithKey update hTeam $ Map.adjustWithK
                                       aTeam = awayTeam result
                         
 addPosition :: (Team, Day, Int) -> Map Team [(Day, Int)] -> Map Team [(Day, Int)]
-addPosition (t, d, p) positions = Map.adjust ((d, p):) t positions
+addPosition (t, d, p) = Map.adjust ((d, p):) t
