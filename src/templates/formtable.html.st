@@ -12,15 +12,9 @@ $header(title="Form Table (Last 6 Matches)")$
     $formtable(detail="Last 6 Matches")$
   </div>
   <div id="bottomtabs">
-    <div class="tab selectedtab">
-      <a href="#">Overall</a>
-    </div>
-    <div class="tab">
-      <a href="homeformtable.html">Home</a>
-    </div>
-    <div class="tab">
-      <a href="awayformtable.html">Away</a>
-    </div>
+    $tab(label="Overall";hint="Overall Form";link="#";selected="true")$
+    $tab(label="Home";hint="Home Form";link="homeformtable.html")$
+    $tab(label="Away";hint="Away Form";link="awayformtable.html")$
   </div>
 </div>
 $footer()$

@@ -11,21 +11,11 @@ $header(title="First Half League Table")$
     $leaguetable()$
   </div>
   <div id="bottomtabs">
-    <div class="tab">
-      <a href="index.html">Overall</a>
-    </div>
-    <div class="tab">
-      <a href="hometable.html">Home</a>
-    </div>
-    <div class="tab">
-      <a href="awaytable.html">Away</a>
-    </div>
-    <div class="tab selectedtab">
-      <a href="#">First Half</a>
-    </div>
-    <div class="tab">
-      <a href="secondhalftable.html">Second Half</a>
-    </div>
+    $tab(label="Overall";hint="Full League Table";link="index.html")$
+    $tab(label="Home";hint="Home League Table";link="hometable.html")$
+    $tab(label="Away";hint="Away League Table";link="awaytable.html")$
+    $tab(label="First Half";hint="First Half League Table";link="#";selected="true")$
+    $tab(label="Second Half";hint="Second Half League Table";link="secondhalftable.html")$
   </div>
 </div>
 $footer()$

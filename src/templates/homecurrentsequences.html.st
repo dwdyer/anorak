@@ -11,15 +11,9 @@ $header(title="Current Home Sequences")$
     $sequences()$
   </div>
   <div id="bottomtabs">
-    <div class="tab">
-      <a href="currentsequences.html">Overall</a>
-    </div>
-    <div class="tab selectedtab">
-      <a href="#">Home</a>
-    </div>
-    <div class="tab">
-      <a href="awaycurrentsequences.html">Away</a>
-    </div>
+    $tab(label="Overall";hint="Current Sequences (All Matches)";link="currentsequences.html")$
+    $tab(label="Home";hint="Current Home Sequences";link="#";selected="true")$
+    $tab(label="Away";hint="Current Away Sequences";link="awaycurrentsequences.html")$
   </div>
 </div>
 $footer()$

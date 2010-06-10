@@ -11,15 +11,9 @@ $header(title="Longest Away Sequences")$
     $sequences()$
   </div>
   <div id="bottomtabs">
-    <div class="tab">
-      <a href="longestsequences.html">Overall</a>
-    </div>
-    <div class="tab">
-      <a href="homelongestsequences.html">Home</a>
-    </div>
-    <div class="tab selectedtab">
-      <a href="#">Away</a>
-    </div>
+    $tab(label="Overall";hint="Longest Sequences (All Matches)";link="longestsequences.html")$
+    $tab(label="Home";hint="Longest Home Sequences";link="homelongestsequences.html")$
+    $tab(label="Away";hint="Longest Away Sequences";link="#";selected="true")$
   </div>
 </div>
 $footer()$

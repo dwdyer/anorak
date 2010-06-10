@@ -12,15 +12,9 @@ $header(title="Away Form Table (Last 4 Away Matches)")$
     $formtable(detail="Last 4 Away Matches")$
   </div>
   <div id="bottomtabs">
-    <div class="tab">
-      <a href="formtable.html">Overall</a>
-    </div>
-    <div class="tab">
-      <a href="homeformtable.html">Home</a>
-    </div>
-    <div class="tab selectedtab">
-      <a href="#">Away</a>
-    </div>
+    $tab(label="Overall";hint="Overall Form";link="formtable.html")$
+    $tab(label="Home";hint="Home Form";link="homeformtable.html";)$
+    $tab(label="Away";hint="Away Form";link="#";selected="true")$
   </div>
 </div>
 $footer()$
