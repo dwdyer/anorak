@@ -183,7 +183,7 @@ generateResults group dir results metaData = do let homeWinMatches = homeWins $ 
                                                     awayWinCount = length awayWinMatches
                                                     drawCount = matchCount - homeWinCount - awayWinCount
                                                     goalCount = sum $ map aggregate $ list results
-                                                    highAggregates = highestAggregates $ list results
+                                                    highAggregates = highestAggregates (list results)
                                                 applyTemplate group "results.html" dir [("results", AV . Map.toDescList $ byDate results),
                                                                                         ("matches", AV matchCount),
                                                                                         ("homeWins", AV homeWinCount),
@@ -225,9 +225,6 @@ generateTeamPage group dir team results positions metaData = do let (homeResults
                                                                                   ("record", AV $ getSummary team results),
                                                                                   ("homeRecord", AV $ getSummary team homeResults),
                                                                                   ("awayRecord", AV $ getSummary team awayResults),
-                                                                                  ("bigHomeWins", AV . map (convertResult team) . biggestWins $ homeWins homeResults),
-                                                                                  ("bigAwayWins", AV . map (convertResult team) . biggestWins $ awayWins awayResults),
-                                                                                  ("highAggregates", AV . map (convertResult team) $ highestAggregates results),
                                                                                   ("scorers", AV goalScorers),
                                                                                   ("ownGoals", AV $ show ownGoals),
                                                                                   ("positions", AV positions),
