@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Anorak.Goals (teamGoalScorers, topGoalScorers) where
+module Anorak.Goals (teamGoalScorers, topGoalScorers, topPenaltyScorers) where
 
 import Anorak.Results
 import Anorak.Utils(equal, snd3, takeAtLeast)
@@ -8,16 +8,24 @@ import Data.ByteString.Char8(ByteString)
 import Data.List(foldl', groupBy, nub, partition, sortBy)
 import Data.Ord(comparing)
 
--- | Generate a list of all goal scorers for a given set of results.
+-- | Generate a list of the leading goal scorers for a given set of results.
 topGoalScorers :: [Result] -> [(ByteString, Int, [Team])]
-topGoalScorers results = takeAtLeast 25 $ groupBy (equal snd3) scorers
-                         where goals = concatMap extractGoals results
-                               byScorer = groupByScorer (scorer.fst) $ filter ((/=) "o".goalType.fst) goals -- Omit own goals and group by scorer.
-                               scorers = sortBy (flip $ comparing snd3) $ map (\s -> (scorer.fst $ head s, length s, nub $ map snd s)) byScorer
+topGoalScorers results = topScorers results ((/=) "o".goalType) 25
 
-extractGoals :: Result -> [(Goal, Team)]
-extractGoals result = getGoals homeTeam homeGoals ++ getGoals awayTeam awayGoals
-                      where getGoals ft fg = map (\g -> (g, ft result)) $ fg result
+-- | Generate a list of the leading penalty scorers for a given set of results.
+topPenaltyScorers :: [Result] -> [(ByteString, Int, [Team])]
+topPenaltyScorers results = topScorers results ((==) "p".goalType) 10
+
+-- | General function for finding the top scorers of the type of goal matched by the specified filter.
+topScorers :: [Result] -> (Goal -> Bool) -> Int -> [(ByteString, Int, [Team])]
+topScorers results filtr count = takeAtLeast count $ groupBy (equal snd3) scorers
+                                 where goals = concatMap (extractGoals filtr) results -- Only include goals that match the filter.
+                                       byScorer = groupByScorer (scorer.fst) goals
+                                       scorers = sortBy (flip $ comparing snd3) $ map (\s -> (scorer.fst $ head s, length s, nub $ map snd s)) byScorer
+
+extractGoals :: (Goal -> Bool) -> Result -> [(Goal, Team)]
+extractGoals filtr result = getGoals homeTeam homeGoals ++ getGoals awayTeam awayGoals
+                            where getGoals ft fg = map (\g -> (g, ft result)) $ filter filtr $ fg result
 
 -- | Sort and group by scorer.  The type g could be either Goal or (Goal, Team), so the first argument
 --   is the function to extract the scorer.

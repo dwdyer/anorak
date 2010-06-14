@@ -88,8 +88,12 @@ th                       {margin-bottom: 1.385em;}
 .owngoals td             {border-top: 1px dotted #666666; font-style: italic;}
 
 /* Goals */
-#topscorers td           {padding-right: 1em;}
-#topscorers .number      {font-weight: bold;}
+#topscorers              {width: 498px;}
+#topscorers td           {padding-right: 1em; vertical-align: top;}
+#topscorers .number      {font-weight: bold; padding-right: 0;}
+#penalties               {clear: right; float: right; width:336px;}
+#penalties td            {padding-right: 1em; vertical-align: top;}
+#penalties .number       {font-weight: bold; padding-right: 0;}
 
 /* Sortables */
 .sortable th             {cursor: pointer;}

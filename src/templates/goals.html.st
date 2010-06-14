@@ -5,15 +5,15 @@ $header(title="Goals")$
   <div id="content">
     <h2>$metaData.division$ $metaData.season$ - Goals</h2>
     <p class="description">
-      This page shows the top scorers in the league.  See individual team pages for a complete list of scorers for each club.
+      See individual team pages for a complete list of scorers for each team.
     </p>
+    <table id="penalties">
+      <tr><td colspan="3"><h3>Most Goals From Penalties</h3></td></tr>
+      $penalties:scorer()$
+    </table>
     <table id="topscorers">
-    $scorers:{
-      <tr>
-        <td>$it.("0")$</td>
-        <td>$it.("2"):{<a href="$metaData.teamLinks.(it)$">$it$</a>};separator=" / "$</td>
-        <td class="number">$it.("1")$</td>
-      </tr>}$
+      <tr><td colspan="3"><h3>Top Goal Scorers</h3></td></tr>
+      $scorers:scorer()$
     </table>
   </div>
   <div id="bottomtabs"></div>

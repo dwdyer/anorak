@@ -245,8 +245,9 @@ getSummary team results = (won record,
 -- | Generates the top scorers list (only if there are scorers in the data).
 generateGoals:: STGroup ByteString -> FilePath -> Results -> MetaData -> IO ()
 generateGoals group dir results metaData = do let scorers = topGoalScorers $ list results
+                                                  penalties = topPenaltyScorers $ list results
                                                   attributes = [("metaData", AV metaData)]
-                                              unless (null scorers) $ applyTemplate group "goals.html" dir (("scorers", AV scorers):("goalsSelected", AV True):attributes)
+                                              unless (null scorers) $ applyTemplate group "goals.html" dir (("scorers", AV scorers):("penalties", AV penalties):("goalsSelected", AV True):attributes)
 
 -- | Convert a string for use as a filename (converts to lower case and eliminates whitespace).
 toHTMLFileName :: ByteString -> String
