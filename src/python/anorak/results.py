@@ -56,8 +56,8 @@ def parse_rlt(rlt_path, player_aliases = {}):
             if line[0].isdigit():
                 fields = line.split("|")
                 date = datetime.strptime(fields[0], "%d%m%Y").date()
-                (home_goals, home_scorers) = parse_score(fields[2], fields[1], player_aliases)
-                (away_goals, away_scorers) = parse_score(fields[4], fields[3], player_aliases)
+                (home_goals, home_scorers) = parse_score(fields[2], fields[1], fields[3], player_aliases)
+                (away_goals, away_scorers) = parse_score(fields[4], fields[3], fields[1], player_aliases)
                 results.append(Result(date, fields[1], home_goals, fields[3], away_goals, home_scorers, away_scorers))
             else:
                 metadata.append(line)
@@ -69,7 +69,7 @@ score_regex = re.compile(r"(\d+)(?:\[(.+?)\])?")
 # Regex to match an RLT goal scorer entry.
 goal_regex = re.compile(r"(\D+)(\d+)([po]?)")
 
-def parse_score(text, team, player_aliases = {}):
+def parse_score(text, team, opposition, player_aliases = {}):
     """Parse the score field of an RLT record and return a tuple containing the scorer and scorers."""
     match = score_regex.match(text)
     score = int(match.group(1))
@@ -79,8 +79,10 @@ def parse_score(text, team, player_aliases = {}):
         items = scorers.split(",")
         for goal in items:
             match = goal_regex.match(goal)
-            scorer = player_aliases.get((team, match.group(1)), match.group(1))
-            goals.append(Goal(scorer, match.group(2), match.group(3)))
+            type = match.group(3)
+            key = (opposition if type == "o" else team, match.group(1))
+            scorer = player_aliases.get(key, match.group(1))
+            goals.append(Goal(scorer, match.group(2), type))
     return (score, goals)
 
 
