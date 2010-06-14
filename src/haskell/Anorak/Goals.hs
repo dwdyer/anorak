@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Anorak.Goals (teamGoalScorers, topGoalScorers, topPenaltyScorers) where
+module Anorak.Goals (hatTricks, teamGoalScorers, topGoalScorers, topPenaltyScorers) where
 
 import Anorak.Results
 import Anorak.Utils(equal, snd3, takeAtLeast)
@@ -36,7 +36,27 @@ groupByScorer scorerFunction = groupBy (equal scorerFunction) . sortBy (comparin
 teamGoalScorers :: [TeamResult] -> ([(ByteString, Int)], Int)
 teamGoalScorers results = (goalScorers, length ownGoals)
                           where teamGoals = concatMap goals results
-                                (normalGoals, ownGoals) = partition ((/=) "o".goalType) teamGoals
+                                (normalGoals, ownGoals) = partition ((/= "o").goalType) teamGoals
                                 byScorer = groupByScorer scorer normalGoals
                                 goalScorers = sortBy (flip $ comparing snd) $ map (\s -> (scorer $ head s, length s)) byScorer
 
+-- | Get a list of all hat-tricks scored in the specified results.
+hatTricks :: [Result] -> [(ByteString, Int, Team, TeamResult)]
+hatTricks = sortBy (compareHatTrick) . concatMap getMatchHatTricks
+
+getMatchHatTricks :: Result -> [(ByteString, Int, Team, TeamResult)]
+getMatchHatTricks result
+    | homeScore result < 3 && awayScore result < 3 = []
+    | otherwise                                    = homeHatTricks ++ awayHatTricks
+                                                     where homeHatTricks = map (expand (homeTeam result) result) . extractHatTricks $ homeGoals result
+                                                           awayHatTricks = map (expand (awayTeam result) result) . extractHatTricks $ awayGoals result
+                                                           expand team result (scorer, count) = (scorer, count, team, convertResult team result)
+
+extractHatTricks :: [Goal] -> [(ByteString, Int)]
+extractHatTricks goals = map (\g -> (scorer $ head g, length g)) byScorer
+                         where byScorer = filter ((>= 3).length) $ groupByScorer scorer $ filter ((/= "o").goalType) goals
+
+compareHatTrick :: (ByteString, Int, Team, TeamResult) -> (ByteString, Int, Team, TeamResult) -> Ordering
+compareHatTrick (_, c1, _, r1) (_, c2, _, r2)
+    | c1 == c2  = comparing day r1 r2
+    | otherwise = compare c2 c1

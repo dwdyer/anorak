@@ -94,6 +94,7 @@ th                       {margin-bottom: 1.385em;}
 #penalties               {clear: right; float: right; width:336px;}
 #penalties td            {padding-right: 1em; vertical-align: top;}
 #penalties .number       {font-weight: bold; padding-right: 0;}
+#hattricks               {width: 100%; margin-top: 1.385em;}
 
 /* Sortables */
 .sortable th             {cursor: pointer;}
