@@ -1,7 +1,7 @@
 $header(title="Longest Home Sequences")$
 <div id="centre">
   $selector()$
-  $tabs()$
+  $toptabs()$
   <div id="content">
     <h2>$metaData.division$ $metaData.season$ - Longest Home Sequences</h2>
     <p>

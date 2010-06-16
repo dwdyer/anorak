@@ -1,7 +1,7 @@
 $header(title="Home Form Table (Last 4 Home Matches)")$
 <div id="centre">
   $selector()$
-  $tabs()$
+  $toptabs()$
   <div id="content">
     <h2>$metaData.division$ $metaData.season$ - Home Form Table (Last 4 Home Matches)</h2>
     <p>

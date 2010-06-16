@@ -1,7 +1,7 @@
 $header(title=team)$
 <div id="centre">
   $selector()$
-  $tabs()$
+  $toptabs()$
   <div id="content">
     <h2>$team$ - $metaData.division$ $metaData.season$</h2>
     $teamrecords()$

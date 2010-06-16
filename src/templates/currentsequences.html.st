@@ -1,7 +1,7 @@
 $header(title="Current Sequences")$
 <div id="centre">
   $selector()$
-  $tabs()$
+  $toptabs()$
   <div id="content">
     <h2>$metaData.division$ $metaData.season$ - Current Sequences</h2>
     <p>

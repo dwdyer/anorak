@@ -1,7 +1,7 @@
 $header(title=name+" Mini-League")$
 <div id="centre">
   $selector()$
-  $tabs()$
+  $toptabs()$
   <div id="content">
     <h2>$metaData.division$ $metaData.season$ - $name$ Mini-League</h2>
     <p>

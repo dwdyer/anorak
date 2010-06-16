@@ -1,7 +1,7 @@
 $header(title="Form Table (Last 6 Matches)")$
 <div id="centre">
   $selector()$
-  $tabs()$
+  $toptabs()$
   <div id="content">
     <h2>$metaData.division$ $metaData.season$ - Form Table (Last 6 Matches)</h2>
     <p>

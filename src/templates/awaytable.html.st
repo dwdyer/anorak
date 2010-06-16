@@ -1,7 +1,7 @@
 $header(title="Away League Table")$
 <div id="centre">
   $selector()$
-  $tabs()$
+  $toptabs()$
   <div id="content">
     <h2>$metaData.division$ $metaData.season$ - Away League Table</h2>
     <p>
@@ -13,10 +13,10 @@ $header(title="Away League Table")$
   <div id="bottomtabs">
     $tab(label="Overall";hint="Full League Table";link="index.html")$
     $tab(label="Home";hint="Home League Table";link="hometable.html")$
-    $tab(label="Away";hint="Away League Table";link="#";selected="true")$
+    $tab(label="Away";hint="Away League Table";link="awaytable.html";selected="true")$
     $if(metaData.hasScorers)$
-    $tab(label="First Half";hint="First Half League Table";link="firsthalftable.html")$
-    $tab(label="Second Half";hint="Second Half League Table";link="secondhalftable.html")$
+      $tab(label="First Half";hint="First Half League Table";link="firsthalftable.html")$
+      $tab(label="Second Half";hint="Second Half League Table";link="secondhalftable.html")$
     $endif$
   </div>
 </div>

@@ -1,7 +1,7 @@
 $header(title="Results")$
 <div id="centre">
   $selector()$
-  $tabs()$
+  $toptabs()$
   <div id="content">
     <h2>$metaData.division$ $metaData.season$ - Results</h2>
     <table id="resultswrapper">

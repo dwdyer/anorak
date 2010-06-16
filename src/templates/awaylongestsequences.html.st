@@ -1,7 +1,7 @@
 $header(title="Longest Away Sequences")$
 <div id="centre">
   $selector()$
-  $tabs()$
+  $toptabs()$
   <div id="content">
     <h2>$metaData.division$ $metaData.season$ - Longest Away Sequences</h2>
     <p>

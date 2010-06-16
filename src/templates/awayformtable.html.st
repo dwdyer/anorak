@@ -1,7 +1,7 @@
 $header(title="Away Form Table (Last 4 Away Matches)")$
 <div id="centre">
   $selector()$
-  $tabs()$
+  $toptabs()$
   <div id="content">
     <h2>$metaData.division$ $metaData.season$ - Away Form Table (Last 4 Away Matches)</h2>
     <p>

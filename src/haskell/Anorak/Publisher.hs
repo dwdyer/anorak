@@ -74,12 +74,14 @@ data MetaData = MetaData {league :: String,
                           season :: String,
                           isAggregated :: Bool,
                           isCollated :: Bool,
+                          isArchive :: Bool,
                           hasScorers :: Bool,
                           teamLinks :: Map String String,
                           miniLeaguesLink :: Maybe String}
 instance ToSElem MetaData where
     toSElem meta = SM $ Map.fromAscList [("division", STR $ division meta),
                                          ("hasScorers", toSElem $ hasScorers meta),
+                                         ("isArchive", toSElem $ isArchive meta),
                                          ("isAggregated", toSElem $ isAggregated meta),
                                          ("isCollated", toSElem $ isCollated meta),
                                          ("league", STR $ league meta),
@@ -161,11 +163,11 @@ generateSequences group dir results metaData = do let (overallCurrent, overallLo
                                                       (homeCurrent, homeLongest) = getSequenceTables $ homeOnly results
                                                       (awayCurrent, awayLongest) = getSequenceTables $ awayOnly results
                                                       attributes = [("metaData", AV metaData)]
-                                                  applyTemplate group "currentsequences.html" dir (("sequences", convertTables overallCurrent):("currentSequencesSelected", AV True):attributes)
+                                                  unless (isArchive metaData) $ applyTemplate group "currentsequences.html" dir (("sequences", convertTables overallCurrent):("currentSequencesSelected", AV True):attributes)
                                                   applyTemplate group "longestsequences.html" dir (("sequences", convertTables overallLongest):("longestSequencesSelected", AV True):attributes)
-                                                  applyTemplate group "homecurrentsequences.html" dir (("sequences", convertTables homeCurrent):("currentSequencesSelected", AV True):attributes)
+                                                  unless (isArchive metaData) $ applyTemplate group "homecurrentsequences.html" dir (("sequences", convertTables homeCurrent):("currentSequencesSelected", AV True):attributes)
                                                   applyTemplate group "homelongestsequences.html" dir (("sequences", convertTables homeLongest):("longestSequencesSelected", AV True):attributes)
-                                                  applyTemplate group "awaycurrentsequences.html" dir (("sequences", convertTables awayCurrent):("currentSequencesSelected", AV True):attributes)
+                                                  unless (isArchive metaData) $ applyTemplate group "awaycurrentsequences.html" dir (("sequences", convertTables awayCurrent):("currentSequencesSelected", AV True):attributes)
                                                   applyTemplate group "awaylongestsequences.html" dir (("sequences", convertTables awayLongest):("longestSequencesSelected", AV True):attributes)
                                                   where convertTables = AV . Map.mapKeys show
 
@@ -268,7 +270,7 @@ generateStatsPages templateGroup targetDir (LeagueData teams res adj miniLeagues
                                                                                                                positions = leaguePositions teams (byDate results) adj
                                                                                                            createDirectoryIfMissing True targetDir
                                                                                                            generateLeagueTables templateGroup targetDir results adj metaData sp
-                                                                                                           generateFormTables templateGroup targetDir results metaData
+                                                                                                           unless (isArchive metaData) $ generateFormTables templateGroup targetDir results metaData
                                                                                                            generateResults templateGroup targetDir results metaData
                                                                                                            generateSequences templateGroup targetDir results metaData
                                                                                                            generateAggregates templateGroup targetDir results metaData
@@ -305,6 +307,7 @@ publishSeason templates lgName divName season = do let dataFile = inputFile seas
                                                                                            (seasonName season)
                                                                                            (aggregated season)
                                                                                            (collated season)
+                                                                                           (archive season)
                                                                                            (scorers season)
                                                                                            teamLinks
                                                                                            (getMiniLeaguesLink miniLeagues)
