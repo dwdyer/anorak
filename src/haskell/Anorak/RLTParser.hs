@@ -14,7 +14,7 @@ import Data.ByteString.Char8(ByteString)
 import qualified Data.ByteString.Char8 as BS(empty, readFile, unpack)
 import Data.List(concat, foldl', intersperse)
 import Data.Map(Map)
-import qualified Data.Map as Map(empty, insertWith, unionWith)
+import qualified Data.Map as Map(empty, insert, insertWith, unionWith)
 import Data.Maybe(fromMaybe)
 import Data.Set(Set)
 import qualified Data.Set as Set(empty, fromList, insert, union)
@@ -30,6 +30,7 @@ data Item = Fixture Result                   -- ^ The result of a single footbal
           | Adjustment Team Int              -- ^ A number of points awarded to or deducted from an individual team.
           | MiniLeague ByteString (Set Team) -- ^ A league within a league (e.g. The Big 4, London Clubs, North West Clubs, etc.)
           | Rules Int Int Int                -- ^ Number of points for a win, points for a draw, and split point (zero for non-SPL-style leagues)
+          | Alias ByteString Team            -- ^ Maps a team name to an alias (used when teams change names, i.e. Wimbledon to MK Dons)
           | Comment ByteString               -- ^ Comments about the data.
     deriving (Show)
 
@@ -39,7 +40,7 @@ instance Exception RLTException
 
 -- | League data is extracted from an RLT file.  It consists of a list of teams, a list of results,
 --   a (probably empty) map of points adjustments, a list of mini-leagues, and the SPL-style split point (zero for sane leagues).
-data LeagueData = LeagueData (Set Team) [Result] (Map Team Int) [(ByteString, Set Team)] Int
+data LeagueData = LeagueData (Set Team) [Result] (Map Team Int) [(ByteString, Set Team)] Int (Map ByteString Team)
 
 -- | Parse results and points adjustments, discard meta-data and comments.  The function argument is
 --   the path of the data directory, used to resolve relative paths for include directives.
@@ -49,7 +50,7 @@ results dataDir = do list <- items
 
 -- | Each line of a data file is either a record (a match result or some metadata) or it is a comment.
 items :: Parser [Item]
-items = sepBy (result <|> comment <|> include <|> rules <|> awarded <|> deducted <|> miniLeague <|> prize <|> relegation) endOfLine
+items = sepBy (result <|> comment <|> include <|> rules <|> awarded <|> deducted <|> miniLeague <|> prize <|> relegation <|> alias) endOfLine
 
 -- | The INCLUDE directive has a single field, the path to an RLT file.
 include :: Parser Item
@@ -104,6 +105,13 @@ relegation = do string "RELEGATION|"
                 name <- takeTill isNewLine; 
                 return $ Comment name -- Treat as a comment, it's ignored for now.
 
+-- | The ALIAS directive maps a team name to a team's previous name.
+alias :: Parser Item
+alias = do string "ALIAS|"
+           name <- pipeTerminated
+           team <- takeTill isNewLine;
+           return $ Alias name team
+
 -- | A record is a list of fields delimited by pipe characters.
 result :: Parser Item
 result = do day <- count 2 digit
@@ -150,18 +158,20 @@ isNewLine c = c == '\n' || c == '\r'
 -- | Takes a list of parsed items and discards comments and meta-data.  The remaining items are separated into a list
 --   of results and a map of net points adjustments by team.
 extractData :: FilePath -> [Item] -> LeagueData
-extractData _ []                                   = LeagueData Set.empty [] Map.empty [] 0
-extractData dataDir (Fixture result:items)         = LeagueData (addTeams result t) (result:r) a m s
-                                                     where (LeagueData t r a m s) = extractData dataDir items
-extractData dataDir (Include path:items)           = LeagueData (Set.union t t') (r' ++ r) (Map.unionWith (+) a a') m s
-                                                     where (LeagueData t r a m s) = extractData dataDir items
-                                                           (LeagueData t' r' a' _ s') = unsafePerformIO . parseRLTFile $ combine dataDir path
-extractData dataDir (Adjustment team amount:items) = LeagueData t r (Map.insertWith (+) team amount a) m s
-                                                     where (LeagueData t r a m s) = extractData dataDir items
-extractData dataDir (MiniLeague name teams:items)  = LeagueData t r a ((name, teams):m) s
-                                                     where (LeagueData t r a m s) = extractData dataDir items
-extractData dataDir (Rules _ _ split:items)        = LeagueData t r a m split
-                                                     where (LeagueData t r a m _) = extractData dataDir items
+extractData _ []                                   = LeagueData Set.empty [] Map.empty [] 0 Map.empty
+extractData dataDir (Fixture result:items)         = LeagueData (addTeams result t) (result:r) a m s al
+                                                     where (LeagueData t r a m s al) = extractData dataDir items
+extractData dataDir (Include path:items)           = LeagueData (Set.union t t') (r' ++ r) (Map.unionWith (+) a a') m s al
+                                                     where (LeagueData t r a m s al) = extractData dataDir items
+                                                           (LeagueData t' r' a' _ s' _) = unsafePerformIO . parseRLTFile $ combine dataDir path
+extractData dataDir (Adjustment team amount:items) = LeagueData t r (Map.insertWith (+) team amount a) m s al
+                                                     where (LeagueData t r a m s al) = extractData dataDir items
+extractData dataDir (MiniLeague name teams:items)  = LeagueData t r a ((name, teams):m) s al
+                                                     where (LeagueData t r a m s al) = extractData dataDir items
+extractData dataDir (Rules _ _ split:items)        = LeagueData t r a m split al
+                                                     where (LeagueData t r a m _ al) = extractData dataDir items
+extractData dataDir (Alias name team:items)        = LeagueData t r a m s (Map.insert name team al)
+                                                     where (LeagueData t r a m s al) = extractData dataDir items
 extractData dataDir (_:items)                      = extractData dataDir items -- Discard comments.
 
 -- | Adds the home team and away team from a match to the set of all teams (if they are not already present).

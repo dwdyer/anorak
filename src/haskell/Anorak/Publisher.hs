@@ -19,7 +19,7 @@ import Data.Char(isSpace, toLower)
 import Data.Data(Data)
 import Data.List(foldl', isPrefixOf, isSuffixOf, nub)
 import Data.Map(Map, (!))
-import qualified Data.Map as Map(alter, assocs, empty, fromAscList, insert, keys, map, mapKeys, size, toDescList)
+import qualified Data.Map as Map(alter, assocs, empty, findWithDefault, fromAscList, insert, keys, map, mapKeys, size, toDescList)
 import Data.Sequence(Seq)
 import Data.Set(Set)
 import qualified Data.Set as Set(toList)
@@ -257,23 +257,24 @@ toHTMLFileName :: ByteString -> String
 toHTMLFileName name = BS.unpack $ BS.map toLower (BS.filter (not.isSpace) name) `BS.append` ".html"
 
 -- | Take a list of team names and return mappings for the associated team pages.
-mapTeamNames :: [Team] -> Map String String
-mapTeamNames = foldl' (\m t -> Map.insert (BS.unpack t) (toHTMLFileName t) m) Map.empty
+mapTeamNames :: [Team] -> Map ByteString Team -> Map String String
+mapTeamNames teams aliases = foldl' insert Map.empty teams
+                             where insert m t = Map.insert (BS.unpack t) (toHTMLFileName $ Map.findWithDefault t t aliases) m
 
 -- | Generates all stats pages for a given data file.  First parameter is a template group, second parameter is a pair of paths,
 --   the first is the path to the data file, the second is the path to the directory in which the pages will be created.
 generateStatsPages :: STGroup ByteString -> FilePath -> LeagueData -> MetaData -> IO ()
-generateStatsPages templateGroup targetDir (LeagueData teams res adj miniLeagues sp) metaData = do let results = prepareResults res
-                                                                                                       positions = leaguePositions teams (byDate results) adj
-                                                                                                   createDirectoryIfMissing True targetDir
-                                                                                                   generateLeagueTables templateGroup targetDir results adj metaData sp
-                                                                                                   generateFormTables templateGroup targetDir results metaData
-                                                                                                   generateResults templateGroup targetDir results metaData
-                                                                                                   generateSequences templateGroup targetDir results metaData
-                                                                                                   generateAggregates templateGroup targetDir results metaData
-                                                                                                   generateMiniLeagues templateGroup targetDir results miniLeagues metaData
-                                                                                                   generateTeamPages templateGroup targetDir results positions metaData
-                                                                                                   unless (not $ hasScorers metaData) $ generateGoals templateGroup targetDir results metaData
+generateStatsPages templateGroup targetDir (LeagueData teams res adj miniLeagues sp aliases) metaData = do let results = prepareResults res aliases
+                                                                                                               positions = leaguePositions teams (byDate results) adj
+                                                                                                           createDirectoryIfMissing True targetDir
+                                                                                                           generateLeagueTables templateGroup targetDir results adj metaData sp
+                                                                                                           generateFormTables templateGroup targetDir results metaData
+                                                                                                           generateResults templateGroup targetDir results metaData
+                                                                                                           generateSequences templateGroup targetDir results metaData
+                                                                                                           generateAggregates templateGroup targetDir results metaData
+                                                                                                           generateMiniLeagues templateGroup targetDir results miniLeagues metaData
+                                                                                                           generateTeamPages templateGroup targetDir results positions metaData
+                                                                                                           unless (not $ hasScorers metaData) $ generateGoals templateGroup targetDir results metaData
 
 -- | Determine which file the "Mini-Leagues" tab should link to (derived from the name of the first mini-league).
 --   If there are no mini-leagues then this function returns nothing and the tab should not be shown.
@@ -297,8 +298,8 @@ publishSeason templates lgName divName season = do let dataFile = inputFile seas
                                                    case modified || aggregated season || collated season of
                                                        False -> print $ "Skipping unchanged file " ++ dataFile 
                                                        True  -> do print $ "Processing " ++ dataFile
-                                                                   leagueData@(LeagueData teams results _ miniLeagues _) <- parseRLTFile dataFile
-                                                                   let teamLinks = mapTeamNames $ Set.toList teams
+                                                                   leagueData@(LeagueData teams results _ miniLeagues _ aliases) <- parseRLTFile dataFile
+                                                                   let teamLinks = mapTeamNames (Set.toList teams) aliases
                                                                        metaData = MetaData lgName
                                                                                            divName
                                                                                            (seasonName season)

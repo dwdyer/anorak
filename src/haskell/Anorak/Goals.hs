@@ -42,7 +42,7 @@ teamGoalScorers results = (goalScorers, length ownGoals)
 
 -- | Get a list of all hat-tricks scored in the specified results.
 hatTricks :: [Result] -> [(ByteString, Int, Team, TeamResult)]
-hatTricks = sortBy (compareHatTrick) . concatMap getMatchHatTricks
+hatTricks = sortBy compareHatTrick . concatMap getMatchHatTricks
 
 getMatchHatTricks :: Result -> [(ByteString, Int, Team, TeamResult)]
 getMatchHatTricks result

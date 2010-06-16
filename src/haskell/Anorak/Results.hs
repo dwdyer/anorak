@@ -21,7 +21,7 @@ import Data.ByteString.Char8(ByteString)
 import qualified Data.ByteString.Char8 as BS(unpack)
 import Data.List(groupBy, partition, sortBy)
 import Data.Map(Map)
-import qualified Data.Map as Map(empty, insertWith, map, mapWithKey)
+import qualified Data.Map as Map(empty, findWithDefault, insertWith, map, mapWithKey)
 import Data.Ord(comparing)
 import Data.Time.Calendar(Day(..))
 import Data.Time.Format(formatTime)
@@ -87,9 +87,13 @@ data Results = Results {list :: ![Result],
                         secondHalf :: Map Team [Result]}
                         
 -- | Convert a flat list of results into a mapping from team to list of results that that team was involved in.
-resultsByTeam :: [Result] -> Map Team [Result]
-resultsByTeam []          = Map.empty
-resultsByTeam (result:rs) = addResultToMap (addResultToMap (resultsByTeam rs) homeTeam result) awayTeam result
+resultsByTeam :: [Result] -> Map ByteString Team -> Map Team [Result]
+resultsByTeam [] _                = Map.empty
+resultsByTeam (Result d ht hs at as hg ag:rs) aliases = addResultToMap (addResultToMap (resultsByTeam rs aliases) homeTeam aliasedResult) awayTeam aliasedResult
+                                                        -- Map aliased team names so that all results for the same team are recorded against the current team name.
+                                                        where hTeam = Map.findWithDefault ht ht aliases
+                                                              aTeam = Map.findWithDefault at at aliases
+                                                              aliasedResult = Result d hTeam hs aTeam as hg ag
 
 -- | Convert a flat list of results into a mapping from date to list of matches played on that date.
 resultsByDate :: [Result] -> Map Day [Result]
@@ -149,16 +153,21 @@ splitFirstAndSecondHalf = unzip . map splitResult
 -- | Convert a single 90-minute result into hypothetical first-half and second-half results.
 splitResult :: Result -> (Result, Result)
 splitResult (Result d ht hs at as hg ag) = (firstHalfResult, secondHalfResult)
-                                           where (fstHalfHGoals, sndHalfHGoals) = partition ((<= 45).minute) hg
-                                                 (fstHalfAGoals, sndHalfAGoals) = partition ((<= 45).minute) ag
+                                           where (fstHalfHGoals, laterHGoals) = partition ((<= 45).minute) hg
+                                                 (fstHalfAGoals, laterAGoals) = partition ((<= 45).minute) ag
+                                                 -- Filter out any extra-time goals.
+                                                 sndHalfHGoals = filter ((<= 90).minute) laterHGoals
+                                                 sndHalfAGoals = filter ((<= 90).minute) laterAGoals
                                                  firstHalfResult = Result d ht (length fstHalfHGoals) at (length fstHalfAGoals) fstHalfHGoals fstHalfAGoals
                                                  secondHalfResult = Result d ht (length sndHalfHGoals) at (length sndHalfAGoals) sndHalfHGoals sndHalfAGoals
 
 -- | Take a list of results and return a set of useful transformations of that data.
-prepareResults :: [Result] -> Results
-prepareResults results = Results results teamResults (Map.map fst homeAndAway) (Map.map snd homeAndAway) matchDays (resultsByTeam firstHalfResults) (resultsByTeam secondHalfResults)
-                         where teamResults = resultsByTeam results
-                               matchDays = resultsByDate results
-                               (firstHalfResults, secondHalfResults) = splitFirstAndSecondHalf results
-                               homeAndAway = splitHomeAndAway teamResults
+prepareResults :: [Result] -> Map ByteString Team -> Results
+prepareResults results aliases = Results results teamResults (Map.map fst homeAndAway) (Map.map snd homeAndAway) matchDays firstHalfByTeam secondHalfByTeam
+                                 where teamResults = resultsByTeam results aliases
+                                       matchDays = resultsByDate results
+                                       (firstHalfResults, secondHalfResults) = splitFirstAndSecondHalf results
+                                       firstHalfByTeam = resultsByTeam firstHalfResults aliases
+                                       secondHalfByTeam = resultsByTeam secondHalfResults aliases
+                                       homeAndAway = splitHomeAndAway teamResults
 
