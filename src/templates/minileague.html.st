@@ -12,9 +12,7 @@ $header(title=name+" Mini-League")$
   </div>
   <div id="bottomtabs">
     $bottomTabs:{
-      <div class="tab $if(it.("2"))$selectedtab$endif$">
-        <a href="$if(it.("2"))$#$else$$it.("1")$$endif$">$it.("0")$</a>
-      </div>
+      $tab(label=it.("0");hint=it.("0");link=it.("1");selected=it.("2"))$
     }$
   </div>
 </div>

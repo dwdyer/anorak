@@ -13,7 +13,7 @@ $header(title="Current Away Sequences")$
   <div id="bottomtabs">
     $tab(label="Overall";hint="Current Sequences (All Matches)";link="currentsequences.html")$
     $tab(label="Home";hint="Current Home Sequences";link="homecurrentsequences.html")$
-    $tab(label="Away";hint="Current Away Sequences";link="#";selected="true")$
+    $tab(label="Away";hint="Current Away Sequences";link="awaycurrentsequences.html";selected="true")$
   </div>
 </div>
 $footer()$

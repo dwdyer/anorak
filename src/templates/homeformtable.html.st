@@ -13,7 +13,7 @@ $header(title="Home Form Table (Last 4 Home Matches)")$
   </div>
   <div id="bottomtabs">
     $tab(label="Overall";hint="Overall Form";link="formtable.html")$
-    $tab(label="Home";hint="Home Form";link="#";selected="true")$
+    $tab(label="Home";hint="Home Form";link="homeformtable.html";selected="true")$
     $tab(label="Away";hint="Away Form";link="awayformtable.html")$
   </div>
 </div>
