@@ -7,7 +7,7 @@
   $endif$
   $if(showScorers)$
   <td class="scorers">
-  $it.goals:{<span class="scorer">$it.("0")$ ($it.("1")$</span>)};separator=", "$
+  $it.goals:{<span class="scorer">$it.("0")$ ($it.("1")$)</span>};separator=", "$
   </td>
   $endif$
 </tr>

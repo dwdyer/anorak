@@ -206,18 +206,18 @@ generateResults group dir results metaData = do let homeWinMatches = homeWins $ 
                                                                                         ("resultsSelected", AV True),
                                                                                         ("metaData", AV metaData)]
 
-generateMiniLeagues :: STGroup ByteString -> FilePath -> Results -> [(ByteString, Set Team)] -> MetaData -> IO ()
-generateMiniLeagues group dir results miniLeagues metaData = do let tabs = map ((\n -> (n, toHTMLFileName n)).fst) miniLeagues -- Each tab is a display name and a file name.
-                                                                mapM_ (generateMiniLeague group dir results tabs metaData) miniLeagues
+generateMiniLeagues :: STGroup ByteString -> FilePath -> Results -> [(ByteString, Set Team)] -> Map ByteString Team -> MetaData -> IO ()
+generateMiniLeagues group dir results miniLeagues aliases metaData = do let tabs = map ((\n -> (n, toHTMLFileName n)).fst) miniLeagues -- Each tab is a display name and a file name.
+                                                                        mapM_ (generateMiniLeague group dir results aliases tabs metaData) miniLeagues
 
-generateMiniLeague :: STGroup ByteString -> FilePath -> Results -> [(ByteString, String)] -> MetaData -> (ByteString, Set Team) -> IO ()
-generateMiniLeague group dir results tabs metaData (name, teams) = do let selectedTabs = map (\(n, f) -> (n, f, n == name)) tabs -- Add a boolean "selected" flag to each tab.
-                                                                          attributes = [("table", AV . miniLeagueTable teams $ byTeam results),
-                                                                                        ("miniLeaguesSelected", AV True),
-                                                                                        ("name", AV name),
-                                                                                        ("bottomTabs", AV selectedTabs),
-                                                                                        ("metaData", AV metaData)]
-                                                                      applyTemplateWithName group "minileague.html" dir (toHTMLFileName name) attributes
+generateMiniLeague :: STGroup ByteString -> FilePath -> Results -> Map ByteString Team -> [(ByteString, String)] -> MetaData -> (ByteString, Set Team) -> IO ()
+generateMiniLeague group dir results aliases tabs metaData (name, teams) = do let selectedTabs = map (\(n, f) -> (n, f, n == name)) tabs -- Add a boolean "selected" flag to each tab.
+                                                                                  attributes = [("table", AV $ miniLeagueTable teams (byTeam results) aliases),
+                                                                                                ("miniLeaguesSelected", AV True),
+                                                                                                ("name", AV name),
+                                                                                                ("bottomTabs", AV selectedTabs),
+                                                                                                ("metaData", AV metaData)]
+                                                                              applyTemplateWithName group "minileague.html" dir (toHTMLFileName name) attributes
 
 generateTeamPages :: STGroup ByteString -> FilePath -> Results -> Map Team [(Day, Int)] -> MetaData -> IO ()
 generateTeamPages group dir results positions metaData = mapM_ (\(team, res) -> generateTeamPage group dir team res (positions ! team) metaData) . Map.assocs $ byTeam results
@@ -279,7 +279,7 @@ generateStatsPages templateGroup targetDir (LeagueData teams res adj miniLeagues
                                                                                                            generateResults templateGroup targetDir results metaData
                                                                                                            generateSequences templateGroup targetDir results metaData
                                                                                                            generateAggregates templateGroup targetDir results metaData
-                                                                                                           generateMiniLeagues templateGroup targetDir results miniLeagues metaData
+                                                                                                           generateMiniLeagues templateGroup targetDir results miniLeagues aliases metaData
                                                                                                            generateTeamPages templateGroup targetDir results positions metaData
                                                                                                            unless (not $ hasScorers metaData) $ generateGoals templateGroup targetDir results metaData
 

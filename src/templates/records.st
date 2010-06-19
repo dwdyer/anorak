@@ -28,4 +28,3 @@
     $highAggregates:result()$
   </table>
 </div>
-

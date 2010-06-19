@@ -3,13 +3,14 @@ module Anorak.Tables (buildRecord, formTable, goalDiff, LeagueRecord(..), league
 
 import Anorak.Results
 import Anorak.Utils(keep)
+import Data.ByteString.Char8(ByteString)
 import qualified Data.ByteString.Char8 as BS(unpack)
 import Data.List(foldl', sort, sortBy)
 import Data.Map(Map, (!))
-import qualified Data.Map as Map(adjust, adjustWithKey, elems, empty, filterWithKey, findWithDefault, fromAscList, map, mapAccum, mapWithKey)
+import qualified Data.Map as Map(adjust, adjustWithKey, elems, empty, filterWithKey, findWithDefault, fromAscList, keysSet, map, mapAccum, mapWithKey)
 import Data.Ord(comparing)
 import Data.Set(Set)
-import qualified Data.Set as Set(member, toAscList)
+import qualified Data.Set as Set(member, toAscList, union)
 import Data.Time.Calendar(Day)
 
 -- | A LeagueRecord contains data about the league performance of a single team.  It
@@ -120,9 +121,10 @@ adjust :: Map Team Int -> LeagueRecord -> LeagueRecord
 adjust adjustments (LeagueRecord t w d l f a adj) = LeagueRecord t w d l f a (adj + Map.findWithDefault 0 t adjustments)
 
 -- | Generate a league table that includes only results between the specified teams.
-miniLeagueTable :: Set Team -> Map Team [Result] -> [LeagueRecord]
-miniLeagueTable teams results = leagueTable filteredResults Map.empty 0
-                                where filteredResults = Map.map (filter $ bothTeamsInSet teams) $ Map.filterWithKey (\k _ -> Set.member k teams) results
+miniLeagueTable :: Set Team -> Map Team [Result] -> Map ByteString Team -> [LeagueRecord]
+miniLeagueTable teams results aliases = leagueTable filteredResults Map.empty 0
+                                        where teamNames = Set.union teams $ Map.keysSet aliases
+                                              filteredResults = Map.map (filter $ bothTeamsInSet teamNames) $ Map.filterWithKey (\k _ -> Set.member k teamNames) results
 
 bothTeamsInSet :: Set Team -> Result -> Bool
 bothTeamsInSet teams result = Set.member (homeTeam result) teams && Set.member (awayTeam result) teams
