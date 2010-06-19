@@ -88,12 +88,13 @@ data Results = Results {list :: ![Result],
                         
 -- | Convert a flat list of results into a mapping from team to list of results that that team was involved in.
 resultsByTeam :: [Result] -> Map ByteString Team -> Map Team [Result]
-resultsByTeam [] _                = Map.empty
-resultsByTeam (Result d ht hs at as hg ag:rs) aliases = addResultToMap (addResultToMap (resultsByTeam rs aliases) homeTeam aliasedResult) awayTeam aliasedResult
+resultsByTeam [] _                                    = Map.empty
+resultsByTeam (Result d ht hs at as hg ag:rs) aliases = addResultToMap (addResultToMap (resultsByTeam rs aliases) homeTeam aliasedHResult) awayTeam aliasedAResult
                                                         -- Map aliased team names so that all results for the same team are recorded against the current team name.
                                                         where hTeam = Map.findWithDefault ht ht aliases
                                                               aTeam = Map.findWithDefault at at aliases
-                                                              aliasedResult = Result d hTeam hs aTeam as hg ag
+                                                              aliasedHResult = Result d hTeam hs at as hg ag
+                                                              aliasedAResult = Result d ht hs aTeam as hg ag
 
 -- | Convert a flat list of results into a mapping from date to list of matches played on that date.
 resultsByDate :: [Result] -> Map Day [Result]

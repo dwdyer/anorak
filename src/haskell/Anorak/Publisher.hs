@@ -166,14 +166,14 @@ generateSequences group dir results meta = do let (overallCurrent, overallLonges
                                                   (homeCurrent, homeLongest) = getSequenceTables $ homeOnly results
                                                   (awayCurrent, awayLongest) = getSequenceTables $ awayOnly results
                                                   attributes = [("metaData", AV meta)]
-                                              unless (isArchive meta) $ applyTemplate group "currentsequences.html" dir $ seqAttribs overallCurrent "currentSequencesSelected" attributes
+                                              unless (isArchive meta) . applyTemplate group "currentsequences.html" dir $ seqAttribs overallCurrent "currentSequencesSelected" attributes
                                               applyTemplate group "longestsequences.html" dir $ seqAttribs overallLongest "longestSequencesSelected" attributes
-                                              unless (isArchive meta || isNeutral meta) $ applyTemplate group "homecurrentsequences.html" dir $ seqAttribs homeCurrent "currentSequencesSelected" attributes
+                                              unless (isArchive meta || isNeutral meta) . applyTemplate group "homecurrentsequences.html" dir $ seqAttribs homeCurrent "currentSequencesSelected" attributes
                                               applyTemplate group "homelongestsequences.html" dir $ seqAttribs homeLongest "longestSequencesSelected" attributes
-                                              unless (isArchive meta || isNeutral meta) $ applyTemplate group "awaycurrentsequences.html" dir $ seqAttribs awayCurrent "currentSequencesSelected" attributes
+                                              unless (isArchive meta || isNeutral meta) . applyTemplate group "awaycurrentsequences.html" dir $ seqAttribs awayCurrent "currentSequencesSelected" attributes
                                               applyTemplate group "awaylongestsequences.html" dir $ seqAttribs awayLongest "longestSequencesSelected" attributes
                                               where convertTables = AV . Map.mapKeys show
-                                                    seqAttribs seqs sel attribs = (("sequences", convertTables seqs):(sel, AV True):attribs)
+                                                    seqAttribs seqs sel attribs = ("sequences", convertTables seqs):(sel, AV True):attribs
 
 -- | Generates team aggregates for all matches.
 generateAggregates:: STGroup ByteString -> FilePath -> Results -> MetaData -> IO ()
@@ -188,7 +188,7 @@ generateResults group dir results metaData = do let homeWinMatches = homeWins $ 
                                                     homeWinCount = length homeWinMatches
                                                     awayWinCount = length awayWinMatches
                                                     drawCount = matchCount - homeWinCount - awayWinCount
-                                                    goalCount = sum $ map aggregate $ list results
+                                                    goalCount = sum . map aggregate $ list results
                                                     highAggregates = highestAggregates (list results)
                                                 applyTemplate group "results.html" dir [("results", AV . Map.toDescList $ byDate results),
                                                                                         ("matches", AV matchCount),
@@ -212,7 +212,7 @@ generateMiniLeagues group dir results miniLeagues metaData = do let tabs = map (
 
 generateMiniLeague :: STGroup ByteString -> FilePath -> Results -> [(ByteString, String)] -> MetaData -> (ByteString, Set Team) -> IO ()
 generateMiniLeague group dir results tabs metaData (name, teams) = do let selectedTabs = map (\(n, f) -> (n, f, n == name)) tabs -- Add a boolean "selected" flag to each tab.
-                                                                          attributes = [("table", AV $ miniLeagueTable teams $ byTeam results),
+                                                                          attributes = [("table", AV . miniLeagueTable teams $ byTeam results),
                                                                                         ("miniLeaguesSelected", AV True),
                                                                                         ("name", AV name),
                                                                                         ("bottomTabs", AV selectedTabs),
@@ -220,7 +220,7 @@ generateMiniLeague group dir results tabs metaData (name, teams) = do let select
                                                                       applyTemplateWithName group "minileague.html" dir (toHTMLFileName name) attributes
 
 generateTeamPages :: STGroup ByteString -> FilePath -> Results -> Map Team [(Day, Int)] -> MetaData -> IO ()
-generateTeamPages group dir results positions metaData = mapM_ (\(team, res) -> generateTeamPage group dir team res (positions ! team) metaData) $ Map.assocs $ byTeam results
+generateTeamPages group dir results positions metaData = mapM_ (\(team, res) -> generateTeamPage group dir team res (positions ! team) metaData) . Map.assocs $ byTeam results
 
 -- | Generate the overview page for an individual team.
 generateTeamPage :: STGroup ByteString -> FilePath -> Team -> [Result] -> [(Day, Int)] -> MetaData -> IO ()

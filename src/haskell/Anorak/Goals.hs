@@ -25,7 +25,7 @@ topScorers results filtr count = takeAtLeast count $ groupBy (equal snd3) scorer
 
 extractGoals :: (Goal -> Bool) -> Result -> [(Goal, Team)]
 extractGoals filtr result = getGoals homeTeam homeGoals ++ getGoals awayTeam awayGoals
-                            where getGoals ft fg = map (\g -> (g, ft result)) $ filter filtr $ fg result
+                            where getGoals ft fg = map (\g -> (g, ft result)) . filter filtr $ fg result
 
 -- | Sort and group by scorer.  The type g could be either Goal or (Goal, Team), so the first argument
 --   is the function to extract the scorer.
@@ -54,7 +54,7 @@ getMatchHatTricks result
 
 extractHatTricks :: [Goal] -> [(ByteString, Int)]
 extractHatTricks goals = map (\g -> (scorer $ head g, length g)) byScorer
-                         where byScorer = filter ((>= 3).length) $ groupByScorer scorer $ filter ((/= "o").goalType) goals
+                         where byScorer = filter ((>= 3).length) . groupByScorer scorer $ filter ((/= "o").goalType) goals
 
 compareHatTrick :: (ByteString, Int, Team, TeamResult) -> (ByteString, Int, Team, TeamResult) -> Ordering
 compareHatTrick (_, c1, _, r1) (_, c2, _, r2)
