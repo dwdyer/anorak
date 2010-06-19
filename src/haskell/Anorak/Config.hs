@@ -32,6 +32,7 @@ data Season = Season {seasonName :: String,     -- ^ The name of the season (e.g
                       outputDir :: FilePath,    -- ^ The directory to write the generated files to.
                       relativeLink :: FilePath, -- ^ Link relative to the web root.
                       scorers :: Bool,          -- ^ Whether goal-scorer data should be used if present.
+                      neutral :: Bool,          -- ^ Whether all fixtures should be considered as neutral venues so that home/away statistics are not generated.
                       archive :: Bool,          -- ^ Whether this is an archive season rather than current.
                       aggregated :: Bool,       -- ^ Whether this is an aggregate of multiple seasons from the same division.
                       collated :: Bool}         -- ^ Whether this is the combination of multiple divisions from the same season.
@@ -70,6 +71,7 @@ processSeasonTag baseDir outputDir tag = Season (getAttributeValue tag "name")
                                                 (makeAbsolute seasonDir outputDir)
                                                 ("../../../" ++ seasonDir ++ "/index.html")
                                                 (getBooleanAttribute tag "scorers")
+                                                (getBooleanAttribute tag "neutral")
                                                 (getBooleanAttribute tag "archive")
                                                 (getBooleanAttribute tag "aggregated")
                                                 (getBooleanAttribute tag "collated")

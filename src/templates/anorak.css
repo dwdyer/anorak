@@ -37,7 +37,7 @@ th                       {margin-bottom: 1.385em;}
 .details                 {color: #000000; background-color: #eeeeee; border: 1px solid #cccccc; font-family: sans-serif; padding: .5em; text-align: left; font-weight: normal;
                           display: none; position: absolute; margin-left: 3.5em; margin-top: -1em;}
 .details table           {margin: 0; padding: 0 !important}
-.details .score          {padding: 0px}
+.details .score          {padding: 0px;}
 .hover .details          {display: block;}
 .hometeam                {text-align: right;}
 .hotspot                 {border-bottom: 1px dotted #888888;}
@@ -51,7 +51,7 @@ th                       {margin-bottom: 1.385em;}
 .points                  {font-weight: bold;}
 .position                {padding-right: 1em;}
 .positive                {color: #006600;}
-.score                   {font-weight: bold; padding: 0 1em; white-space: nowrap;}
+.score                   {font-weight: bold; padding: 0 1em; white-space: nowrap; text-align: center;}
 .scorers                 {padding-left: 1em; font-size: smaller; color: #7f7f7f; vertical-align: middle;}
 .scorer                  {white-space: nowrap;}
 

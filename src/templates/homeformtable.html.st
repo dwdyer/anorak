@@ -12,9 +12,11 @@ $header(title="Home Form Table (Last 4 Home Matches)")$
     $formtable(detail="Last 4 Home Matches")$
   </div>
   <div id="bottomtabs">
-    $tab(label="Overall";hint="Overall Form";link="formtable.html")$
-    $tab(label="Home";hint="Home Form";link="homeformtable.html";selected="true")$
-    $tab(label="Away";hint="Away Form";link="awayformtable.html")$
+    $if(!metaData.neutral)$
+      $tab(label="Overall";hint="Overall Form";link="formtable.html")$
+      $tab(label="Home";hint="Home Form";link="homeformtable.html";selected="true")$
+      $tab(label="Away";hint="Away Form";link="awayformtable.html")$
+    $endif$
   </div>
 </div>
 $footer()$

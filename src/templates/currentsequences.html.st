@@ -11,9 +11,11 @@ $header(title="Current Sequences")$
     $sequences()$
   </div>
   <div id="bottomtabs">
-    $tab(label="Overall";hint="Current Sequences (All Matches)";link="currentsequences.html";selected="true")$
-    $tab(label="Home";hint="Current Home Sequences";link="homecurrentsequences.html")$
-    $tab(label="Away";hint="Current Away Sequences";link="awaycurrentsequences.html")$
+    $if(!metaData.neutral)$
+      $tab(label="Overall";hint="Current Sequences (All Matches)";link="currentsequences.html";selected="true")$
+      $tab(label="Home";hint="Current Home Sequences";link="homecurrentsequences.html")$
+      $tab(label="Away";hint="Current Away Sequences";link="awaycurrentsequences.html")$
+    $endif$
   </div>
 </div>
 $footer()$

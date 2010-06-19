@@ -75,6 +75,7 @@ data MetaData = MetaData {league :: String,
                           isAggregated :: Bool,
                           isCollated :: Bool,
                           isArchive :: Bool,
+                          isNeutral :: Bool,
                           hasScorers :: Bool,
                           teamLinks :: Map String String,
                           miniLeaguesLink :: Maybe String}
@@ -86,6 +87,7 @@ instance ToSElem MetaData where
                                          ("isCollated", toSElem $ isCollated meta),
                                          ("league", STR $ league meta),
                                          ("miniLeaguesLink", toSElem $ miniLeaguesLink meta),
+                                         ("neutral", toSElem $ isNeutral meta),
                                          ("season", STR $ season meta),
                                          ("teamLinks", SM . Map.map toSElem $ teamLinks meta)]
 
@@ -146,30 +148,32 @@ applyTemplateWithName group templateName dir fileName attributes = case getStrin
 generateLeagueTables :: STGroup ByteString -> FilePath -> Results -> Map Team Int -> MetaData -> Int -> IO ()
 generateLeagueTables group dir results adjustments metaData sp = do let attributes = [("tableSelected", AV True), ("metaData", AV metaData)]
                                                                     applyTemplateWithName group "table.html" dir "index.html" (("table", AV $ leagueTable (byTeam results) adjustments sp):attributes)
-                                                                    applyTemplate group "hometable.html" dir (("table", AV $ leagueTable (homeOnly results) Map.empty 0):attributes)
-                                                                    applyTemplate group "awaytable.html" dir (("table", AV $ leagueTable (awayOnly results) Map.empty 0):attributes)
-                                                                    unless (not $ hasScorers metaData) $ applyTemplate group "firsthalftable.html" dir (("table", AV $ leagueTable (firstHalf results) Map.empty 0):attributes)
-                                                                    unless (not $ hasScorers metaData) $ applyTemplate group "secondhalftable.html" dir (("table", AV $ leagueTable (secondHalf results) Map.empty 0):attributes)
+                                                                    unless (isNeutral metaData) $ applyTemplate group "hometable.html" dir (tableAttrib homeOnly:attributes)
+                                                                    unless (isNeutral metaData) $ applyTemplate group "awaytable.html" dir (tableAttrib awayOnly:attributes)
+                                                                    unless (not $ hasScorers metaData) $ applyTemplate group "firsthalftable.html" dir (tableAttrib firstHalf:attributes)
+                                                                    unless (not $ hasScorers metaData) $ applyTemplate group "secondhalftable.html" dir (tableAttrib secondHalf:attributes)
+                                                                    where tableAttrib rf = ("table", AV $ leagueTable (rf results) Map.empty 0)
 
 generateFormTables :: STGroup ByteString -> FilePath -> Results -> MetaData -> IO ()
 generateFormTables group dir results metaData = do let attributes = [("formSelected", AV True), ("metaData", AV metaData)]
                                                    applyTemplate group "formtable.html" dir (("table", AV $ formTable (byTeam results) 6):attributes)
-                                                   applyTemplate group "homeformtable.html" dir (("table", AV $ formTable (homeOnly results) 4):attributes)
-                                                   applyTemplate group "awayformtable.html" dir (("table", AV $ formTable (awayOnly results) 4):attributes)
+                                                   unless (isNeutral metaData) $ applyTemplate group "homeformtable.html" dir (("table", AV $ formTable (homeOnly results) 4):attributes)
+                                                   unless (isNeutral metaData) $ applyTemplate group "awayformtable.html" dir (("table", AV $ formTable (awayOnly results) 4):attributes)
 
 -- | Generates current and longest sequences for home, away and all matches.
 generateSequences :: STGroup ByteString -> FilePath -> Results -> MetaData -> IO ()
-generateSequences group dir results metaData = do let (overallCurrent, overallLongest) = getSequenceTables $ byTeam results
-                                                      (homeCurrent, homeLongest) = getSequenceTables $ homeOnly results
-                                                      (awayCurrent, awayLongest) = getSequenceTables $ awayOnly results
-                                                      attributes = [("metaData", AV metaData)]
-                                                  unless (isArchive metaData) $ applyTemplate group "currentsequences.html" dir (("sequences", convertTables overallCurrent):("currentSequencesSelected", AV True):attributes)
-                                                  applyTemplate group "longestsequences.html" dir (("sequences", convertTables overallLongest):("longestSequencesSelected", AV True):attributes)
-                                                  unless (isArchive metaData) $ applyTemplate group "homecurrentsequences.html" dir (("sequences", convertTables homeCurrent):("currentSequencesSelected", AV True):attributes)
-                                                  applyTemplate group "homelongestsequences.html" dir (("sequences", convertTables homeLongest):("longestSequencesSelected", AV True):attributes)
-                                                  unless (isArchive metaData) $ applyTemplate group "awaycurrentsequences.html" dir (("sequences", convertTables awayCurrent):("currentSequencesSelected", AV True):attributes)
-                                                  applyTemplate group "awaylongestsequences.html" dir (("sequences", convertTables awayLongest):("longestSequencesSelected", AV True):attributes)
-                                                  where convertTables = AV . Map.mapKeys show
+generateSequences group dir results meta = do let (overallCurrent, overallLongest) = getSequenceTables $ byTeam results
+                                                  (homeCurrent, homeLongest) = getSequenceTables $ homeOnly results
+                                                  (awayCurrent, awayLongest) = getSequenceTables $ awayOnly results
+                                                  attributes = [("metaData", AV meta)]
+                                              unless (isArchive meta) $ applyTemplate group "currentsequences.html" dir $ seqAttribs overallCurrent "currentSequencesSelected" attributes
+                                              applyTemplate group "longestsequences.html" dir $ seqAttribs overallLongest "longestSequencesSelected" attributes
+                                              unless (isArchive meta || isNeutral meta) $ applyTemplate group "homecurrentsequences.html" dir $ seqAttribs homeCurrent "currentSequencesSelected" attributes
+                                              applyTemplate group "homelongestsequences.html" dir $ seqAttribs homeLongest "longestSequencesSelected" attributes
+                                              unless (isArchive meta || isNeutral meta) $ applyTemplate group "awaycurrentsequences.html" dir $ seqAttribs awayCurrent "currentSequencesSelected" attributes
+                                              applyTemplate group "awaylongestsequences.html" dir $ seqAttribs awayLongest "longestSequencesSelected" attributes
+                                              where convertTables = AV . Map.mapKeys show
+                                                    seqAttribs seqs sel attribs = (("sequences", convertTables seqs):(sel, AV True):attribs)
 
 -- | Generates team aggregates for all matches.
 generateAggregates:: STGroup ByteString -> FilePath -> Results -> MetaData -> IO ()
@@ -197,6 +201,7 @@ generateResults group dir results metaData = do let homeWinMatches = homeWins $ 
                                                                                         ("goals", AV goalCount),
                                                                                         ("bigHomeWins", AV $ biggestWins homeWinMatches),
                                                                                         ("bigAwayWins", AV $ biggestWins awayWinMatches),
+                                                                                        ("bigWins", AV . biggestWins $ list results),
                                                                                         ("highAggregates", AV highAggregates),
                                                                                         ("resultsSelected", AV True),
                                                                                         ("metaData", AV metaData)]
@@ -308,6 +313,7 @@ publishSeason templates lgName divName season = do let dataFile = inputFile seas
                                                                                            (aggregated season)
                                                                                            (collated season)
                                                                                            (archive season)
+                                                                                           (neutral season)
                                                                                            (scorers season)
                                                                                            teamLinks
                                                                                            (getMiniLeaguesLink miniLeagues)

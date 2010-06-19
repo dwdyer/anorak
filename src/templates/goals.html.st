@@ -17,15 +17,7 @@ $header(title="Goals")$
     </table>
     <table id="hattricks">
       <tr><td colspan="3"><h3>Hat-Tricks</h3></td></tr>
-      $hatTricks:{
-        <tr>
-          <td>$it.("3").day;format="%a %e %b %Y"$</td>
-          <td>$it.("0")$</td>
-          <td><a href="$metaData.teamLinks.(it.("2"))$">$it.("2")$</a></td>
-          <td><b>$it.("1")$</b> goals</td>
-          <td>$it.("3").scored$-$it.("3").conceded$</td>
-          <td>vs. <a href="$metaData.teamLinks.(it.("3").opposition)$">$it.("3").opposition$</a> ($it.("3").venue$)</td>
-      }$
+      $hatTricks:hattrick()$
     </table>
   </div>
   <div id="bottomtabs"></div>
