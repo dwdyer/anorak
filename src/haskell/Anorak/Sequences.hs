@@ -26,18 +26,18 @@ getSequenceTables results = (sequenceTables $ Map.map (Map.map fst) teamSequence
                             where teamSequences = sequencesByTeam results
 
 sequenceTables :: Map Team TeamSequences -> Map SequenceType SequenceTable
-sequenceTables sequences = Map.fromList [(Wins, sequenceTable sequences Wins),
-                                         (Draws, sequenceTable sequences Draws),
-                                         (Losses, sequenceTable sequences Losses),
-                                         (Unbeaten, sequenceTable sequences Unbeaten),
-                                         (NoWin, sequenceTable sequences NoWin),
-                                         (Cleansheets, sequenceTable sequences Cleansheets),
-                                         (Conceded, sequenceTable sequences Conceded),
-                                         (Scored, sequenceTable sequences Scored),        
-                                         (NoGoal, sequenceTable sequences NoGoal)]
+sequenceTables seqs = Map.fromList [(Wins, sequenceTable seqs Wins),
+                                    (Draws, sequenceTable seqs Draws),
+                                    (Losses, sequenceTable seqs Losses),
+                                    (Unbeaten, sequenceTable seqs Unbeaten),
+                                    (NoWin, sequenceTable seqs NoWin),
+                                    (Cleansheets, sequenceTable seqs Cleansheets),
+                                    (Conceded, sequenceTable seqs Conceded),
+                                    (Scored, sequenceTable seqs Scored),        
+                                    (NoGoal, sequenceTable seqs NoGoal)]
 
 sequenceTable :: Map Team TeamSequences -> SequenceType -> SequenceTable
-sequenceTable sequences seqType = sortTable $ Map.toList (Map.map (! seqType) sequences)
+sequenceTable seqs seqType = sortTable $ Map.toList (Map.map (! seqType) seqs)
 
 -- | Sort a sequence table.
 sortTable :: SequenceTable -> SequenceTable
@@ -72,18 +72,18 @@ emptySequences = Map.fromList [(Wins, (Seq.empty, Seq.empty)),
 
 -- | Adds a result to any sequences that it relates to.
 addResultToAllSequences :: CombinedTeamSequences -> TeamResult -> CombinedTeamSequences
-addResultToAllSequences sequences result = Map.mapWithKey (addResultToSequences result) sequences
+addResultToAllSequences seqs result = Map.mapWithKey (addResultToSequences result) seqs
 
 addResultToSequences :: TeamResult -> SequenceType -> (Seq TeamResult, Seq TeamResult) -> (Seq TeamResult, Seq TeamResult)
-addResultToSequences result Wins sequences        = addMatchingResultToSequences result (('W' ==) . outcome) sequences 
-addResultToSequences result Draws sequences       = addMatchingResultToSequences result (('D' ==) . outcome) sequences 
-addResultToSequences result Losses sequences      = addMatchingResultToSequences result (('L' ==) . outcome) sequences 
-addResultToSequences result Unbeaten sequences    = addMatchingResultToSequences result (('L' /=) . outcome) sequences 
-addResultToSequences result NoWin sequences       = addMatchingResultToSequences result (('W' /=) . outcome) sequences 
-addResultToSequences result Cleansheets sequences = addMatchingResultToSequences result ((0 ==) . conceded) sequences 
-addResultToSequences result Conceded sequences    = addMatchingResultToSequences result ((0 <) . conceded) sequences 
-addResultToSequences result Scored sequences      = addMatchingResultToSequences result ((0 <) . scored) sequences 
-addResultToSequences result NoGoal sequences      = addMatchingResultToSequences result ((0 ==) . scored) sequences 
+addResultToSequences result Wins seqs        = addMatchingResultToSequences result (('W' ==) . outcome) seqs 
+addResultToSequences result Draws seqs       = addMatchingResultToSequences result (('D' ==) . outcome) seqs 
+addResultToSequences result Losses seqs      = addMatchingResultToSequences result (('L' ==) . outcome) seqs 
+addResultToSequences result Unbeaten seqs    = addMatchingResultToSequences result (('L' /=) . outcome) seqs 
+addResultToSequences result NoWin seqs       = addMatchingResultToSequences result (('W' /=) . outcome) seqs 
+addResultToSequences result Cleansheets seqs = addMatchingResultToSequences result ((0 ==) . conceded) seqs 
+addResultToSequences result Conceded seqs    = addMatchingResultToSequences result ((0 <) . conceded) seqs 
+addResultToSequences result Scored seqs      = addMatchingResultToSequences result ((0 <) . scored) seqs 
+addResultToSequences result NoGoal seqs      = addMatchingResultToSequences result ((0 ==) . scored) seqs 
 
 addMatchingResultToSequences :: TeamResult -> (TeamResult -> Bool) -> (Seq TeamResult, Seq TeamResult) -> (Seq TeamResult, Seq TeamResult)
 addMatchingResultToSequences result predicate (current, overall)

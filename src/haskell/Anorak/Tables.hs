@@ -5,7 +5,7 @@ import Anorak.Results
 import Anorak.Utils(keep)
 import Data.ByteString.Char8(ByteString)
 import qualified Data.ByteString.Char8 as BS(unpack)
-import Data.List(foldl', sort, sortBy)
+import Data.List(foldl', sort)
 import Data.Map(Map, (!))
 import qualified Data.Map as Map(adjust, adjustWithKey, elems, empty, filterWithKey, findWithDefault, fromAscList, keysSet, map, mapAccum, mapWithKey)
 import Data.Ord(comparing)
@@ -69,21 +69,21 @@ pointsPerGame record = fromIntegral (points record) / fromIntegral (played recor
 -- | Builds a LeagueRecord for the specified team, including all of the results (from those provided) in which that
 --   team was involved.
 buildRecord :: Team -> [Result] -> LeagueRecord
-buildRecord team = foldl' (addResultToRecord team) (LeagueRecord team 0 0 0 0 0 0)
+buildRecord t = foldl' (addResultToRecord t) (LeagueRecord t 0 0 0 0 0 0)
 
 -- | Adds a single match result to a particular team's league record.  If the specified team was not involved in that
 --   match, the match is ignored.
 addResultToRecord :: Team -> LeagueRecord -> Result -> LeagueRecord
-addResultToRecord team record result 
-    | team == homeTeam result = addScoreToRecord record (homeScore result) (awayScore result)
-    | team == awayTeam result = addScoreToRecord record (awayScore result) (homeScore result)
-    | otherwise               = record
+addResultToRecord t record result 
+    | t == homeTeam result = addScoreToRecord record (homeScore result) (awayScore result)
+    | t == awayTeam result = addScoreToRecord record (awayScore result) (homeScore result)
+    | otherwise            = record
 
 addScoreToRecord :: LeagueRecord -> Int -> Int -> LeagueRecord
-addScoreToRecord (LeagueRecord team won drawn lost for against adjustment) scored conceded
-    | scored > conceded  = LeagueRecord team (won + 1) drawn lost (for + scored) (against + conceded) adjustment
-    | scored == conceded = LeagueRecord team won (drawn + 1) lost (for + scored) (against + conceded) adjustment
-    | otherwise          = LeagueRecord team won drawn (lost + 1) (for + scored) (against + conceded) adjustment
+addScoreToRecord (LeagueRecord t w d l f a adj) goalsScored goalsConceded
+    | goalsScored > goalsConceded  = LeagueRecord t (w + 1) d l (f + goalsScored) (a + goalsConceded) adj
+    | goalsScored == goalsConceded = LeagueRecord t w (d + 1) l (f + goalsScored) (a + goalsConceded) adj
+    | otherwise                    = LeagueRecord t w d (l + 1) (f + goalsScored) (a + goalsConceded) adj
 
 -- | Produces a standard league table with teams ordered in descending order of points.  Takes a map of teams to
 --   results and a map of points adjustments and returns a sorted list of league records.
@@ -140,7 +140,7 @@ leaguePositions teams results adj = foldr addPosition emptyPosMap positions
                                           -- Convert the daily tables to ordered lists of LeagueRecords.
                                           tablesByDate = Map.map (sort.Map.elems) recordsByDate
                                           -- Convert the previous data structure to a list of triples (team, date, position).
-                                          positions = concat . Map.elems $ Map.mapWithKey (\day recs -> zip3 (map team recs) (repeat day) [1..]) tablesByDate
+                                          positions = concat . Map.elems $ Map.mapWithKey (\matchDay records -> zip3 (map team records) (repeat matchDay) [1..]) tablesByDate
                                           -- An initial map, with one entry for each team, into which the above triples are folded.
                                           emptyPosMap = Map.fromAscList [(t, []) | t <- teamList]
                                       
@@ -150,7 +150,7 @@ tableAccum table results = (table', table')
 
 addResultToTable :: Map Team LeagueRecord -> Result -> Map Team LeagueRecord
 addResultToTable table result = Map.adjustWithKey update hTeam $ Map.adjustWithKey update aTeam table
-                                where update team record = addResultToRecord team record result
+                                where update t record = addResultToRecord t record result
                                       hTeam = homeTeam result
                                       aTeam = awayTeam result
                         

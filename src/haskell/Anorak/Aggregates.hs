@@ -5,7 +5,6 @@ import Anorak.Results
 import Data.List(foldl', sortBy)
 import Data.Map(Map, (!))
 import qualified Data.Map as Map(fromList, map, mapWithKey, toList)
-import Data.Ord(comparing)
 
 -- | The supported aggregate types.
 data AggregateType = Cleansheets | Blanks | BoreDraws | ScoreDraws
@@ -20,7 +19,7 @@ getAggregateTables results = Map.fromList [(Cleansheets, aggregateTable teamAggr
                              where teamAggregates = aggregatesByTeam results
 
 aggregateTable :: Map Team (Map AggregateType Int) -> AggregateType -> [(Team, Int)]
-aggregateTable aggregates aggType = sortTable . Map.toList $ Map.map (! aggType) aggregates
+aggregateTable aggs aggType = sortTable . Map.toList $ Map.map (! aggType) aggs
 
 -- | Sort aggregate table in descending order.
 sortTable :: [(Team, Int)] -> [(Team, Int)]
@@ -41,7 +40,7 @@ aggregates :: [TeamResult] -> Map AggregateType Int
 aggregates = foldl' addResultToAllAggregates $ Map.fromList [(Cleansheets, 0), (Blanks, 0), (BoreDraws, 0), (ScoreDraws, 0)]
 
 addResultToAllAggregates :: Map AggregateType Int -> TeamResult -> Map AggregateType Int
-addResultToAllAggregates aggregates result = Map.mapWithKey (addResultToAggregates result) aggregates
+addResultToAllAggregates aggs result = Map.mapWithKey (addResultToAggregates result) aggs
 
 addResultToAggregates :: TeamResult -> AggregateType -> Int -> Int
 addResultToAggregates result Cleansheets n = if conceded result == 0 then n + 1 else n

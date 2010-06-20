@@ -1,5 +1,6 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- | HTML publishing module for the Anorak system.
 module Anorak.Publisher (copyResources, publishLeagues) where
@@ -16,15 +17,12 @@ import Control.Monad(filterM, unless)
 import Data.ByteString.Char8(ByteString)
 import qualified Data.ByteString.Char8 as BS(append, filter, map, unpack, writeFile)
 import Data.Char(isSpace, toLower)
-import Data.Data(Data)
 import Data.List(foldl', isPrefixOf, isSuffixOf, nub)
 import Data.Map(Map, (!))
-import qualified Data.Map as Map(alter, assocs, empty, findWithDefault, fromAscList, insert, keys, map, mapKeys, size, toDescList)
-import Data.Sequence(Seq)
+import qualified Data.Map as Map(alter, assocs, empty, findWithDefault, fromAscList, insert, map, mapKeys, size, toDescList)
 import Data.Set(Set)
 import qualified Data.Set as Set(toList)
 import Data.Time.Calendar(Day)
-import Data.Typeable(Typeable)
 import System.Directory(createDirectoryIfMissing, doesFileExist, getDirectoryContents)
 import System.FilePath(combine)
 import Text.StringTemplate(getStringTemplate, render, setManyAttrib, STGroup, stShowsToSE)
@@ -101,14 +99,14 @@ adjustmentString adj
 -- | If a player has scored more than one goal in the game, combine those goals into a single entry.
 --   Returns a list of pairs, first item is the player's name, second is a string containing details of their goals.
 reduceScorers :: [Goal] -> [(ByteString, String)]
-reduceScorers goals = map (\s -> (s, reducedMap!s)) scorers
-                      where reducedMap = foldl' addGoalToScorers Map.empty goals
-                            scorers = nub $ map scorer goals
+reduceScorers goalsList = map (\s -> (s, reducedMap!s)) players
+                          where reducedMap = foldl' addGoalToScorers Map.empty goalsList
+                                players = nub $ map scorer goalsList
 
 addGoalToScorers :: Map ByteString String -> Goal -> Map ByteString String
-addGoalToScorers scorers goal = Map.alter (updateScorer goal) (scorer goal) scorers
-                                where updateScorer goal Nothing  = Just $ goalTypeString goal ++ show (minute goal)
-                                      updateScorer goal (Just d) = Just $ d ++ ", " ++ goalTypeString goal ++ show (minute goal)
+addGoalToScorers players goal = Map.alter (updateScorer goal) (scorer goal) players
+                                where updateScorer g Nothing  = Just $ goalTypeString g ++ show (minute g)
+                                      updateScorer g (Just d) = Just $ d ++ ", " ++ goalTypeString g ++ show (minute g)
 
 goalTypeString :: Goal -> String
 goalTypeString goal = case goalType goal of
@@ -220,44 +218,44 @@ generateMiniLeague group dir results aliases tabs metaData (name, teams) = do le
                                                                               applyTemplateWithName group "minileague.html" dir (toHTMLFileName name) attributes
 
 generateTeamPages :: STGroup ByteString -> FilePath -> Results -> Map Team [(Day, Int)] -> MetaData -> IO ()
-generateTeamPages group dir results positions metaData = mapM_ (\(team, res) -> generateTeamPage group dir team res (positions ! team) metaData) . Map.assocs $ byTeam results
+generateTeamPages group dir results positions metaData = mapM_ (\(t, res) -> generateTeamPage group dir t res (positions ! t) metaData) . Map.assocs $ byTeam results
 
 -- | Generate the overview page for an individual team.
 generateTeamPage :: STGroup ByteString -> FilePath -> Team -> [Result] -> [(Day, Int)] -> MetaData -> IO ()
-generateTeamPage group dir team results positions metaData = do let (homeResults, awayResults) = partitionResults team results
-                                                                    teamResults = map (convertResult team) results
-                                                                    (goalScorers, ownGoals) = teamGoalScorers teamResults
-                                                                    attributes = [("team", AV team),
-                                                                                  ("results", AV teamResults),
-                                                                                  ("record", AV $ getSummary team results),
-                                                                                  ("homeRecord", AV $ getSummary team homeResults),
-                                                                                  ("awayRecord", AV $ getSummary team awayResults),
-                                                                                  ("scorers", AV goalScorers),
-                                                                                  ("ownGoals", AV $ show ownGoals),
-                                                                                  ("positions", AV positions),
-                                                                                  ("teamCount", AV . Map.size $ teamLinks metaData),
-                                                                                  ("metaData", AV metaData)]
-                                                                applyTemplateWithName group "team.html" dir (teamLinks metaData ! BS.unpack team) attributes
+generateTeamPage group dir t results positions metaData = do let (homeResults, awayResults) = partitionResults t results
+                                                                 teamResults = map (convertResult t) results
+                                                                 (goalScorers, ownGoals) = teamGoalScorers teamResults
+                                                                 attributes = [("team", AV t),
+                                                                               ("results", AV teamResults),
+                                                                               ("record", AV $ getSummary t results),
+                                                                               ("homeRecord", AV $ getSummary t homeResults),
+                                                                               ("awayRecord", AV $ getSummary t awayResults),
+                                                                               ("scorers", AV goalScorers),
+                                                                               ("ownGoals", AV $ show ownGoals),
+                                                                               ("positions", AV positions),
+                                                                               ("teamCount", AV . Map.size $ teamLinks metaData),
+                                                                               ("metaData", AV metaData)]
+                                                             applyTemplateWithName group "team.html" dir (teamLinks metaData ! BS.unpack t) attributes
 
 getSummary :: Team -> [Result] -> (Int, Float, Int, Float, Int, Float)
-getSummary team results = (won record,
-                           percentage (won record) matches,
-                           drawn record,
-                           percentage (drawn record) matches,
-                           lost record,
-                           percentage (lost record) matches)
-                          where record = buildRecord team results
-                                matches = played record
+getSummary t results = (won record,
+                        percentage (won record) matches,
+                        drawn record,
+                        percentage (drawn record) matches,
+                        lost record,
+                        percentage (lost record) matches)
+                       where record = buildRecord t results
+                             matches = played record
 
 -- | Generates the top scorers list (only if there are scorers in the data).
 generateGoals:: STGroup ByteString -> FilePath -> Results -> MetaData -> IO ()
-generateGoals group dir results metaData = do let scorers = topGoalScorers $ list results
-                                                  attributes = [("scorers", AV scorers),
+generateGoals group dir results metaData = do let players = topGoalScorers $ list results
+                                                  attributes = [("scorers", AV players),
                                                                 ("penalties", AV . topPenaltyScorers $ list results),
                                                                 ("hatTricks", AV . hatTricks $ list results),
                                                                 ("goalsSelected", AV True),
                                                                 ("metaData", AV metaData)]
-                                              unless (null scorers) $ applyTemplate group "goals.html" dir attributes
+                                              unless (null players) $ applyTemplate group "goals.html" dir attributes
 
 -- | Convert a string for use as a filename (converts to lower case and eliminates whitespace).
 toHTMLFileName :: ByteString -> String
@@ -294,28 +292,28 @@ publishLeagues templates config = do applyTemplate templates "selector.json" (ou
                                      mapM_ (publishLeague templates) $ leagues config
 
 publishLeague :: STGroup ByteString -> League -> IO ()
-publishLeague templates league = mapM_ (publishDivision templates (leagueName league)) $ divisions league
+publishLeague templates lg = mapM_ (publishDivision templates (leagueName lg)) $ divisions lg
 
 publishDivision :: STGroup ByteString -> String -> Division -> IO ()
-publishDivision templateGroup leagueName division = mapM_ (publishSeason templateGroup leagueName (divisionName division)) $ seasons division
+publishDivision templateGroup lgName lgDiv = mapM_ (publishSeason templateGroup lgName (divisionName lgDiv)) $ seasons lgDiv
 
 publishSeason :: STGroup ByteString -> String -> String -> Season -> IO ()
-publishSeason templates lgName divName season = do let dataFile = inputFile season
-                                                   modified <- isNewer dataFile (combine (outputDir season) "index.html")
-                                                   case modified || aggregated season || collated season of
-                                                       False -> print $ "Skipping unchanged file " ++ dataFile 
-                                                       True  -> do print $ "Processing " ++ dataFile
-                                                                   leagueData@(LeagueData teams results _ miniLeagues _ aliases) <- parseRLTFile dataFile
-                                                                   let teamLinks = mapTeamNames (Set.toList teams) aliases
-                                                                       metaData = MetaData lgName
-                                                                                           divName
-                                                                                           (seasonName season)
-                                                                                           (aggregated season)
-                                                                                           (collated season)
-                                                                                           (archive season)
-                                                                                           (neutral season)
-                                                                                           (scorers season)
-                                                                                           teamLinks
-                                                                                           (getMiniLeaguesLink miniLeagues)
-                                                                   generateStatsPages templates (outputDir season) leagueData metaData 
+publishSeason templates lgName divName divSeason = do let dataFile = inputFile divSeason
+                                                      modified <- isNewer dataFile (combine (outputDir divSeason) "index.html")
+                                                      case modified || aggregated divSeason || collated divSeason of
+                                                          False -> print $ "Skipping unchanged file " ++ dataFile 
+                                                          True  -> do print $ "Processing " ++ dataFile
+                                                                      leagueData@(LeagueData teams _ _ miniLeagues _ aliases) <- parseRLTFile dataFile
+                                                                      let links = mapTeamNames (Set.toList teams) aliases
+                                                                          metaData = MetaData lgName
+                                                                                              divName
+                                                                                              (seasonName divSeason)
+                                                                                              (aggregated divSeason)
+                                                                                              (collated divSeason)
+                                                                                              (archive divSeason)
+                                                                                              (neutral divSeason)
+                                                                                              (scorers divSeason)
+                                                                                              links
+                                                                                              (getMiniLeaguesLink miniLeagues)
+                                                                      generateStatsPages templates (outputDir divSeason) leagueData metaData 
 

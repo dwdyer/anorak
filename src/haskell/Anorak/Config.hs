@@ -52,23 +52,23 @@ readConfig file = do xml <- readFile file
                          Just element -> return $ convertXMLDocumentToConfig file element
 
 convertXMLDocumentToConfig :: FilePath -> Element -> Configuration
-convertXMLDocumentToConfig configFile element = Configuration outputDir templateDir leagues
-                                                where configDir = takeDirectory configFile
-                                                      outputDir = makeAbsolute (getAttributeValue element "output") configDir
-                                                      templateDir = makeAbsolute (getAttributeValue element "templates") configDir
-                                                      inputDir = takeDirectory configFile
-                                                      leagues = map (processLeagueTag inputDir outputDir) $ findChildren (xmlName "league") element
+convertXMLDocumentToConfig configFile element = Configuration outputPath templatePath leaguesList
+                                                where configPath = takeDirectory configFile
+                                                      outputPath = makeAbsolute (getAttributeValue element "output") configPath
+                                                      templatePath = makeAbsolute (getAttributeValue element "templates") configPath
+                                                      inputPath = takeDirectory configFile
+                                                      leaguesList = map (processLeagueTag inputPath outputPath) $ findChildren (xmlName "league") element
 
 processLeagueTag :: FilePath -> FilePath -> Element -> League
-processLeagueTag baseDir outputDir tag = League (getAttributeValue tag "name") (map (processDivisionTag baseDir outputDir) $ findChildren (xmlName "division") tag)
+processLeagueTag baseDir outputPath tag = League (getAttributeValue tag "name") (map (processDivisionTag baseDir outputPath) $ findChildren (xmlName "division") tag)
 
 processDivisionTag :: FilePath -> FilePath -> Element -> Division
-processDivisionTag baseDir outputDir tag = Division (getAttributeValue tag "name") (map (processSeasonTag baseDir outputDir) $ findChildren (xmlName "season") tag)
+processDivisionTag baseDir outputPath tag = Division (getAttributeValue tag "name") (map (processSeasonTag baseDir outputPath) $ findChildren (xmlName "season") tag)
 
 processSeasonTag :: FilePath -> FilePath -> Element -> Season
-processSeasonTag baseDir outputDir tag = Season (getAttributeValue tag "name")
+processSeasonTag baseDir outputPath tag = Season (getAttributeValue tag "name")
                                                 (makeAbsolute (getAttributeValue tag "input") baseDir)
-                                                (makeAbsolute seasonDir outputDir)
+                                                (makeAbsolute seasonDir outputPath)
                                                 ("../../../" ++ seasonDir ++ "/index.html")
                                                 (getBooleanAttribute tag "scorers")
                                                 (getBooleanAttribute tag "neutral")

@@ -103,7 +103,7 @@ resultsByDate (result:rs) = addResultToMap (resultsByDate rs) date result
 
 -- | Helper function for adding a result to a map that maps an aribtrary key type to a list of results.
 addResultToMap :: Ord k => Map k [Result] -> (Result -> k) -> Result -> Map k [Result]
-addResultToMap map keyFunction result = Map.insertWith (++) (keyFunction result) [result] map
+addResultToMap rMap keyFunction result = Map.insertWith (++) (keyFunction result) [result] rMap
 
 -- | Splits each team's results into home results and away results.  The first item in the mapped tuple is the team's
 --   home results, the second is their away results.
@@ -153,14 +153,14 @@ splitFirstAndSecondHalf = unzip . map splitResult
 
 -- | Convert a single 90-minute result into hypothetical first-half and second-half results.
 splitResult :: Result -> (Result, Result)
-splitResult (Result d ht hs at as hg ag) = (firstHalfResult, secondHalfResult)
-                                           where (fstHalfHGoals, laterHGoals) = partition ((<= 45).minute) hg
-                                                 (fstHalfAGoals, laterAGoals) = partition ((<= 45).minute) ag
-                                                 -- Filter out any extra-time goals.
-                                                 sndHalfHGoals = filter ((<= 90).minute) laterHGoals
-                                                 sndHalfAGoals = filter ((<= 90).minute) laterAGoals
-                                                 firstHalfResult = Result d ht (length fstHalfHGoals) at (length fstHalfAGoals) fstHalfHGoals fstHalfAGoals
-                                                 secondHalfResult = Result d ht (length sndHalfHGoals) at (length sndHalfAGoals) sndHalfHGoals sndHalfAGoals
+splitResult (Result d ht _ at _ hg ag) = (firstHalfResult, secondHalfResult)
+                                         where (fstHalfHGoals, laterHGoals) = partition ((<= 45).minute) hg
+                                               (fstHalfAGoals, laterAGoals) = partition ((<= 45).minute) ag
+                                               -- Filter out any extra-time goals.
+                                               sndHalfHGoals = filter ((<= 90).minute) laterHGoals
+                                               sndHalfAGoals = filter ((<= 90).minute) laterAGoals
+                                               firstHalfResult = Result d ht (length fstHalfHGoals) at (length fstHalfAGoals) fstHalfHGoals fstHalfAGoals
+                                               secondHalfResult = Result d ht (length sndHalfHGoals) at (length sndHalfAGoals) sndHalfHGoals sndHalfAGoals
 
 -- | Take a list of results and return a set of useful transformations of that data.
 prepareResults :: [Result] -> Map ByteString Team -> Results

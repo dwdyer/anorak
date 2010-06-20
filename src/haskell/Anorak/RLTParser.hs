@@ -7,20 +7,17 @@ module Anorak.RLTParser (LeagueData(LeagueData), parseRLTFile, RLTException) whe
 import Anorak.Results
 import Control.Applicative((<|>), (<*))
 import Control.Exception(Exception, throw)
-import Data.Attoparsec.Char8(char, digit, endOfInput, endOfLine, isDigit, notInClass, parse, Parser, satisfy, decimal, string, takeTill, takeWhile1)
+import Data.Attoparsec.Char8(char, digit, endOfLine, notInClass, parse, Parser, decimal, string, takeTill, takeWhile1)
 import qualified Data.Attoparsec.Char8 as P(Result(..)) -- Qualified to avoid clash with Anorak Result type.
 import Data.Attoparsec.Combinator(count, option, sepBy, sepBy1)
 import Data.ByteString.Char8(ByteString)
 import qualified Data.ByteString.Char8 as BS(empty, readFile, unpack)
-import Data.List(concat, foldl', intersperse)
 import Data.Map(Map)
 import qualified Data.Map as Map(empty, insert, insertWith, unionWith)
-import Data.Maybe(fromMaybe)
 import Data.Set(Set)
 import qualified Data.Set as Set(empty, fromList, insert, union)
-import Data.Time.Calendar(Day, fromGregorian)
+import Data.Time.Calendar(fromGregorian)
 import Data.Typeable(Typeable)
-import Data.Word(Word8)
 import System.FilePath(combine, takeDirectory)
 import System.IO.Unsafe(unsafePerformIO)
 
@@ -45,8 +42,8 @@ data LeagueData = LeagueData (Set Team) [Result] (Map Team Int) [(ByteString, Se
 -- | Parse results and points adjustments, discard meta-data and comments.  The function argument is
 --   the path of the data directory, used to resolve relative paths for include directives.
 results :: FilePath -> Parser LeagueData
-results dataDir = do list <- items
-                     return (extractData dataDir list)
+results dataDir = do itemList <- items
+                     return (extractData dataDir itemList)
 
 -- | Each line of a data file is either a record (a match result or some metadata) or it is a comment.
 items :: Parser [Item]
@@ -54,27 +51,27 @@ items = sepBy (result <|> comment <|> include <|> rules <|> awarded <|> deducted
 
 -- | The INCLUDE directive has a single field, the path to an RLT file.
 include :: Parser Item
-include = do string "INCLUDE|"
+include = do consume $ string "INCLUDE|"
              path <- takeTill isNewLine
              return . Include $ BS.unpack path
 
 -- | The AWARDED directive adds points to a team's total.  It has two fields, team name and number of points.
 awarded :: Parser Item
-awarded = do string "AWARDED|"
+awarded = do consume $ string "AWARDED|"
              team <- pipeTerminated
              amount <- decimal;
              return $ Adjustment team amount
 
 -- | The DEDUCTED directive removes points to a teams' total.  It has two fields, team name and number of points.
 deducted :: Parser Item
-deducted = do string "DEDUCTED|"
+deducted = do consume $ string "DEDUCTED|"
               team <- pipeTerminated
               amount <- decimal;
               return $ Adjustment team (-amount)
 
 -- | The first field of the MINILEAGUE directive is the league's name, other fields are the member teams.
 miniLeague :: Parser Item
-miniLeague = do string "MINILEAGUE|"
+miniLeague = do consume $ string "MINILEAGUE|"
                 name <- pipeTerminated
                 teams <- sepBy1 (takeWhile1 (notInClass "|\n")) pipe;
                          return . MiniLeague name $ Set.fromList teams
@@ -83,7 +80,7 @@ miniLeague = do string "MINILEAGUE|"
 --   and number of games played by each team before the league splits in half (only applicable for the Scottish
 --   Premier League and similarly structured leagues, all others should be set to zero).
 rules :: Parser Item
-rules = do string "RULES|"
+rules = do consume $ string "RULES|"
            win <- decimal; pipe
            draw <- decimal; pipe
            split <- decimal;
@@ -91,56 +88,56 @@ rules = do string "RULES|"
 
 -- | The PRIZE directive identifies zones at the top of a division, first field is start position, second is end, third is name.
 prize :: Parser Item
-prize = do string "PRIZE|"
-           start <- decimal; pipe
-           end <- decimal; pipe
+prize = do consume $ string "PRIZE|"
+           _ <- decimal :: Parser Integer; pipe -- Start
+           _ <- decimal :: Parser Integer; pipe -- End
            name <- takeTill isNewLine;
            return $ Comment name -- Treat as a comment, it's ignored for now.
 
 -- | The RELEGATION directive identifies zones at the top of a division, first field is start position, second is end, third is name.
 relegation :: Parser Item
-relegation = do string "RELEGATION|"
-                start <- decimal; pipe
-                end <- decimal; pipe
+relegation = do consume $ string "RELEGATION|"
+                _ <- decimal :: Parser Integer; pipe -- Start
+                _ <- decimal :: Parser Integer; pipe -- End
                 name <- takeTill isNewLine; 
                 return $ Comment name -- Treat as a comment, it's ignored for now.
 
 -- | The ALIAS directive maps a team name to a team's previous name.
 alias :: Parser Item
-alias = do string "ALIAS|"
+alias = do consume $ string "ALIAS|"
            name <- pipeTerminated
            team <- takeTill isNewLine;
            return $ Alias name team
 
 -- | A record is a list of fields delimited by pipe characters.
 result :: Parser Item
-result = do day <- count 2 digit
+result = do dayOfMonth <- count 2 digit
             month <- count 2 digit
             year <- count 4 digit; pipe
             hTeam <- pipeTerminated
             hGoals <- score; pipe
             aTeam <- pipeTerminated
             aGoals <- score;
-            let date = fromGregorian (read year) (read month) (read day)
-            return . Fixture $ Result date hTeam (fst hGoals) aTeam (fst aGoals) (snd hGoals) (snd aGoals)
+            let matchDate = fromGregorian (read year) (read month) (read dayOfMonth)
+            return . Fixture $ Result matchDate hTeam (fst hGoals) aTeam (fst aGoals) (snd hGoals) (snd aGoals)
 
 -- | A score is the number of goals scored by one team in a game and, depending on the detail in the data, a list
 --   of the scorers and goal times.
 score :: Parser (Int, [Goal])
 score = do number <- decimal
-           goals <- option [] goals
-           return (number, goals)
-           where goals = do {char '['; gs <- sepBy1 goal $ char ','; char ']'; return gs}
+           goalsList <- option [] parseGoals
+           return (number, goalsList)
+           where parseGoals = do {consume $ char '['; gs <- sepBy1 goal $ char ','; consume $ char ']'; return gs}
 
 goal :: Parser Goal
 goal = do player <- takeWhile1 (notInClass "0123456789,")
-          minute <- decimal
-          goalType <- string "p" <|> string "o" <|> string ""
-          return $ Goal player minute goalType
+          gMinute <- decimal
+          gType <- string "p" <|> string "o" <|> string ""
+          return $ Goal player gMinute gType
 
 -- | A comment starts with a hash and continues to the end of the line.
 comment :: Parser Item
-comment = do char '#'
+comment = do consume $ char '#'
              text <- takeTill isNewLine;
              return $ Comment text
 
@@ -149,34 +146,39 @@ pipeTerminated :: Parser ByteString
 pipeTerminated = takeTill isPipe <* pipe
                  where isPipe c = c == '|'
 
-pipe :: Parser Char
-pipe = char '|'
+pipe :: Parser ()
+pipe = consume $ char '|'
 
 isNewLine :: Char -> Bool
 isNewLine c = c == '\n' || c == '\r'
 
+-- | Discard the input matched by the specified parser.
+consume :: Parser a -> Parser ()
+consume p = do _ <- p
+               return ()
+
 -- | Takes a list of parsed items and discards comments and meta-data.  The remaining items are separated into a list
 --   of results and a map of net points adjustments by team.
 extractData :: FilePath -> [Item] -> LeagueData
-extractData _ []                                   = LeagueData Set.empty [] Map.empty [] 0 Map.empty
-extractData dataDir (Fixture result:items)         = LeagueData (addTeams result t) (result:r) a m s al
-                                                     where (LeagueData t r a m s al) = extractData dataDir items
-extractData dataDir (Include path:items)           = LeagueData (Set.union t t') (r' ++ r) (Map.unionWith (+) a a') m s al
-                                                     where (LeagueData t r a m s al) = extractData dataDir items
-                                                           (LeagueData t' r' a' _ s' _) = unsafePerformIO . parseRLTFile $ combine dataDir path
-extractData dataDir (Adjustment team amount:items) = LeagueData t r (Map.insertWith (+) team amount a) m s al
-                                                     where (LeagueData t r a m s al) = extractData dataDir items
-extractData dataDir (MiniLeague name teams:items)  = LeagueData t r a ((name, teams):m) s al
-                                                     where (LeagueData t r a m s al) = extractData dataDir items
-extractData dataDir (Rules _ _ split:items)        = LeagueData t r a m split al
-                                                     where (LeagueData t r a m _ al) = extractData dataDir items
-extractData dataDir (Alias name team:items)        = LeagueData t r a m s (Map.insert name team al)
-                                                     where (LeagueData t r a m s al) = extractData dataDir items
-extractData dataDir (_:items)                      = extractData dataDir items -- Discard comments.
+extractData _ []                                     = LeagueData Set.empty [] Map.empty [] 0 Map.empty
+extractData dataDir (Fixture matchResult:records)    = LeagueData (addTeams matchResult t) (matchResult:r) a m s al
+                                                       where (LeagueData t r a m s al) = extractData dataDir records
+extractData dataDir (Include path:records)           = LeagueData (Set.union t t') (r' ++ r) (Map.unionWith (+) a a') m s al
+                                                       where (LeagueData t r a m s al) = extractData dataDir records
+                                                             (LeagueData t' r' a' _ _ _) = unsafePerformIO . parseRLTFile $ combine dataDir path
+extractData dataDir (Adjustment team amount:records) = LeagueData t r (Map.insertWith (+) team amount a) m s al
+                                                       where (LeagueData t r a m s al) = extractData dataDir records
+extractData dataDir (MiniLeague name teams:records)  = LeagueData t r a ((name, teams):m) s al
+                                                       where (LeagueData t r a m s al) = extractData dataDir records
+extractData dataDir (Rules _ _ split:records)        = LeagueData t r a m split al
+                                                       where (LeagueData t r a m _ al) = extractData dataDir records
+extractData dataDir (Alias name team:records)        = LeagueData t r a m s (Map.insert name team al)
+                                                       where (LeagueData t r a m s al) = extractData dataDir records
+extractData dataDir (_:records)                      = extractData dataDir records -- Discard comments.
 
 -- | Adds the home team and away team from a match to the set of all teams (if they are not already present).
 addTeams :: Result -> Set Team -> Set Team
-addTeams result = Set.insert (awayTeam result) . Set.insert (homeTeam result)
+addTeams matchResult = Set.insert (awayTeam matchResult) . Set.insert (homeTeam matchResult)
 
 -- | Parses the specified RLT file and returns a list of teams, a list of results, a map of any points adjustments,
 --   and a list of any configured mini-leagues (each represented by name/teams pair).
@@ -184,11 +186,12 @@ addTeams result = Set.insert (awayTeam result) . Set.insert (homeTeam result)
 parseRLTFile :: FilePath -> IO LeagueData
 parseRLTFile path = do let dataDir = takeDirectory path
                        contents <- BS.readFile path
-                       let result = parse (results dataDir) contents
-                       case result of
-                           P.Fail _ _ error    -> throw $ RLTException error
+                       let parseResult = parse (results dataDir) contents
+                       case parseResult of
+                           P.Fail _ _ err      -> throw $ RLTException err
                            P.Partial p         -> case p BS.empty of
-                                                      P.Fail _ _ error    -> throw $ RLTException error
+                                                      P.Fail _ _ err      -> throw $ RLTException err
+                                                      P.Partial _         -> throw $ RLTException "Incomplete input."
                                                       P.Done _ leagueData -> return leagueData
                            P.Done _ leagueData -> return leagueData
 
