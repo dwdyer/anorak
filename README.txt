@@ -26,13 +26,13 @@ BUILDING FROM SOURCE
 
   Anorak is built using Cabal (http://www.haskell.org/cabal/) and GHC
   (http://www.haskell.org/ghc/).  First make sure that you have GHC and Cabal
-  installed - the easiest way is to install the Haskell Platform -
+  installed - the easiest way is to install the Haskell Platform
   (http://hackage.haskell.org/platform/), then use Cabal to install the above
   library dependencies:
 
-      cabal install --user attoparsec
-      cabal install --user HStringTemplate
-      cabal install --user xml
+      cabal install attoparsec
+      cabal install HStringTemplate
+      cabal install xml
   
   Then run the following commands to build Anorak:
 

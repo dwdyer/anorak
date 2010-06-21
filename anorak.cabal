@@ -24,3 +24,9 @@ executable anorak
     build-depends:      base, containers, directory, filepath, haskell98, HStringTemplate >= 0.6.3, old-locale, attoparsec, time, xml, bytestring
     hs-source-dirs:     src/haskell
     ghc-options:        -Wall -O2
+
+executable test
+    main-is:            Tests.hs
+    other-modules:      Anorak.Utils, Anorak.Results
+    build-depends:      base, haskell98, time, bytestring, QuickCheck
+    hs-source-dirs:     src/haskell

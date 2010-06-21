@@ -37,7 +37,8 @@ data Result = Result {date :: !Day,        -- ^ The day that the match was playe
                       awayTeam :: !Team,   -- ^ The visiting team.
                       awayScore :: !Int,   -- ^ The number of goals scored by the away team.
                       homeGoals :: [Goal], -- ^ An optional list of home goals.
-                      awayGoals :: [Goal]} -- ^ An optional list of away goals.
+                      awayGoals :: [Goal]  -- ^ An optional list of away goals.
+                     }
 instance Show Result where
     show result = formatTime defaultTimeLocale "%e %b %Y: " (date result) ++
                   BS.unpack (homeTeam result) ++ " " ++
@@ -74,19 +75,21 @@ instance Show TeamResult where
                   show (scored result) ++ "-" ++ show (conceded result)
 
 -- | The data about a goal consists of the name of the player who scored it and the minute of the match (1-90) in which it was scored.
-data Goal = Goal {scorer :: !ByteString,
-                  minute :: !Int,
-                  goalType :: !ByteString}
+data Goal = Goal {scorer :: !ByteString,  -- ^ The name of the player that scored the goal.
+                  minute :: !Int,         -- ^ The minute (1-90) in which the goal was scored.  First-half injury time is always 45, second-half added time always 90.
+                  goalType :: !ByteString -- ^ \"p\" for penalty, \"o\" for own goal, empty string for all others.
+                 }
     deriving (Eq, Show)
 
 -- | Data structure for holding the different variants of the results data set.
-data Results = Results {list :: ![Result],
-                        byTeam :: !(Map Team [Result]),
-                        homeOnly :: !(Map Team [Result]),
-                        awayOnly :: !(Map Team [Result]),
-                        byDate :: !(Map Day [Result]),
-                        firstHalf :: Map Team [Result],
-                        secondHalf :: Map Team [Result]}
+data Results = Results {list :: ![Result],                -- ^ A list of all results for all teams for the season, ordered by date.
+                        byTeam :: !(Map Team [Result]),   -- ^ Map from team name to list of results that team was involved in.
+                        homeOnly :: !(Map Team [Result]), -- ^ Home results by team.
+                        awayOnly :: !(Map Team [Result]), -- ^ Away results by team.
+                        byDate :: !(Map Day [Result]),    -- ^ Results by date, each date is mapped to a list of matches on that day.
+                        firstHalf :: Map Team [Result],   -- ^ Half-time scores by team.
+                        secondHalf :: Map Team [Result]   -- ^ Second-half scores by team.
+                       }
                         
 -- | Convert a flat list of results into a mapping from team to list of results that that team was involved in.
 resultsByTeam :: [Result] -> Map ByteString Team -> Map Team [Result]
@@ -135,18 +138,24 @@ convertResult team result
 margin :: Result -> Int
 margin result = abs $ homeScore result - awayScore result
 
+-- | Filter the list of results and return only matches in which the home team won (omit draws and away wins).
 homeWins :: [Result] -> [Result]
 homeWins = filter (\r -> homeScore r > awayScore r)
 
+-- | Filter the list of results and return only matches in which the away team won (omit draws and home wins).
 awayWins :: [Result] -> [Result]
 awayWins = filter (\r -> homeScore r < awayScore r)
 
+-- | Return the results with the biggest margins of victory.  Returns at least 3 results (unless
+--   there are less than 3 in total).  Any results that are equivalent to the third result are also
+--   returned.  So, for example, if the biggest margin is 4 goals and there are 5 matches with
+--   a 4-goal margin, all 5 will be returned.
 biggestWins :: [Result] -> [Result]
 biggestWins results = takeAtLeast 3 $ groupBy (equal margin) sortedResults
                       where sortedResults = sortBy (flip $ comparing margin) results
 
 -- | Return the results with the highest total number of goals.  Returns at least 3 results (unless
---   there are less than 3 in total.  Any results that are equivalent to the third result are also
+--   there are less than 3 in total).  Any results that are equivalent to the third result are also
 --   returned.  So, for example, if the highest aggregate is 10 goals and there are 5 matches with
 --   10 goals, all 5 will be returned.
 highestAggregates :: [Result] -> [Result]

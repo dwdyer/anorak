@@ -150,7 +150,7 @@ pipe :: Parser ()
 pipe = consume $ char '|'
 
 isNewLine :: Char -> Bool
-isNewLine c = c == '\n' || c == '\r'
+isNewLine c = c `elem` "\n\r"
 
 -- | Discard the input matched by the specified parser.
 consume :: Parser a -> Parser ()
@@ -163,7 +163,7 @@ extractData :: FilePath -> [Item] -> LeagueData
 extractData _ []                                     = LeagueData Set.empty [] Map.empty [] 0 Map.empty
 extractData dataDir (Fixture matchResult:records)    = LeagueData (addTeams matchResult t) (matchResult:r) a m s al
                                                        where (LeagueData t r a m s al) = extractData dataDir records
-extractData dataDir (Include path:records)           = LeagueData (Set.union t t') (r' ++ r) (Map.unionWith (+) a a') m s al
+extractData dataDir (Include path:records)           = LeagueData (t `Set.union` t') (r' ++ r) (Map.unionWith (+) a a') m s al
                                                        where (LeagueData t r a m s al) = extractData dataDir records
                                                              (LeagueData t' r' a' _ _ _) = unsafePerformIO . parseRLTFile $ combine dataDir path
 extractData dataDir (Adjustment team amount:records) = LeagueData t r (Map.insertWith (+) team amount a) m s al
