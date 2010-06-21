@@ -48,6 +48,8 @@ instance Eq Result where
     (==) result1 result2 = date result1 == date result2
                            && homeTeam result1 == homeTeam result2
                            && awayTeam result1 == awayTeam result2
+                           && homeScore result1 == homeScore result2
+                           && awayScore result1 == awayScore result2
 instance Ord Result where
     compare result1 result2
         | date result1 == date result2 = comparing homeTeam result1 result2
@@ -143,6 +145,10 @@ biggestWins :: [Result] -> [Result]
 biggestWins results = takeAtLeast 3 $ groupBy (equal margin) sortedResults
                       where sortedResults = sortBy (flip $ comparing margin) results
 
+-- | Return the results with the highest total number of goals.  Returns at least 3 results (unless
+--   there are less than 3 in total.  Any results that are equivalent to the third result are also
+--   returned.  So, for example, if the highest aggregate is 10 goals and there are 5 matches with
+--   10 goals, all 5 will be returned.
 highestAggregates :: [Result] -> [Result]
 highestAggregates results = takeAtLeast 3 $ groupBy (equal aggregate) sortedResults
                             where sortedResults = sortBy (flip $ comparing aggregate) results
