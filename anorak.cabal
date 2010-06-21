@@ -12,6 +12,7 @@ license:        GPL
 license-file:   LICENCE.txt
 author:         Daniel W. Dyer
 copyright:      (C) 2008-2010 Daniel W. Dyer
+homepage:       http://wiki.github.com/dwdyer/anorak/
 bug-reports:    http://github.com/dwdyer/anorak/issues
 
 source-repository head

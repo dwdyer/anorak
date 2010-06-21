@@ -13,11 +13,11 @@ import Anorak.Aggregates
 import Anorak.Tables
 import Anorak.Goals
 import Anorak.Utils
-import Control.Monad(filterM, unless)
+import Control.Monad(filterM, unless, when)
 import Data.ByteString.Char8(ByteString)
 import qualified Data.ByteString.Char8 as BS(append, filter, map, unpack, writeFile)
 import Data.Char(isSpace, toLower)
-import Data.List(foldl', isPrefixOf, isSuffixOf, nub)
+import Data.List(foldl', groupBy, isPrefixOf, isSuffixOf, nub)
 import Data.Map(Map, (!))
 import qualified Data.Map as Map(alter, assocs, empty, findWithDefault, fromAscList, insert, map, mapKeys, size, toDescList)
 import Data.Set(Set)
@@ -48,7 +48,7 @@ instance ToSElem Result where
                                            ("awayScore", toSElem $ awayScore result),
                                            ("awayTeam", toSElem $ awayTeam result),
                                            ("date", toSElem $ date result),
-                                           ("homeGoals", toSElem.reduceScorers $ homeGoals result),
+                                           ("homeGoals", toSElem . reduceScorers $ homeGoals result),
                                            ("homeScore", toSElem $ homeScore result),
                                            ("homeTeam", toSElem $ homeTeam result)]
 
@@ -148,8 +148,8 @@ generateLeagueTables group dir results adjustments metaData sp = do let attribut
                                                                     applyTemplateWithName group "table.html" dir "index.html" (("table", AV $ leagueTable (byTeam results) adjustments sp):attributes)
                                                                     unless (isNeutral metaData) $ applyTemplate group "hometable.html" dir (tableAttrib homeOnly:attributes)
                                                                     unless (isNeutral metaData) $ applyTemplate group "awaytable.html" dir (tableAttrib awayOnly:attributes)
-                                                                    unless (not $ hasScorers metaData) $ applyTemplate group "firsthalftable.html" dir (tableAttrib firstHalf:attributes)
-                                                                    unless (not $ hasScorers metaData) $ applyTemplate group "secondhalftable.html" dir (tableAttrib secondHalf:attributes)
+                                                                    when (hasScorers metaData) $ applyTemplate group "firsthalftable.html" dir (tableAttrib firstHalf:attributes)
+                                                                    when (hasScorers metaData) $ applyTemplate group "secondhalftable.html" dir (tableAttrib secondHalf:attributes)
                                                                     where tableAttrib rf = ("table", AV $ leagueTable (rf results) Map.empty 0)
 
 generateFormTables :: STGroup ByteString -> FilePath -> Results -> MetaData -> IO ()
@@ -225,12 +225,14 @@ generateTeamPage :: STGroup ByteString -> FilePath -> Team -> [Result] -> [(Day,
 generateTeamPage group dir t results positions metaData = do let (homeResults, awayResults) = partitionResults t results
                                                                  teamResults = map (convertResult t) results
                                                                  (goalScorers, ownGoals) = teamGoalScorers teamResults
+                                                                 -- Don't include all goal-scorers for aggregated pages because the list could be massive.
+                                                                 goalScorers' = if isAggregated metaData then (takeAtLeast 10 $ groupBy (equal snd) goalScorers) else goalScorers
                                                                  attributes = [("team", AV t),
                                                                                ("results", AV teamResults),
                                                                                ("record", AV $ getSummary t results),
                                                                                ("homeRecord", AV $ getSummary t homeResults),
                                                                                ("awayRecord", AV $ getSummary t awayResults),
-                                                                               ("scorers", AV goalScorers),
+                                                                               ("scorers", AV goalScorers'),
                                                                                ("ownGoals", AV $ show ownGoals),
                                                                                ("positions", AV positions),
                                                                                ("teamCount", AV . Map.size $ teamLinks metaData),
@@ -279,7 +281,7 @@ generateStatsPages templateGroup targetDir (LeagueData teams res adj miniLeagues
                                                                                                            generateAggregates templateGroup targetDir results metaData
                                                                                                            generateMiniLeagues templateGroup targetDir results miniLeagues aliases metaData
                                                                                                            generateTeamPages templateGroup targetDir results positions metaData
-                                                                                                           unless (not $ hasScorers metaData) $ generateGoals templateGroup targetDir results metaData
+                                                                                                           when (hasScorers metaData) $ generateGoals templateGroup targetDir results metaData
 
 -- | Determine which file the "Mini-Leagues" tab should link to (derived from the name of the first mini-league).
 --   If there are no mini-leagues then this function returns nothing and the tab should not be shown.
