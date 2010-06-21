@@ -1,5 +1,5 @@
 <tr>
-  <td>$it.("3").day;format="%a %e %b %Y"$</td>
+  <td class="date">$it.("3").day;format="%a %e %b %Y"$</td>
   <td>$it.("0")$</td>
   <td><a href="$metaData.teamLinks.(it.("2"))$">$it.("2")$</a></td>
   <td><b>$it.("1")$</b> goals</td>

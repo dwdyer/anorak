@@ -13,7 +13,7 @@
     <td>
       $if(metaData.hasScorers)$
       <table id="scorers">
-        <tr><th colspan="2"><h3>$if(metaData.isAggregated)$Top$endif$ Goal Scorers</h3></th></tr>
+        <tr><th colspan="2"><h3>$if(metaData.isAggregated)$Top $endif$Goal Scorers</h3></th></tr>
         $scorers:{
         <tr>
           <td>$it.("0")$</td>

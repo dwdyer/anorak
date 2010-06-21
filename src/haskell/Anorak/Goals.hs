@@ -10,7 +10,7 @@ import Data.Ord(comparing)
 
 -- | Generate a list of the leading goal scorers for a given set of results.
 topGoalScorers :: [Result] -> [(ByteString, Int, [Team])]
-topGoalScorers results = topScorers results ((/=) "o".goalType) 25
+topGoalScorers results = topScorers results ((/=) "o".goalType) 30 
 
 -- | Generate a list of the leading penalty scorers for a given set of results.
 topPenaltyScorers :: [Result] -> [(ByteString, Int, [Team])]
