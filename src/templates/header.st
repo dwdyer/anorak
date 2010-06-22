@@ -3,6 +3,10 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
   <head>
     <title>$metaData.division$ $metaData.season$ - $title$</title>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+    $if(!metaData.isArchive)$
+    <meta http-equiv="Cache-Control" content="max-age=7200" />
+    $endif$
     <link href="../../../anorak.css" rel="stylesheet" type="text/css" />
     <script type="text/javascript">
       var leagueName  = "$metaData.league$";
