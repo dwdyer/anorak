@@ -272,7 +272,7 @@ mapTeamNames teams aliases = foldl' insert Map.empty teams
 --   the first is the path to the data file, the second is the path to the directory in which the pages will be created.
 generateStatsPages :: STGroup ByteString -> FilePath -> LeagueData -> MetaData -> IO ()
 generateStatsPages templateGroup targetDir (LeagueData teams res adj miniLeagues sp aliases) metaData = do let results = prepareResults res aliases
-                                                                                                               positions = leaguePositions teams (byDate results) adj
+                                                                                                               positions = leaguePositions teams (byDate results) adj sp
                                                                                                            createDirectoryIfMissing True targetDir
                                                                                                            generateLeagueTables templateGroup targetDir results adj metaData sp
                                                                                                            unless (isArchive metaData) $ generateFormTables templateGroup targetDir results metaData

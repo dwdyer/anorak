@@ -7,7 +7,7 @@ import Data.ByteString.Char8(ByteString)
 import qualified Data.ByteString.Char8 as BS(unpack)
 import Data.List(foldl', sort)
 import Data.Map(Map, (!))
-import qualified Data.Map as Map(adjust, adjustWithKey, elems, empty, filterWithKey, findWithDefault, fromAscList, keysSet, map, mapAccum, mapWithKey)
+import qualified Data.Map as Map(adjust, adjustWithKey, elems, empty, filterWithKey, findMax, findWithDefault, fromList, keysSet, map, mapAccum, mapWithKey, partitionWithKey, toAscList)
 import Data.Ord(comparing)
 import Data.Set(Set)
 import qualified Data.Set as Set(member, toAscList, union)
@@ -130,19 +130,37 @@ bothTeamsInSet :: Set Team -> Result -> Bool
 bothTeamsInSet teams result = Set.member (homeTeam result) teams && Set.member (awayTeam result) teams
 
 -- | Calculate the league position of every team at the end of every match day.
-leaguePositions :: Set Team -> Map Day [Result] -> Map Team Int -> Map Team [(Day, Int)]
-leaguePositions teams results adj = foldr addPosition emptyPosMap positions
-                                    where teamList = Set.toAscList teams
-                                          -- Create an initial table containing a blank record for each team.
-                                          initialTable = Map.fromAscList [(t, LeagueRecord t 0 0 0 0 0 (Map.findWithDefault 0 t adj)) | t <- teamList]
-                                          -- Calculate the league table (Map Team LeagueRecord) for each date that games were played.
-                                          recordsByDate = snd $ Map.mapAccum tableAccum initialTable results
-                                          -- Convert the daily tables to ordered lists of LeagueRecords.
-                                          tablesByDate = Map.map (sort.Map.elems) recordsByDate
-                                          -- Convert the previous data structure to a list of triples (team, date, position).
-                                          positions = concat . Map.elems $ Map.mapWithKey (\matchDay records -> zip3 (map team records) (repeat matchDay) [1..]) tablesByDate
-                                          -- An initial map, with one entry for each team, into which the above triples are folded.
-                                          emptyPosMap = Map.fromAscList [(t, []) | t <- teamList]
+leaguePositions :: Set Team -> Map Day [Result] -> Map Team Int -> Int -> Map Team [(Day, Int)]
+leaguePositions teams results adj sp = foldr addPosition emptyPosMap positions
+                                       where teamList = Set.toAscList teams
+                                             halfTeamCount = length teamList `div` 2
+                                             numMatchesBeforeSplit = sp * halfTeamCount
+                                             (resultsBeforeSplit, resultsAfterSplit) = splitResults numMatchesBeforeSplit results
+                                             -- Calculate the league table (as a sorted list of LeagueRecords) for each date that games were played.
+                                             tablesByDay = tablesByDate [LeagueRecord t 0 0 0 0 0 (Map.findWithDefault 0 t adj) | t <- teamList] resultsBeforeSplit
+                                             -- Split the table into top and bottom half (for leagues that do this, such as the SPL)
+                                             (topHalf, bottomHalf) = splitAt halfTeamCount . snd $ Map.findMax tablesByDay
+                                             -- Convert the various tables to a list of triples (team, date, position).
+                                             beforeSplitPositions = tablesToPositions 1 tablesByDay
+                                             topPositions = tablesToPositions 1 $ tablesByDate topHalf resultsAfterSplit
+                                             bottomPositions = tablesToPositions (halfTeamCount + 1) $ tablesByDate bottomHalf resultsAfterSplit
+                                             positions = beforeSplitPositions ++ topPositions ++ bottomPositions
+                                             -- An initial map, with one entry for each team, into which the above triples are folded.
+                                             emptyPosMap = Map.fromList [(t, []) | t <- teamList]
+
+-- | Calculate the league table (as a sorted list of LeagueRecords) for each date that games were played.
+--   The first argument is the initial state of the league (usually blank records, but for post-split tables it
+--   will be the table at the split date).
+tablesByDate :: [LeagueRecord] -> Map Day [Result] -> Map Day [LeagueRecord]
+tablesByDate records results = Map.map (sort.Map.elems) recordsByDate
+                               where initialTable = Map.fromList [(team record, record) | record <- records]
+                                     recordsByDate = snd $ Map.mapAccum tableAccum initialTable results
+
+-- Convert table for dates to a list of triples (team, date, position).  First argument is the highest position
+-- to assign (usually set to one, but will be something else when calculating positions for the bottom half
+-- post-split in the SPL and similar leagues).
+tablesToPositions :: Int -> Map Day [LeagueRecord] -> [(Team, Day, Int)]
+tablesToPositions startPos = concat . Map.elems . Map.mapWithKey (\matchDay records -> zip3 (map team records) (repeat matchDay) [startPos..]) 
                                       
 tableAccum :: Map Team LeagueRecord -> [Result] -> (Map Team LeagueRecord, Map Team LeagueRecord)
 tableAccum table results = (table', table')
@@ -156,3 +174,20 @@ addResultToTable table result = Map.adjustWithKey update hTeam $ Map.adjustWithK
                         
 addPosition :: (Team, Day, Int) -> Map Team [(Day, Int)] -> Map Team [(Day, Int)]
 addPosition (t, d, p) = Map.adjust ((d, p):) t
+
+-- | Given a number of matches that must be played before the league splits, divide the results into pre- and post-split fixtures.
+--   If there is no split, there will be no post-split fixtures.
+splitResults :: Int -> Map Day [Result] -> (Map Day [Result], Map Day [Result])
+splitResults 0 results          = (results, Map.empty)
+splitResults numMatches results = Map.partitionWithKey (\d _ -> d <= splitDate) results
+                                  where splitDate = case findSplitDate numMatches $ Map.toAscList results of
+                                                         Nothing -> fst $ Map.findMax results
+                                                         Just d  -> d
+
+-- | Given a number of matches that must be played before the league splits, determine the date for the last of the pre-split
+--   fixtures.
+findSplitDate :: Int -> [(Day, [Result])] -> Maybe Day
+findSplitDate _ []                           = Nothing
+findSplitDate numMatches ((d, results):days)
+    | numMatches <= length results = Just d
+    | otherwise                    = findSplitDate (numMatches - length results) days
