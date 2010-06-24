@@ -80,7 +80,7 @@ th                       {margin-bottom: 1.385em;}
 #teamrecords td          {vertical-align: top;}
 #teamrecords>tbody>tr>td {min-width: 160px;}
 #charts                  {width: 618px; padding-right: 2em;}
-#positionchart           {margin-left: 1em; vertical-align: top;}
+#piecharts               {height: 175px; display: inline-block; margin: 0 1em 1em 0;}
 #scorers                 {width: 100%; padding-left: 2em;}
 #scorers th              {text-align: left;}
 #scorers td              {padding-right: 1em;}

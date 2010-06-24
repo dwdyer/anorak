@@ -1,11 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Anorak.Goals (hatTricks, teamGoalScorers, topGoalScorers, topPenaltyScorers) where
+module Anorak.Goals (goalsByInterval, hatTricks, teamGoalScorers, topGoalScorers, topPenaltyScorers) where
 
 import Anorak.Results
 import Anorak.Utils(equal, snd3, takeAtLeast)
 import Data.ByteString.Char8(ByteString)
-import Data.List(groupBy, nub, partition, sortBy)
+import Data.List(foldl', groupBy, nub, partition, sortBy)
+import qualified Data.Map as Map(alter, elems, fromAscList)
+import Data.Maybe(fromMaybe)
 import Data.Ord(comparing)
 
 -- | Generate a list of the leading goal scorers for a given set of results.
@@ -35,7 +37,7 @@ groupByScorer scorerFunction = groupBy (equal scorerFunction) . sortBy (comparin
 -- | Generate a list of goal scorers for a particular team.  Also returns a number of own goals scored by the team's opponents.
 teamGoalScorers :: [TeamResult] -> ([(ByteString, Int)], Int)
 teamGoalScorers results = (goalScorers, length ownGoals)
-                          where teamGoals = concatMap goals results
+                          where teamGoals = concatMap goalsFor results
                                 (normalGoals, ownGoals) = partition ((/= "o").goalType) teamGoals
                                 byScorer = groupByScorer scorer normalGoals
                                 goalScorers = sortBy (flip $ comparing snd) $ map (\s -> (scorer $ head s, length s)) byScorer
@@ -56,7 +58,20 @@ extractHatTricks :: [Goal] -> [(ByteString, Int)]
 extractHatTricks goalsList = map (\g -> (scorer $ head g, length g)) byScorer
                              where byScorer = filter ((>= 3).length) . groupByScorer scorer $ filter ((/= "o").goalType) goalsList
 
+-- | Hat-tricks are ordered first by the number of goals and then by date.
 compareHatTrick :: (ByteString, Int, Team, TeamResult) -> (ByteString, Int, Team, TeamResult) -> Ordering
 compareHatTrick (_, c1, _, r1) (_, c2, _, r2)
     | c1 == c2  = comparing day r1 r2
     | otherwise = compare c2 c1
+
+-- | Divide the 90 minutes up into 10-minute intervals and return the number of goals scored and conceded in each interval.
+goalsByInterval :: [TeamResult] -> ([Int], [Int])
+goalsByInterval results = (goalsByInterval' $ concatMap goalsFor results, goalsByInterval' $ concatMap goalsAgainst results)
+
+-- | Divide the 90 minutes up into 10-minute intervals and return the number of goals in each interval (ignore any extra-time goals).
+goalsByInterval' :: [Goal] -> [Int]
+goalsByInterval' gs = take 9 . Map.elems $ foldl' (\m g -> Map.alter alterTally (interval g) m) initialMap gs
+                      where initialMap = Map.fromAscList . zip [0..8] $ repeat 0
+                            interval g = (minute g - 1) `div` 10
+                            alterTally = Just.(+1).fromMaybe 0
+

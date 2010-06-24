@@ -68,7 +68,8 @@ data TeamResult = TeamResult {day :: !Day,
                               scored :: !Int,
                               conceded :: !Int,
                               outcome :: !Char,
-                              goals :: [Goal]}
+                              goalsFor :: [Goal],
+                              goalsAgainst :: [Goal]}
 instance Show TeamResult where
     show result = formatTime defaultTimeLocale "%e %b %Y: " (day result) ++
                   BS.unpack (opposition result) ++ "(" ++ [venue result] ++ ") " ++ [outcome result] ++ " " ++
@@ -131,8 +132,8 @@ form team result
 -- | Converts a Result into a TeamResult for the specified team.
 convertResult :: Team -> Result -> TeamResult
 convertResult team result
-    | team == homeTeam result = TeamResult (date result) (awayTeam result) 'H' (homeScore result) (awayScore result) (form team result) (homeGoals result)
-    | otherwise               = TeamResult (date result) (homeTeam result) 'A' (awayScore result) (homeScore result) (form team result) (awayGoals result)
+    | team == homeTeam result = TeamResult (date result) (awayTeam result) 'H' (homeScore result) (awayScore result) (form team result) (homeGoals result) (awayGoals result)
+    | otherwise               = TeamResult (date result) (homeTeam result) 'A' (awayScore result) (homeScore result) (form team result) (awayGoals result) (homeGoals result)
 
 -- | Returns the margin of victory for a result (zero if it is a draw).
 margin :: Result -> Int

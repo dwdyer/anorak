@@ -1,5 +1,14 @@
 -- | Functions for generating league tables (including form tables and mini-leagues).
-module Anorak.Tables (buildRecord, formTable, goalDiff, LeagueRecord(..), leaguePositions, leagueTable, miniLeagueTable, played, points, pointsPerGame) where
+module Anorak.Tables (buildRecord,
+                      formTable,
+                      goalDiff,
+                      LeagueRecord(..),
+                      leaguePositions,
+                      leagueTable,
+                      miniLeagueTable,
+                      played,
+                      points,
+                      pointsPerGame) where
 
 import Anorak.Results
 import Anorak.Utils(keep)
@@ -8,6 +17,7 @@ import qualified Data.ByteString.Char8 as BS(unpack)
 import Data.List(foldl', sort)
 import Data.Map(Map, (!))
 import qualified Data.Map as Map(adjust, adjustWithKey, elems, empty, filterWithKey, findMax, findWithDefault, fromList, keysSet, map, mapAccum, mapWithKey, partitionWithKey, toAscList)
+import Data.Maybe(fromMaybe)
 import Data.Ord(comparing)
 import Data.Set(Set)
 import qualified Data.Set as Set(member, toAscList, union)
@@ -180,9 +190,7 @@ addPosition (t, d, p) = Map.adjust ((d, p):) t
 splitResults :: Int -> Map Day [Result] -> (Map Day [Result], Map Day [Result])
 splitResults 0 results          = (results, Map.empty)
 splitResults numMatches results = Map.partitionWithKey (\d _ -> d <= splitDate) results
-                                  where splitDate = case findSplitDate numMatches $ Map.toAscList results of
-                                                         Nothing -> fst $ Map.findMax results
-                                                         Just d  -> d
+                                  where splitDate = fromMaybe (fst $ Map.findMax results) . findSplitDate numMatches $ Map.toAscList results
 
 -- | Given a number of matches that must be played before the league splits, determine the date for the last of the pre-split
 --   fixtures.

@@ -55,7 +55,7 @@ instance ToSElem Result where
 instance ToSElem TeamResult where
     toSElem result = SM $ Map.fromAscList [("conceded", toSElem $ conceded result),
                                            ("day", toSElem $ day result),
-                                           ("goals", toSElem . reduceScorers $ goals result),
+                                           ("goals", toSElem . reduceScorers $ goalsFor result),
                                            ("opposition", toSElem $ opposition result),
                                            ("outcome", toSElem $ outcome result),
                                            ("scored", toSElem $ scored result),
@@ -225,8 +225,9 @@ generateTeamPage :: STGroup ByteString -> FilePath -> Team -> [Result] -> [(Day,
 generateTeamPage group dir t results positions metaData = do let (homeResults, awayResults) = partitionResults t results
                                                                  teamResults = map (convertResult t) results
                                                                  (goalScorers, ownGoals) = teamGoalScorers teamResults
+                                                                 (goalsForByInterval, goalsAgainstByInterval) = goalsByInterval teamResults
                                                                  -- Don't include all goal-scorers for aggregated pages because the list could be massive.
-                                                                 goalScorers' = if isAggregated metaData then (takeAtLeast 10 $ groupBy (equal snd) goalScorers) else goalScorers
+                                                                 goalScorers' = if isAggregated metaData then takeAtLeast 10 $ groupBy (equal snd) goalScorers else goalScorers
                                                                  attributes = [("team", AV t),
                                                                                ("results", AV teamResults),
                                                                                ("record", AV $ getSummary t results),
@@ -235,9 +236,12 @@ generateTeamPage group dir t results positions metaData = do let (homeResults, a
                                                                                ("scorers", AV goalScorers'),
                                                                                ("ownGoals", AV $ show ownGoals),
                                                                                ("positions", AV positions),
+                                                                               ("goalsByInterval", AV (goalsForByInterval, goalsAgainstByInterval)),
+                                                                               ("intervalMaxima", AV (roundUp $ maximum goalsForByInterval, roundUp $ maximum goalsAgainstByInterval)),
                                                                                ("teamCount", AV . Map.size $ teamLinks metaData),
                                                                                ("metaData", AV metaData)]
                                                              applyTemplateWithName group "team.html" dir (teamLinks metaData ! BS.unpack t) attributes
+                                                             where roundUp n = (n + 4) `div` 5 * 5 -- Round to nearest 5.
 
 getSummary :: Team -> [Result] -> (Int, Float, Int, Float, Int, Float)
 getSummary t results = (won record,
