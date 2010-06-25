@@ -153,9 +153,9 @@ generateSequences group dir results meta = do let (overallCurrent, overallLonges
                                               unless (isArchive meta) . applyTemplate group "currentsequences.html" dir $ seqAttribs overallCurrent "currentSequencesSelected" attributes
                                               applyTemplate group "longestsequences.html" dir $ seqAttribs overallLongest "longestSequencesSelected" attributes
                                               unless (isArchive meta || isNeutral meta) . applyTemplate group "homecurrentsequences.html" dir $ seqAttribs homeCurrent "currentSequencesSelected" attributes
-                                              applyTemplate group "homelongestsequences.html" dir $ seqAttribs homeLongest "longestSequencesSelected" attributes
+                                              unless (isNeutral meta) . applyTemplate group "homelongestsequences.html" dir $ seqAttribs homeLongest "longestSequencesSelected" attributes
                                               unless (isArchive meta || isNeutral meta) . applyTemplate group "awaycurrentsequences.html" dir $ seqAttribs awayCurrent "currentSequencesSelected" attributes
-                                              applyTemplate group "awaylongestsequences.html" dir $ seqAttribs awayLongest "longestSequencesSelected" attributes
+                                              unless (isNeutral meta) . applyTemplate group "awaylongestsequences.html" dir $ seqAttribs awayLongest "longestSequencesSelected" attributes
                                               where convertTables = AV . Map.mapKeys show
                                                     seqAttribs seqs sel attribs = ("sequences", convertTables seqs):(sel, AV True):attribs
 
@@ -204,7 +204,7 @@ generateMiniLeague group dir results aliases tabs metaData (name, teams) = do le
                                                                               applyTemplateWithName group "minileague.html" dir (toHTMLFileName name) attributes
 
 generateTeamPages :: STGroup ByteString -> FilePath -> Results -> Map Team [(Day, Int)] -> MetaData -> IO ()
-generateTeamPages group dir results positions metaData = mapM_ (\t -> generateTeamPage group dir t results (positions ! t) metaData) $ Map.keys positions
+generateTeamPages group dir results positions metaData = mapM_ (\t -> generateTeamPage group dir t results (positions ! t) metaData) . Map.keys $ byTeam results
 
 -- | Generate the overview page for an individual team.
 generateTeamPage :: STGroup ByteString -> FilePath -> Team -> Results -> [(Day, Int)] -> MetaData -> IO ()
