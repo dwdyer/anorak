@@ -1,6 +1,9 @@
 -- | Feature extraction for results data.  These features and their associated match outcomes can be used to
 --   train classifiers that attempt to predict results.
-module Anorak.FeatureExtractor (generateFeatures, MatchFeatures(..), Outcome, TeamFeatures(..)) where
+module Anorak.FeatureExtractor (generateFeatures,
+                                MatchFeatures(..),
+                                Outcome,
+                                TeamFeatures(..)) where
 
 import Anorak.Results(Result(..), Team)
 import Anorak.RLTParser(LeagueData(..), parseRLTFile)

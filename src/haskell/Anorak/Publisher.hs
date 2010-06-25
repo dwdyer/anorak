@@ -3,7 +3,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- | HTML publishing module for the Anorak system.
-module Anorak.Publisher (copyResources, publishLeagues) where
+module Anorak.Publisher (publishLeagues) where
 
 import Anorak.Config
 import Anorak.Results
@@ -12,22 +12,25 @@ import Anorak.Sequences
 import Anorak.Aggregates
 import Anorak.Tables
 import Anorak.Goals
-import Anorak.Utils
-import Control.Monad(filterM, unless, when)
+import Control.Monad(unless, when)
 import Data.ByteString.Char8(ByteString)
 import qualified Data.ByteString.Char8 as BS(append, filter, map, unpack, writeFile)
 import Data.Char(isSpace, toLower)
-import Data.List(foldl', groupBy, isPrefixOf, isSuffixOf, nub)
+import Data.List(foldl', groupBy, nub)
 import Data.Map(Map, (!))
-import qualified Data.Map as Map(alter, assocs, empty, findWithDefault, fromAscList, insert, map, mapKeys, size, toDescList)
+import qualified Data.Map as Map(alter, empty, findWithDefault, fromAscList, insert, keys, map, mapKeys, size, toDescList)
 import Data.Set(Set)
 import qualified Data.Set as Set(toList)
 import Data.Time.Calendar(Day)
-import System.Directory(createDirectoryIfMissing, doesFileExist, getDirectoryContents)
-import System.FilePath(combine)
+import System.Directory(createDirectoryIfMissing)
+import System.FilePath((</>))
 import Text.StringTemplate(getStringTemplate, render, setManyAttrib, STGroup, stShowsToSE)
 import Text.StringTemplate.Classes(ToSElem(toSElem), SElem(SM, STR))
 import Text.StringTemplate.GenericStandard()
+import Util.File(isNewer)
+import Util.List(equal, takeAtLeast)
+import Util.Maths(percentage, roundUp)
+import Util.Tuple(pair)
 
 instance ToSElem LeagueRecord where
     toSElem record = SM $ Map.fromAscList [("adjustment", toSElem . adjustmentString $ adjustment record),
@@ -99,7 +102,7 @@ adjustmentString adj
 -- | If a player has scored more than one goal in the game, combine those goals into a single entry.
 --   Returns a list of pairs, first item is the player's name, second is a string containing details of their goals.
 reduceScorers :: [Goal] -> [(ByteString, String)]
-reduceScorers goalsList = map (\s -> (s, reducedMap!s)) players
+reduceScorers goalsList = map (pair id (reducedMap!)) players
                           where reducedMap = foldl' addGoalToScorers Map.empty goalsList
                                 players = nub $ map scorer goalsList
 
@@ -114,23 +117,6 @@ goalTypeString goal = case goalType goal of
                           "o" -> "o.g. "
                           _   -> ""
 
--- | Returns a list of files (excluding sub-directories and hidden files)  in the specified directory.  The returned paths
---   are fully-qualified.
-getFiles :: FilePath -> IO [FilePath]
-getFiles dir = do contents <- getDirectoryContents dir
-                  let visible = filter (not . isPrefixOf ".") contents -- Exclude hidden files/directories.
-                      absolute = map (combine dir) visible -- Use qualified paths.
-                  filterM doesFileExist absolute -- Exclude directories.
-
--- | Copies all non-template files from the source directory to the target directory.  Used for making sure that CSS
---   files and images (if any) are deployed with the generated HTML.  If the target directory does not exist it is
---   created.
-copyResources :: FilePath -> FilePath -> IO ()
-copyResources from to = do files <- getFiles from
-                           let resources = filter (not . isSuffixOf ".st") files
-                           createDirectoryIfMissing True to
-                           mapM_ (copyToDirectory to) resources
-
 -- | Generates an output file by applying a template with one or more attributes set.  The file's name is derived
 --   from the template name.
 applyTemplate :: STGroup ByteString -> FilePath -> FilePath -> [(String, AttributeValue)] -> IO ()
@@ -139,7 +125,7 @@ applyTemplate group templateName dir = applyTemplateWithName group templateName 
 applyTemplateWithName :: STGroup ByteString -> FilePath -> FilePath -> FilePath -> [(String, AttributeValue)] -> IO ()
 applyTemplateWithName group templateName dir fileName attributes = case getStringTemplate templateName group of
                                                                         Nothing       -> print $ "Could not find template for " ++ templateName
-                                                                        Just template -> BS.writeFile (combine dir fileName) html
+                                                                        Just template -> BS.writeFile (dir </> fileName) html
                                                                                          where html = render $ setManyAttrib attributes template
 
 -- | Generates home, away and overall HTML league tables.
@@ -205,7 +191,7 @@ generateResults group dir results metaData = do let homeWinMatches = homeWins $ 
                                                                                         ("metaData", AV metaData)]
 
 generateMiniLeagues :: STGroup ByteString -> FilePath -> Results -> [(ByteString, Set Team)] -> Map ByteString Team -> MetaData -> IO ()
-generateMiniLeagues group dir results miniLeagues aliases metaData = do let tabs = map ((\n -> (n, toHTMLFileName n)).fst) miniLeagues -- Each tab is a display name and a file name.
+generateMiniLeagues group dir results miniLeagues aliases metaData = do let tabs = map (pair id toHTMLFileName . fst) miniLeagues -- Each tab is a display name and a file name.
                                                                         mapM_ (generateMiniLeague group dir results aliases tabs metaData) miniLeagues
 
 generateMiniLeague :: STGroup ByteString -> FilePath -> Results -> Map ByteString Team -> [(ByteString, String)] -> MetaData -> (ByteString, Set Team) -> IO ()
@@ -218,30 +204,30 @@ generateMiniLeague group dir results aliases tabs metaData (name, teams) = do le
                                                                               applyTemplateWithName group "minileague.html" dir (toHTMLFileName name) attributes
 
 generateTeamPages :: STGroup ByteString -> FilePath -> Results -> Map Team [(Day, Int)] -> MetaData -> IO ()
-generateTeamPages group dir results positions metaData = mapM_ (\(t, res) -> generateTeamPage group dir t res (positions ! t) metaData) . Map.assocs $ byTeam results
+generateTeamPages group dir results positions metaData = mapM_ (\t -> generateTeamPage group dir t results (positions ! t) metaData) $ Map.keys positions
 
 -- | Generate the overview page for an individual team.
-generateTeamPage :: STGroup ByteString -> FilePath -> Team -> [Result] -> [(Day, Int)] -> MetaData -> IO ()
-generateTeamPage group dir t results positions metaData = do let (homeResults, awayResults) = partitionResults t results
-                                                                 teamResults = map (convertResult t) results
+generateTeamPage :: STGroup ByteString -> FilePath -> Team -> Results -> [(Day, Int)] -> MetaData -> IO ()
+generateTeamPage group dir t results positions metaData = do let homeResults = homeOnly results ! t
+                                                                 awayResults = awayOnly results ! t
+                                                                 teamResults = map (convertResult t) $ byTeam results ! t
                                                                  (goalScorers, ownGoals) = teamGoalScorers teamResults
                                                                  (goalsForByInterval, goalsAgainstByInterval) = goalsByInterval teamResults
                                                                  -- Don't include all goal-scorers for aggregated pages because the list could be massive.
                                                                  goalScorers' = if isAggregated metaData then takeAtLeast 10 $ groupBy (equal snd) goalScorers else goalScorers
                                                                  attributes = [("team", AV t),
                                                                                ("results", AV teamResults),
-                                                                               ("record", AV $ getSummary t results),
+                                                                               ("record", AV . getSummary t $ byTeam results ! t),
                                                                                ("homeRecord", AV $ getSummary t homeResults),
                                                                                ("awayRecord", AV $ getSummary t awayResults),
                                                                                ("scorers", AV goalScorers'),
                                                                                ("ownGoals", AV $ show ownGoals),
                                                                                ("positions", AV positions),
                                                                                ("goalsByInterval", AV (goalsForByInterval, goalsAgainstByInterval)),
-                                                                               ("intervalMaxima", AV (roundUp $ maximum goalsForByInterval, roundUp $ maximum goalsAgainstByInterval)),
+                                                                               ("intervalMaxima", AV (roundUp (maximum goalsForByInterval) 5, roundUp (maximum goalsAgainstByInterval) 5)),
                                                                                ("teamCount", AV . Map.size $ teamLinks metaData),
                                                                                ("metaData", AV metaData)]
                                                              applyTemplateWithName group "team.html" dir (teamLinks metaData ! BS.unpack t) attributes
-                                                             where roundUp n = (n + 4) `div` 5 * 5 -- Round to nearest 5.
 
 getSummary :: Team -> [Result] -> (Int, Float, Int, Float, Int, Float)
 getSummary t results = (won record,
@@ -305,7 +291,7 @@ publishDivision templateGroup lgName lgDiv = mapM_ (publishSeason templateGroup 
 
 publishSeason :: STGroup ByteString -> String -> String -> Season -> IO ()
 publishSeason templates lgName divName divSeason = do let dataFile = inputFile divSeason
-                                                      modified <- isNewer dataFile (combine (outputDir divSeason) "index.html")
+                                                      modified <- isNewer dataFile (outputDir divSeason </> "index.html")
                                                       case modified || aggregated divSeason || collated divSeason of
                                                           False -> print $ "Skipping unchanged file " ++ dataFile 
                                                           True  -> do print $ "Processing " ++ dataFile
@@ -322,4 +308,3 @@ publishSeason templates lgName divName divSeason = do let dataFile = inputFile d
                                                                                               links
                                                                                               (getMiniLeaguesLink miniLeagues)
                                                                       generateStatsPages templates (outputDir divSeason) leagueData metaData 
-

@@ -1,14 +1,19 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Anorak.Goals (goalsByInterval, hatTricks, teamGoalScorers, topGoalScorers, topPenaltyScorers) where
+module Anorak.Goals (goalsByInterval,
+                     hatTricks,
+                     teamGoalScorers,
+                     topGoalScorers,
+                     topPenaltyScorers) where
 
 import Anorak.Results
-import Anorak.Utils(equal, snd3, takeAtLeast)
 import Data.ByteString.Char8(ByteString)
 import Data.List(foldl', groupBy, nub, partition, sortBy)
 import qualified Data.Map as Map(alter, elems, fromAscList)
 import Data.Maybe(fromMaybe)
 import Data.Ord(comparing)
+import Util.List(equal, takeAtLeast)
+import Util.Tuple(pair, snd3)
 
 -- | Generate a list of the leading goal scorers for a given set of results.
 topGoalScorers :: [Result] -> [(ByteString, Int, [Team])]
@@ -40,22 +45,20 @@ teamGoalScorers results = (goalScorers, length ownGoals)
                           where teamGoals = concatMap goalsFor results
                                 (normalGoals, ownGoals) = partition ((/= "o").goalType) teamGoals
                                 byScorer = groupByScorer scorer normalGoals
-                                goalScorers = sortBy (flip $ comparing snd) $ map (\s -> (scorer $ head s, length s)) byScorer
+                                goalScorers = sortBy (flip $ comparing snd) $ map (pair (scorer.head) length) byScorer
 
 -- | Get a list of all hat-tricks scored in the specified results.
 hatTricks :: [Result] -> [(ByteString, Int, Team, TeamResult)]
 hatTricks = sortBy compareHatTrick . concatMap getMatchHatTricks
 
 getMatchHatTricks :: Result -> [(ByteString, Int, Team, TeamResult)]
-getMatchHatTricks result
-    | homeScore result < 3 && awayScore result < 3 = []
-    | otherwise                                    = homeHatTricks ++ awayHatTricks
-                                                     where homeHatTricks = map (expand (homeTeam result) result) . extractHatTricks $ homeGoals result
-                                                           awayHatTricks = map (expand (awayTeam result) result) . extractHatTricks $ awayGoals result
-                                                           expand team res (player, count) = (player, count, team, convertResult team res)
+getMatchHatTricks result = homeHatTricks ++ awayHatTricks
+                           where homeHatTricks = map (expand (homeTeam result) result) . extractHatTricks $ homeGoals result
+                                 awayHatTricks = map (expand (awayTeam result) result) . extractHatTricks $ awayGoals result
+                                 expand team res (player, count) = (player, count, team, convertResult team res)
 
 extractHatTricks :: [Goal] -> [(ByteString, Int)]
-extractHatTricks goalsList = map (\g -> (scorer $ head g, length g)) byScorer
+extractHatTricks goalsList = map (pair (scorer.head) length) byScorer
                              where byScorer = filter ((>= 3).length) . groupByScorer scorer $ filter ((/= "o").goalType) goalsList
 
 -- | Hat-tricks are ordered first by the number of goals and then by date.

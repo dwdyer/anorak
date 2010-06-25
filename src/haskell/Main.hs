@@ -4,8 +4,10 @@ import Anorak.Config(Configuration(..), readConfig)
 import Anorak.FeatureExtractor(generateFeatures)
 import Anorak.Publisher
 import Data.ByteString(ByteString)
+import Data.List(isSuffixOf)
 import System(getArgs)
 import Text.StringTemplate(directoryGroup, STGroup)
+import Util.File(copyMatchingFiles)
 
 -- | First argument is the command.  Any subsequent arguments are command-specific.
 main :: IO ()
@@ -20,5 +22,5 @@ publish :: FilePath -> IO ()
 publish configFile = do config <- readConfig configFile
                         let templates = templateDir config
                         group <- directoryGroup templates :: IO (STGroup ByteString)
-                        copyResources templates $ outputRoot config
+                        copyMatchingFiles (not . isSuffixOf ".st") templates $ outputRoot config
                         publishLeagues group config

@@ -2,7 +2,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | A module for parsing RLT data files as used by the Football Statistics Applet (see <https://fsa.dev.java.net>).
-module Anorak.RLTParser (LeagueData(LeagueData), parseRLTFile, RLTException) where
+module Anorak.RLTParser (LeagueData(LeagueData),
+                         parseRLTFile,
+                         RLTException) where
 
 import Anorak.Results
 import Control.Applicative((<|>), (<*))

@@ -11,7 +11,6 @@ module Anorak.Tables (buildRecord,
                       pointsPerGame) where
 
 import Anorak.Results
-import Anorak.Utils(keep)
 import Data.ByteString.Char8(ByteString)
 import qualified Data.ByteString.Char8 as BS(unpack)
 import Data.List(foldl', sort)
@@ -22,6 +21,7 @@ import Data.Ord(comparing)
 import Data.Set(Set)
 import qualified Data.Set as Set(member, toAscList, union)
 import Data.Time.Calendar(Day)
+import Util.List(keep)
 
 -- | A LeagueRecord contains data about the league performance of a single team.  It
 --   includes total number of wins, draws, defeats, goals scored and goals conceded.

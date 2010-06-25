@@ -1,15 +1,20 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 
 -- | Configuration loader for the Anorak system.
-module Anorak.Config (Configuration(..), ConfigurationException, Division(..), League(..), readConfig, Season(..)) where
+module Anorak.Config (Configuration(..),
+                      ConfigurationException,
+                      Division(..),
+                      League(..),
+                      readConfig,
+                      Season(..)) where
 
-import Anorak.Utils(makeAbsolute)
 import Control.Exception(Exception, throw)
 import Data.Data(Data)
 import Data.Maybe(fromMaybe)
 import Data.Typeable(Typeable)
 import System.FilePath(takeDirectory)
 import Text.XML.Light(Element(..), findAttr, findChildren, parseXMLDoc, QName(..))
+import Util.File(makeAbsolute)
 
 data Configuration = Configuration {outputRoot :: FilePath,  -- ^ The directory into which generated files are placed.
                                     templateDir :: FilePath, -- ^ The location of the HStringTemplate templates to use.
@@ -32,7 +37,7 @@ data Season = Season {seasonName :: String,     -- ^ The name of the season (e.g
                       outputDir :: FilePath,    -- ^ The directory to write the generated files to.
                       relativeLink :: FilePath, -- ^ Link relative to the web root.
                       scorers :: Bool,          -- ^ Whether goal-scorer data should be used if present.
-                      neutral :: Bool,          -- ^ Whether all fixtures should be considered as neutral venues so that home/away statistics are not generated.
+                      neutral :: Bool,          -- ^ Whether home/away distinction should be ignored and home/away statistics not generated.
                       archive :: Bool,          -- ^ Whether this is an archive season rather than current.
                       aggregated :: Bool,       -- ^ Whether this is an aggregate of multiple seasons from the same division.
                       collated :: Bool}         -- ^ Whether this is the combination of multiple divisions from the same season.
@@ -67,15 +72,15 @@ processDivisionTag baseDir outputPath tag = Division (getAttributeValue tag "nam
 
 processSeasonTag :: FilePath -> FilePath -> Element -> Season
 processSeasonTag baseDir outputPath tag = Season (getAttributeValue tag "name")
-                                                (makeAbsolute (getAttributeValue tag "input") baseDir)
-                                                (makeAbsolute seasonDir outputPath)
-                                                ("../../../" ++ seasonDir ++ "/index.html")
-                                                (getBooleanAttribute tag "scorers")
-                                                (getBooleanAttribute tag "neutral")
-                                                (getBooleanAttribute tag "archive")
-                                                (getBooleanAttribute tag "aggregated")
-                                                (getBooleanAttribute tag "collated")
-                                         where seasonDir = getAttributeValue tag "output"
+                                                 (makeAbsolute (getAttributeValue tag "input") baseDir)
+                                                 (makeAbsolute seasonDir outputPath)
+                                                 ("../../../" ++ seasonDir ++ "/index.html")
+                                                 (getBooleanAttribute tag "scorers")
+                                                 (getBooleanAttribute tag "neutral")
+                                                 (getBooleanAttribute tag "archive")
+                                                 (getBooleanAttribute tag "aggregated")
+                                                 (getBooleanAttribute tag "collated")
+                                          where seasonDir = getAttributeValue tag "output"
 
 -- | Simplifies the reading of XML attributes by assuming that the attribute is present.  Throws an exception if it is not.
 getAttributeValue :: Element -> String -> String

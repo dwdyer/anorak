@@ -9,14 +9,12 @@ module Anorak.Results (aggregate,
                        Goal(..),
                        highestAggregates,
                        homeWins,
-                       partitionResults,
                        prepareResults,
                        Result(..),
                        Results(..),
                        Team,
                        TeamResult(..)) where
 
-import Anorak.Utils(equal, takeAtLeast)
 import Data.ByteString.Char8(ByteString)
 import qualified Data.ByteString.Char8 as BS(unpack)
 import Data.List(groupBy, partition, sortBy)
@@ -26,6 +24,7 @@ import Data.Ord(comparing)
 import Data.Time.Calendar(Day(..))
 import Data.Time.Format(formatTime)
 import System.Locale(defaultTimeLocale)
+import Util.List(equal, takeAtLeast)
 
 -- | A team is represented simply by its name.
 type Team = ByteString
@@ -115,11 +114,7 @@ addResultToMap rMap keyFunction result = Map.insertWith (++) (keyFunction result
 --   home results, the second is their away results.
 splitHomeAndAway :: Map Team [Result] -> Map Team ([Result], [Result])
 splitHomeAndAway = Map.mapWithKey partitionResults
-
--- | Splits a team's results into home results and away results.  The first item in the tuple is the home results, the
---   second is the away results.
-partitionResults :: Team -> [Result] -> ([Result], [Result])
-partitionResults team = partition (\x -> team == homeTeam x)
+                   where partitionResults team = partition ((team ==) . homeTeam)
 
 -- | Maps a single result for a particular team to a character ('W', 'D' or 'L').
 form :: Team -> Result -> Char
@@ -187,4 +182,3 @@ prepareResults results aliases = Results results teamResults (Map.map fst homeAn
                                        firstHalfByTeam = resultsByTeam firstHalfResults aliases
                                        secondHalfByTeam = resultsByTeam secondHalfResults aliases
                                        homeAndAway = splitHomeAndAway teamResults
-
