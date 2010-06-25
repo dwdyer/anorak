@@ -41,6 +41,8 @@ executable anorak
 executable test
     main-is:            Tests.hs
     other-modules:      Anorak.Results,
-                        Util.List
+                        Anorak.Tests,
+                        Util.List,
+                        Util.Tests
     build-depends:      base, haskell98, time, bytestring, QuickCheck
     hs-source-dirs:     src/haskell
