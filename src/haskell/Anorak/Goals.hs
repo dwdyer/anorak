@@ -32,7 +32,7 @@ topScorers results filtr count = takeAtLeast count $ groupBy (equal snd3) scorer
 
 extractGoals :: (Goal -> Bool) -> Result -> [(Goal, Team)]
 extractGoals filtr result = getGoals homeTeam homeGoals ++ getGoals awayTeam awayGoals
-                            where getGoals ft fg = map (\g -> (g, ft result)) . filter filtr $ fg result
+                            where getGoals ft fg = map (flip (,) $ ft result) . filter filtr $ fg result
 
 -- | Sort and group by scorer.  The type g could be either Goal or (Goal, Team), so the first argument
 --   is the function to extract the scorer.
