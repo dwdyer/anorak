@@ -15,7 +15,7 @@ import Data.ByteString.Char8(ByteString)
 import qualified Data.ByteString.Char8 as BS(unpack)
 import Data.List(foldl', sort)
 import Data.Map(Map, (!))
-import qualified Data.Map as Map(adjust, adjustWithKey, elems, empty, filterWithKey, findMax, findWithDefault, fromList, keysSet, map, mapAccum, mapWithKey, partitionWithKey, toAscList)
+import qualified Data.Map as Map(adjust, adjustWithKey, elems, empty, filter, filterWithKey, findMax, findWithDefault, fromList, keysSet, map, mapAccum, mapWithKey, partitionWithKey, toAscList)
 import Data.Maybe(fromMaybe)
 import Data.Ord(comparing)
 import Data.Set(Set)
@@ -133,7 +133,7 @@ adjust adjustments (LeagueRecord t w d l f a adj) = LeagueRecord t w d l f a (ad
 -- | Generate a league table that includes only results between the specified teams.
 miniLeagueTable :: Set Team -> Map Team [Result] -> Map ByteString Team -> [LeagueRecord]
 miniLeagueTable teams results aliases = leagueTable filteredResults Map.empty 0
-                                        where teamNames = Set.union teams $ Map.keysSet aliases
+                                        where teamNames = Set.union teams . Map.keysSet $ Map.filter (`Set.member` teams) aliases
                                               filteredResults = Map.map (filter $ bothTeamsInSet teamNames) $ Map.filterWithKey (\k _ -> Set.member k teamNames) results
 
 bothTeamsInSet :: Set Team -> Result -> Bool
