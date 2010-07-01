@@ -45,6 +45,7 @@ instance ToSElem LeagueRecord where
                                            ("positiveGD", toSElem $ goalDiff record > 0), -- Goal difference could be neither +ve or -ve (i.e. zero).
                                            ("team", toSElem $ team record),
                                            ("won", toSElem $ won record)]
+
 instance ToSElem Result where
     toSElem result = SM $ Map.fromAscList [("awayGoals", toSElem . reduceScorers $ awayGoals result),
                                            ("awayScore", toSElem $ awayScore result),
@@ -69,7 +70,9 @@ instance ToSElem AttributeValue where
     toSElem (AV a) = toSElem a
 
 -- | A page is defined by a (relative) path, a list of attributes and the name of the template that should be used to render it.
-data Page = Page !FilePath ![(String, AttributeValue)] !String
+data Page = Page !FilePath ![(String, AttributeValue)]
+          | TeamPage !FilePath ![(String, AttributeValue)]
+          | MiniLeaguePage !FilePath ![(String, AttributeValue)]
           | OptionalPage FilePath [(String, AttributeValue)] !Bool
 
 -- | Data about the season being published, useful in templates.
@@ -123,7 +126,7 @@ goalTypeString goal = case goalType goal of
 
 -- | Generates home, away and overall HTML league tables.
 leagueTablePages :: Results -> Map Team Int -> MetaData -> Int -> [Page]
-leagueTablePages results adjustments meta sp = [Page "index.html" (tableAttrib byTeam adjustments sp) "table.html",
+leagueTablePages results adjustments meta sp = [Page "index.html" (tableAttrib byTeam adjustments sp),
                                                 OptionalPage "hometable.html" (tableAttrib homeOnly Map.empty 0) (not $ isNeutral meta),
                                                 OptionalPage "awaytable.html" (tableAttrib awayOnly Map.empty 0) (not $ isNeutral meta),
                                                 OptionalPage "firsthalftable.html" (tableAttrib firstHalf Map.empty 0) (hasScorers meta),
@@ -139,7 +142,7 @@ formTablePages results meta = [OptionalPage "formtable.html" (formAttrib byTeam 
 -- | Generates current and longest sequences for home, away and all matches.
 sequencePages :: Results -> MetaData -> [Page]
 sequencePages results meta = [OptionalPage "currentsequences.html" (seqAttribs overallCurrent "currentSequencesSelected") (not $ isArchive meta),
-                              Page "longestsequences.html" (seqAttribs overallLongest "longestSequencesSelected") "longestsequences.html",
+                              Page "longestsequences.html" (seqAttribs overallLongest "longestSequencesSelected"),
                               OptionalPage "homecurrentsequences.html" (seqAttribs homeCurrent "currentSequencesSelected") (not $ isArchive meta && not (isNeutral meta)),
                               OptionalPage "homelongestsequences.html" (seqAttribs homeLongest "longestSequencesSelected") (not $ isNeutral meta),
                               OptionalPage "awaycurrentsequences.html" (seqAttribs awayCurrent "currentSequencesSelected") (not $ isArchive meta && not (isNeutral meta)),
@@ -151,11 +154,11 @@ sequencePages results meta = [OptionalPage "currentsequences.html" (seqAttribs o
 
 -- | Generates team aggregates for all matches.
 aggregatePages:: Results -> MetaData -> [Page]
-aggregatePages results meta = [Page "aggregates.html" attributes "aggregates.html"]
+aggregatePages results meta = [Page "aggregates.html" attributes]
                               where attributes = [("aggregates", AV . Map.mapKeys show . getAggregateTables $ byTeam results), ("aggregatesSelected", AV True), ("metaData", AV meta)]
 
 resultsPages :: Results -> MetaData -> [Page]
-resultsPages results meta = [Page "results.html" attributes "results.html"]
+resultsPages results meta = [Page "results.html" attributes]
                             where homeWinMatches = homeWins $ list results
                                   awayWinMatches = awayWins $ list results
                                   matchCount = length $ list results
@@ -185,7 +188,7 @@ miniLeaguePages results miniLeagues aliases meta = map (miniLeaguePage results a
                                                    where tabs = map (pair id toHTMLFileName . fst) miniLeagues -- Each tab is a display name and a file name.
 
 miniLeaguePage :: Results -> Map ByteString Team -> [(ByteString, String)] -> MetaData -> (ByteString, Set Team) -> Page
-miniLeaguePage results aliases tabs meta (name, teams) = Page (toHTMLFileName name) attributes "minileague.html"
+miniLeaguePage results aliases tabs meta (name, teams) = MiniLeaguePage (toHTMLFileName name) attributes
                                                          where selectedTabs = map (\(n, f) -> (n, f, n == name)) tabs -- Add a boolean "selected" flag to each tab.
                                                                attributes = [("table", AV $ miniLeagueTable teams (byTeam results) aliases),
                                                                              ("miniLeaguesSelected", AV True),
@@ -198,7 +201,7 @@ teamPages results positions meta = map (\t -> teamPage t results (positions ! t)
 
 -- | Generate the overview page for an individual team.
 teamPage :: Team -> Results -> [(Day, Int)] -> MetaData -> Page
-teamPage t results positions meta = Page (teamLinks meta ! BS.unpack t) attributes "team.html"
+teamPage t results positions meta = TeamPage (teamLinks meta ! BS.unpack t) attributes
                                     where homeResults = homeOnly results ! t
                                           awayResults = awayOnly results ! t
                                           teamResults = map (convertResult t) $ byTeam results ! t
@@ -268,7 +271,7 @@ getMiniLeaguesLink []            = Nothing
 getMiniLeaguesLink ((name, _):_) = Just $ toHTMLFileName name
 
 publishLeagues :: STGroup ByteString -> Configuration -> IO ()
-publishLeagues templates config = do publishPage templates (outputRoot config) $ Page "selector.json" [("config", AV config)] "selector.json"
+publishLeagues templates config = do publishPage templates (outputRoot config) $ Page "selector.json" [("config", AV config)]
                                      mapM_ (publishLeague templates) $ leagues config
 
 publishLeague :: STGroup ByteString -> League -> IO ()
@@ -300,8 +303,13 @@ publishSeason templates lgName divName divSeason = do let dataFile = inputFile d
 
 -- | Publish a single page by applying the appropriate HStringTemplate template.
 publishPage :: STGroup ByteString -> FilePath -> Page -> IO ()
-publishPage group dir (Page name attributes templateName) = case getStringTemplate templateName group of
-                                                                 Nothing -> print $ "Could not find template for " ++ templateName
-                                                                 Just template  -> BS.writeFile (dir </> name) . render $ setManyAttrib attributes template
-publishPage group dir (OptionalPage name attributes True) = publishPage group dir $ Page name attributes name
+publishPage group dir (Page name attributes)              = publish group dir attributes name name
+publishPage group dir (TeamPage name attributes)          = publish group dir attributes name "team.html"
+publishPage group dir (MiniLeaguePage name attributes)    = publish group dir attributes name "minileague.html"
+publishPage group dir (OptionalPage name attributes True) = publish group dir attributes name name
 publishPage _ _ _                                         = return ()
+
+publish :: STGroup ByteString -> FilePath -> [(String, AttributeValue)] -> FilePath -> String -> IO ()
+publish group dir attributes fileName templateName = case getStringTemplate templateName group of
+                                                         Nothing -> print $ "Could not find template for " ++ templateName
+                                                         Just template  -> BS.writeFile (dir </> fileName) . render $ setManyAttrib attributes template
