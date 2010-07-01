@@ -83,6 +83,7 @@ data MetaData = MetaData {league :: String,
                           hasScorers :: Bool,
                           teamLinks :: Map String String,
                           miniLeaguesLink :: Maybe String}
+
 instance ToSElem MetaData where
     toSElem meta = SM $ Map.fromAscList [("division", toSElem $ division meta),
                                          ("hasScorers", toSElem $ hasScorers meta),

@@ -33,6 +33,7 @@ data LeagueRecord = LeagueRecord {team :: !Team,     -- ^ The team that this rec
                                   against :: !Int,   -- ^ The total number of goals conceded by this team.
                                   adjustment :: !Int -- ^ A points adjustment (can be positive or negative but is usually zero) to be applied to this team's total.
                                  }
+
 -- A LeagueRecord can be rendered as a String containing both member fields and
 -- derived fields.
 instance Show LeagueRecord where
@@ -45,6 +46,7 @@ instance Show LeagueRecord where
                   " A" ++ show (against record) ++
                   " GD" ++ show (goalDiff record) ++
                   " Pts" ++ show (points record)
+
 -- A LeagueRecord can be compared with other records to provide an ordering for a
 -- list of records.
 instance Eq LeagueRecord where
@@ -52,6 +54,7 @@ instance Eq LeagueRecord where
                            && goalDiff record1 == goalDiff record2
                            && for record1 == for record2
                            && won record1 == won record2
+
 instance Ord LeagueRecord where
     compare record1 record2
         | points record1 /= points record2     = comparing points record2 record1

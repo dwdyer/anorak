@@ -38,18 +38,21 @@ data Result = Result {date :: !Day,        -- ^ The day that the match was playe
                       homeGoals :: [Goal], -- ^ An optional list of home goals.
                       awayGoals :: [Goal]  -- ^ An optional list of away goals.
                      }
+
 instance Show Result where
     show result = formatTime defaultTimeLocale "%e %b %Y: " (date result) ++
                   BS.unpack (homeTeam result) ++ " " ++
                   show (homeScore result) ++ " - " ++
                   show (awayScore result) ++ " " ++
                   BS.unpack (awayTeam result)
+
 instance Eq Result where
     (==) result1 result2 = date result1 == date result2
                            && homeTeam result1 == homeTeam result2
                            && awayTeam result1 == awayTeam result2
                            && homeScore result1 == homeScore result2
                            && awayScore result1 == awayScore result2
+
 instance Ord Result where
     compare result1 result2
         | date result1 == date result2 = comparing homeTeam result1 result2
@@ -69,6 +72,7 @@ data TeamResult = TeamResult {day :: !Day,
                               outcome :: !Char,
                               goalsFor :: [Goal],
                               goalsAgainst :: [Goal]}
+
 instance Show TeamResult where
     show result = formatTime defaultTimeLocale "%e %b %Y: " (day result) ++
                   BS.unpack (opposition result) ++ "(" ++ [venue result] ++ ") " ++ [outcome result] ++ " " ++
