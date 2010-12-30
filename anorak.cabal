@@ -44,5 +44,5 @@ executable test
                         Anorak.Tests,
                         Util.List,
                         Util.Tests
-    build-depends:      base, haskell98, time, bytestring, QuickCheck
+    build-depends:      base, haskell98, time, bytestring, QuickCheck < 2
     hs-source-dirs:     src/haskell
