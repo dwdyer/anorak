@@ -10,7 +10,7 @@ import Anorak.Results
 import Control.Applicative((<|>), (<*))
 import Control.Exception(Exception, throw)
 import Data.Attoparsec.Char8(char, digit, endOfLine, notInClass, parse, Parser, decimal, string, takeTill, takeWhile1)
-import qualified Data.Attoparsec.Char8 as P(Result(..)) -- Qualified to avoid clash with Anorak Result type.
+import Data.Attoparsec.Char8(IResult(..))
 import Data.Attoparsec.Combinator(count, option, sepBy, sepBy1)
 import Data.ByteString.Char8(ByteString)
 import qualified Data.ByteString.Char8 as BS(empty, readFile, unpack)
@@ -190,10 +190,10 @@ parseRLTFile path = do let dataDir = takeDirectory path
                        contents <- BS.readFile path
                        let parseResult = parse (results dataDir) contents
                        case parseResult of
-                           P.Fail _ _ err      -> throw $ RLTException err
-                           P.Partial p         -> case p BS.empty of
-                                                      P.Fail _ _ err      -> throw $ RLTException err
-                                                      P.Partial _         -> throw $ RLTException "Incomplete input."
-                                                      P.Done _ leagueData -> return leagueData
-                           P.Done _ leagueData -> return leagueData
+                           Fail _ _ err      -> throw $ RLTException err
+                           Partial p         -> case p BS.empty of
+                                                     Fail _ _ err      -> throw $ RLTException err
+                                                     Partial _         -> throw $ RLTException "Incomplete input."
+                                                     Done _ leagueData -> return leagueData
+                           Done _ leagueData -> return leagueData
 

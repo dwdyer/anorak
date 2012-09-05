@@ -3,11 +3,12 @@ module Util.File (copyMatchingFiles,
                   isNewer,
                   makeAbsolute) where
 
+import Control.Exception(try)
 import Control.Monad(filterM)
 import Data.List(isPrefixOf)
 import System.Directory(copyFile, createDirectoryIfMissing, doesFileExist, getDirectoryContents, getModificationTime)
 import System.FilePath((</>), isRelative, replaceDirectory)
-import System.IO.Error(isDoesNotExistError, try)
+import System.IO.Error(isDoesNotExistError)
 
 -- | If the first path is relative, use the second path (which must be a directory) to make it absolute.
 makeAbsolute :: FilePath -> FilePath -> FilePath

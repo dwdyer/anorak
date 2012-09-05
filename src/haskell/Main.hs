@@ -5,7 +5,7 @@ import Anorak.FeatureExtractor(generateFeatures)
 import Anorak.Publisher
 import Data.ByteString(ByteString)
 import Data.List(isSuffixOf)
-import System(getArgs)
+import System.Environment(getArgs)
 import Text.StringTemplate(directoryGroup, STGroup)
 import Util.File(copyMatchingFiles)
 
