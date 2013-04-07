@@ -1,12 +1,12 @@
 from os.path import dirname, join
-from BeautifulSoup import BeautifulStoneSoup
+from bs4 import BeautifulSoup
 
 def get_files_to_update(config_path):
     """Parse the specified config XML and return a dictionary of URLs to scrape and the data files that should be updated."""
     print "Reading configuration file: %s" % config_path
     with open(config_path) as config_file:
         xml = config_file.read()
-    tags = BeautifulStoneSoup(xml, selfClosingTags=["season"])
+    tags = BeautifulSoup(xml, features=["xml"])
     # Find all seasons that specify a source URL for scraping.
     tags = tags.findAll("season", src=True)
     files = {}
