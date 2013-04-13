@@ -1,15 +1,14 @@
-$header(title="Aggregates")$
-<div id="centre">
-  $selector()$
+$header(title="Cleansheets")$
+$selector()$
+<div class="row">
   $toptabs()$
-  <div id="content">
-    <h2>$metaData.division$ $metaData.season$ - Aggregates</h2>
+  <div class="span9 tabs-below">
+    <h2>$metaData.division$ $metaData.season$ - Cleansheets</h2>
     <p>
-      Various aggregate statistics that are not included in standard <a href="index.html">league table</a>.  Includes all matches (home and away).
+      Total cleansheets for and against each team, plus total number of 0-0 draws recorded by each team.  Includes all matches (home and away).
     </p>
     $aggregates()$
   </div>
-  <div id="bottomtabs"></div>
 </div>
 $footer()$
 

@@ -1,30 +1,33 @@
-<div id="records">
+<div class="span4">
   $if(!metaData.neutral)$
-    <img src="http://chart.apis.google.com/chart?chs=230x115&amp;chd=t:$homeWinPercent$,$drawPercent$,$awayWinPercent$&amp;cht=p&amp;chdl=Home%20Wins|Draws|Away%20Wins&amp;chf=bg,s,ffffff00&amp;chco=009900,cc9900,cc0000&amp;chp=4.71" width="230" height="115" alt="Results pie chart." id="resultsPie"/>
+    <img src="http://chart.apis.google.com/chart?chs=280x160&amp;chd=t:$homeWinPercent$,$drawPercent$,$awayWinPercent$&amp;cht=p&amp;chdl=Home%20Wins|Draws|Away%20Wins&amp;chf=bg,s,ffffff00&amp;chco=46a546,ffc40d,c3325f&amp;chp=4.71&amp;chma=0,0,0,20" width="280" height="160" alt="Results pie chart."/>
   $endif$
-  <table id="totals">
-    <tr><td>Matches:</td><td class="number">$matches$</td></tr>
-    <tr><td>Goals:</td><td class="number">$goals$</td></tr>
+  <table id="totals" class="table table-condensed">
+    <tr><td>Matches</td><td class="number">$matches$</td></tr>
+    <tr><td>Goals</td><td class="number">$goals$</td></tr>
     $if(!metaData.neutral)$
-      <tr><td colspan="2">&nbsp;</td></tr>
-      <tr><td>Home Wins:</td><td class="number">$homeWins$</td></tr>
-      <tr><td>Draws:</td><td class="number">$draws$</td></tr>
-      <tr><td>Away Wins:</td><td class="number">$awayWins$</td></tr>
+      <tr><td>Home Wins</td><td class="number">$homeWins$</td></tr>
+      <tr><td>Draws</td><td class="number">$draws$</td></tr>
+      <tr><td>Away Wins</td><td class="number">$awayWins$</td></tr>
     $endif$
   </table>
-  <table id="keyresults">
-    $if(metaData.neutral)$
-      <tr><th colspan="4" class="record"><h3>Biggest Wins</h3></th></tr>
+  $if(metaData.neutral)$
+    <h4>Biggest Wins</h4>
+    <table class="table table-condensed">
       $bigWins:result()$
-    $else$
-      <tr><th colspan="4" class="record"><h3>Biggest Home Wins</h3></th></tr>
+    </table>
+  $else$
+    <h4>Biggest Home Wins</h4>
+    <table class="table table-condensed">
       $bigHomeWins:result()$
-      <tr><td colspan="4">&nbsp;</td></tr>
-      <tr><th colspan="4" class="record"><h3>Biggest Away Wins</h3></th></tr>
+    </table>
+    <h4>Biggest Away Wins</h4>
+    <table class="table table-condensed">
       $bigAwayWins:result()$
-    $endif$
-    <tr><td colspan="4">&nbsp;</td></tr>
-    <tr><th colspan="4" class="record"><h3>Highest Match Aggregates</h3></th></tr>
+    </table>
+  $endif$
+  <h4>Highest Match Aggregates</h4>
+  <table class="table table-condensed">
     $highAggregates:result()$
   </table>
 </div>

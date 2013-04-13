@@ -1,16 +1,16 @@
 $header(title="Away League Table")$
-<div id="centre">
-  $selector()$
+$selector()$
+<div class="row">
   $toptabs()$
-  <div id="content">
+  <div class="span9 tabs-below">
     <h2>$metaData.division$ $metaData.season$ - Away League Table</h2>
     <p>
       This table includes <strong>away matches only</strong>.  
       You can change the sort order by clicking on the column headings.
     </p>
     $leaguetable()$
+    $leaguetabletabs(awaySelected="true")$
   </div>
-  $leaguetabletabs(awaySelected="true")$
 </div>
 $footer()$
 

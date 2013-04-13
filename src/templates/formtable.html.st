@@ -1,8 +1,8 @@
-$header(title="Form Table (Last 6 Matches)")$
-<div id="centre">
-  $selector()$
+$header(title="Form Table (Last 6 Matches)";bootstrapJS="Y")$
+$selector()$
+<div class="row">
   $toptabs()$
-  <div id="content">
+  <div class="span9 tabs-below">
     <h2>$metaData.division$ $metaData.season$ - Form Table (Last 6 Matches)</h2>
     <p>
       This table includes <strong>the last 6 matches (home and away) for each team</strong>.  
@@ -10,13 +10,13 @@ $header(title="Form Table (Last 6 Matches)")$
       Move your mouse over the form column to see recent results.
     </p>
     $formtable(detail="Last 6 Matches")$
-  </div>
-  <div id="bottomtabs">
-    $if(!metaData.neutral)$
-      $tab(label="Overall";hint="Overall Form";link="formtable.html";selected="true")$
-      $tab(label="Home";hint="Home Form";link="homeformtable.html")$
-      $tab(label="Away";hint="Away Form";link="awayformtable.html")$
-    $endif$
+    <ul class="nav nav-tabs">
+      $if(!metaData.neutral)$
+        $tab(label="Overall";hint="Overall Form";link="formtable.html";selected="true")$
+        $tab(label="Home";hint="Home Form";link="homeformtable.html")$
+        $tab(label="Away";hint="Away Form";link="awayformtable.html")$
+      $endif$
+    </ul>
   </div>
 </div>
 $footer()$

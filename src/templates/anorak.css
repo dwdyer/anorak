@@ -1,103 +1,38 @@
-*                        {padding: 0; margin: 0;}
-html                     {min-height: 100%;}
-body                     {font-family: sans-serif; font-size: 62.5%; line-height: 1.8em; min-height: 100%;}
-h2                       {font-family: serif; font-size: 2.7em; margin-bottom: .6666em;}
-h3                       {font-family: serif; font-size: 1.8em; margin-bottom: 1.286em;}
-p                        {font-size: 1.3em; margin-bottom: 1.385em;}
-table                    {font-size: 1.3em; border-spacing: 0;}
-table table              {font-size: inherit;}
-table h3                 {font-family: serif; font-size: 1.385em; margin-bottom: 0;}
-td                       {margin-bottom: 1.385em;}
-th                       {margin-bottom: 1.385em;}
-
-/* General */
-#container               {position: absolute; min-height: 100%; min-width: 100%;}
-#centre                  {width: 930px; margin-left: auto; margin-right: auto; margin-top: 5em; padding-right: 3em; padding-left: 1em;}
-#selector                {padding: 1em; float: right; font-size: 1.3em; vertical-align: middle; text-align: left;}
-#content                 {position: relative; padding: 3.6em 3em; background: #ffffff;}
-.clearFloat              {clear: both; display: block; visibility: hidden;}
-
-/* Tabs */
-#toptabs                 {font-size: 1.4em; padding: 0 1em; margin-top: 1.286em; border-bottom: 1px solid #333333; clear: both;}
-#toptabs .tab            {padding: .15em 1em; border-bottom: 0; margin-bottom: -1px;}
-#toptabs .selectedtab    {border-bottom: 1px solid #ffffff;}
-#bottomtabs              {font-size: 1.2em; padding: 0 1em; margin-bottom: 1.5em; border-top: 1px solid #333333;}
-#bottomtabs .tab         {padding: 0 1em; border-top: 0; margin-top: -1px;}
-#bottomtabs .selectedtab {border-top: 1px solid #ffffff;}
-.tab                     {font-family: sans-serif; position: relative; display: inline-block; background: #eeeeee; border: 1px solid #333333;}
-.tab a                   {font-weight: bold; text-decoration: none; color: #000000;}
-.tab a:hover             {text-decoration: none;} 
-.tab a:visited           {color: #000000;}
-.selectedtab             {background: #ffffff;}
+/* Bootstrap tweaks */
+body {padding-top: 60px;}
+#footer {margin-top: 30px;}
+.navbar-form select {width: auto;}
+.nav-stacked {width: 210px;}
+.nav-stacked .icon-chevron-right {float: right; opacity: 0.25}
+.nav-stacked .icon-white {opacity: 1;}
+.nav-stacked > .active > a, .nav-stacked > .active > a:hover {background: #0088cc; color: #ffffff;}
 
 /* League/form tables */
-.matchday                {font-weight: bold;}
-.form                    {font-family: monospace; text-align: center; padding: 0 1em;}
-.date                    {padding-right: 1em; white-space: nowrap;}
-.details                 {color: #000000; background-color: #eeeeee; border: 1px solid #cccccc; font-family: sans-serif; padding: .5em; text-align: left; font-weight: normal;
-                          display: none; position: absolute; margin-left: 3.5em; margin-top: -1em;}
-.details table           {margin: 0; padding: 0 !important}
-.details .score          {padding: 0px;}
-.hover .details          {display: block;}
-.hometeam                {text-align: right;}
-.hotspot                 {border-bottom: 1px dotted #888888;}
-.hover                   {color: #0000ff;}
-.negative                {color: #660000;}
-.number                  {text-align: right; padding: 0 1em;}
-.number .details         {margin-left: 2.5em;}
-.opposition              {padding-right: 1em; white-space: nowrap;}
-.outcome                 {font-family: monospace; text-align: center; padding-left: .5em; padding-right: 1em;}
-.adjustment              {position: absolute; vertical-align: super; color: #444444; font-weight: normal; font-size: smaller; margin-top: -.3em;}
-.points                  {font-weight: bold;}
-.position                {padding-right: 1em;}
-.positive                {color: #006600;}
-.score                   {font-weight: bold; padding: 0 1em; white-space: nowrap; text-align: center;}
-.scorers                 {padding-left: 1em; font-size: smaller; color: #7f7f7f; vertical-align: middle;}
-.scorer                  {white-space: nowrap;}
-
-/* Sequences */
-.sequences               {margin-bottom: 1.385em;}
-.sequence                {vertical-align: top; width: 33.33%; white-space: nowrap;}
-.sequence table          {width: 100%; padding-right: 1em; margin-bottom: 1.385em;}
-.sequence table .number  {width: 3em; font-weight: bold;}
-.mainsequences           {border-bottom: 1px solid #000000; margin-bottom: 1.385em;}
+.matchday {font-weight: bold; border-top: 0 !important;}
+.form {font-family: Courier New, monospace;}
+.date {padding-right: .5em; white-space: nowrap;}
+.hometeam {text-align: right !important;}
+.hotspot {border-bottom: 1px dotted #888888; cursor: pointer;}
+.hotspot:hover {color: #990000;}
+.negative {color: #660000;}
+.opposition {padding: 0 1em; white-space: nowrap;}
+.outcome {font-family: Courier New, monospace; text-align: center; padding-left: .5em;}
+.points {font-weight: bold;}
+.adjustment {position: absolute; vertical-align: super; color: #444444; font-weight: normal; font-size: smaller; margin-top: -.3em;}
+.position {padding-right: 1em;}
+.positive {color: #006600;}
+.score {font-weight: bold; padding: 0 .75em; white-space: nowrap; text-align: center !important;}
+.scorers {padding-left: 1em;}
+.scorer {white-space: nowrap;}
 
 /* Results/Records */
-#resultswrapper          {width: 100%;}
-#resultswrapper td       {vertical-align: top;}
-#totals                  {margin-bottom: 1.385em;}
-#totals .number          {font-weight: bold;}
-#results td              {vertical-align: top;}
-#records                 {padding-left: 1.5em; margin-left: 1.5em;}
-#records td              {vertical-align: top;}
-#resultsPie              {float: right; margin-right: 3em;}
-
-#keyresults              {width: 100%;}
-#keyresults th           {text-align: left;}
-
-/* Team page */
-#teamrecords             {width: 100%; margin-bottom: 1.385em;}
-#teamrecords td          {vertical-align: top;}
-#teamrecords>tbody>tr>td {min-width: 160px;}
-#charts                  {width: 618px; padding-right: 2em;}
-#piecharts               {height: 175px; display: inline-block; margin: 0 1em 1em 0;}
-#scorers                 {width: 100%; padding-left: 2em;}
-#scorers th              {text-align: left;}
-#scorers td              {padding-right: 1em;}
-#scorers .number         {font-weight: bold; padding-right: 0;}
-.owngoals td             {border-top: 1px dotted #666666; font-style: italic;}
-
-/* Goals */
-#topscorers              {width: 498px;}
-#topscorers td           {padding-right: 1em; vertical-align: top;}
-#topscorers .number      {font-weight: bold; padding-right: 0;}
-#penalties               {clear: right; float: right; width:336px;}
-#penalties td            {padding-right: 1em; vertical-align: top;}
-#penalties .number       {font-weight: bold; padding-right: 0;}
-#hattricks               {width: 100%; margin-top: 1.385em;}
+#totals .number,.sequence .number, #scorers .number, #topscorers .number, #penalties .number {font-weight: bold; text-align: right;}
 
 /* Sortables */
-.sortable th             {cursor: pointer;}
-th.sorttable_nosort      {cursor: default;}
+.sortable th {cursor: pointer; text-align: center;}
+.sortable .number {text-align: center;}
+th.sorttable_nosort {cursor: default;}
 .nosortindicator #sorttable_sortrevind {display: none;} /* Don't show triangle for default order. */
 
+/* Popovers */
+.popover {max-width: 400px;}

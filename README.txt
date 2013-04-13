@@ -1,5 +1,5 @@
 Anorak - A football statistics package.
-(C) Copyright 2008-2010 Daniel W. Dyer
+(C) Copyright 2008-2013 Daniel W. Dyer
 
 SYNOPSIS
 

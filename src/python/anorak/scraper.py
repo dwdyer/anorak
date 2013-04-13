@@ -95,5 +95,5 @@ def update_all(data_files, team_aliases = {}, player_aliases = {}):
         else:
             print "No new results for %s, skipping." % file
 
-# Program entry point.  Expects two arguments, path to config file and path to mapping file.
+# Program entry point.  Expects three arguments - the path to the config file and the paths to the team and player mapping files.
 update_all(get_files_to_update(sys.argv[1]), load_team_aliases(sys.argv[2]), load_player_aliases(sys.argv[3]))

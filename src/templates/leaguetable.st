@@ -1,8 +1,8 @@
-<table class="sortable">
+<table class="table table-condensed sortable">
   <thead>
     <tr>
       <th class="nosortindicator" title="League Position"></th>
-      <th class="sorttable_nosort"></th>
+      <th class="sorttable_nosort">&nbsp;</th>
       <th title="Matches Played">P</th>
       <th title="Matches Won">W</th>
       <th title="Matches Drawn">D</th>
@@ -37,3 +37,5 @@
     </tr>}$
   </tbody>
 </table>
+<div class="clearfloat"></div>
+

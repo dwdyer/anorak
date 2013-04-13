@@ -1,16 +1,20 @@
 $header(title=team)$
-<div id="centre">
-  $selector()$
+$selector()$
+<div class="row">
   $toptabs()$
-  <div id="content">
+  <div class="span9">
     <h2>$team$ - $metaData.division$ $metaData.season$</h2>
-    $teamrecords()$
-    <h3>Full Results</h3>
-    <table id="results">
-      $results:teamresult(dateformat="%a %e %b %Y";showOutcome="true";showScorers=metaData.hasScorers)$
-    </table>
-    <div class="clearfloat"></div>
+    <div class="row">
+      $teamrecords()$
+    </div>
+    <div class="row">
+      <div class="span9">
+        <h4>Full Results</h4>
+        <table class="table table-condensed">
+          $results:teamresult(dateformat="%a %e %b %Y";showOutcome="true";showScorers=metaData.hasScorers)$
+        </table>
+      </div>
+    </div>
   </div>
-  <div id="bottomtabs"></div>
 </div>
 $footer()$
