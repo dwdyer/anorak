@@ -34,8 +34,7 @@ isNewer source destination = do sourceTime <- getModificationTime source
 listFiles :: FilePath -> IO [FilePath]
 listFiles dir = do contents <- getDirectoryContents dir
                    let visible = filter (not . isPrefixOf ".") contents -- Exclude hidden files.
-                       absolute = map (dir </>) visible -- Use qualified paths.
-                   return absolute
+                   return $ map (dir </>) visible -- Use qualified paths.
 
 -- | Copies all non-template files from the source directory to the target directory.  Used for making sure that CSS
 --   files and images (if any) are deployed with the generated HTML.  If the target directory does not exist it is
