@@ -11,7 +11,7 @@
       var divisionName  = "$metaData.division$";
       var seasonName = "$metaData.season$";
     </script>
-    <script type="text/javascript" src="../../../anorak.js"></script>
-    <script type="text/javascript" src="../../../sorttable.js"></script>
+    <script type="text/javascript" src="../../../js/anorak.js"></script>
+    <script type="text/javascript" src="../../../js/sorttable.js"></script>
   </body>
 </html>

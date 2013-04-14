@@ -6,7 +6,7 @@ module Util.File (copyMatchingFiles,
 import Control.Exception(try)
 import Control.Monad(filterM)
 import Data.List(isPrefixOf)
-import System.Directory(copyFile, createDirectoryIfMissing, doesFileExist, getDirectoryContents, getModificationTime)
+import System.Directory(copyFile, createDirectoryIfMissing, doesDirectoryExist, doesFileExist, getDirectoryContents, getModificationTime)
 import System.FilePath((</>), isRelative, replaceDirectory)
 import System.IO.Error(isDoesNotExistError)
 
@@ -17,7 +17,7 @@ makeAbsolute path base
     | otherwise       = path
 
 -- | Copies an individual file to a new directory, retaining the original file name.
-copyToDirectory :: FilePath -> FilePath -> IO()
+copyToDirectory :: FilePath -> FilePath -> IO ()
 copyToDirectory dir file = copyFile file (replaceDirectory file dir)
 
 -- | Returns true if the first file is newer than the second.  If the destination file does not exist, returns true.
@@ -29,19 +29,22 @@ isNewer source destination = do sourceTime <- getModificationTime source
                                     Left e          -> if isDoesNotExistError e then return True else ioError e
                                     Right destTime  -> return $ sourceTime > destTime
 
--- | Returns a list of files (excluding sub-directories and hidden files) in the specified directory.  The returned paths
+-- | Returns a list of files (excluding hidden files) in the specified directory.  The returned paths
 --   are fully-qualified.
 listFiles :: FilePath -> IO [FilePath]
 listFiles dir = do contents <- getDirectoryContents dir
-                   let visible = filter (not . isPrefixOf ".") contents -- Exclude hidden files/directories.
+                   let visible = filter (not . isPrefixOf ".") contents -- Exclude hidden files.
                        absolute = map (dir </>) visible -- Use qualified paths.
-                   filterM doesFileExist absolute -- Exclude directories.
+                   return absolute
 
 -- | Copies all non-template files from the source directory to the target directory.  Used for making sure that CSS
 --   files and images (if any) are deployed with the generated HTML.  If the target directory does not exist it is
 --   created.
 copyMatchingFiles :: (FilePath -> Bool) -> FilePath -> FilePath -> IO ()
 copyMatchingFiles match from to = do files <- listFiles from
-                                     let resources = filter match files
+                                     dirs <- filterM doesDirectoryExist files
+                                     nonDirs <- filterM doesFileExist files
+                                     let resources = filter match nonDirs
                                      createDirectoryIfMissing True to
                                      mapM_ (copyToDirectory to) resources
+                                     mapM_ (\x -> copyMatchingFiles match x $ replaceDirectory x to) dirs
