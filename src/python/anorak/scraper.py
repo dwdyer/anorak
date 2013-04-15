@@ -83,10 +83,10 @@ def parse_scorer(player, player_team, opponent, text, player_aliases = {}):
     return goals
     
 
-def update_all(data_files, team_aliases = {}, player_aliases = {}):
-    for url, file in data_files.items():
+def update_all(data_files, team_aliases = {}):
+    for url, file, players in data_files:
         old_results, metadata = parse_rlt(file)
-        new_results = scrape_sky_results(url, team_aliases, player_aliases)
+        new_results = scrape_sky_results(url, team_aliases, load_player_aliases(players))
         combined_results = list(set(old_results) | set(new_results))
         if len(combined_results) > len(old_results):
             print "Writing %d new results to %s." % (len(combined_results) - len(old_results), file)
@@ -95,5 +95,5 @@ def update_all(data_files, team_aliases = {}, player_aliases = {}):
         else:
             print "No new results for %s, skipping." % file
 
-# Program entry point.  Expects three arguments - the path to the config file and the paths to the team and player mapping files.
-update_all(get_files_to_update(sys.argv[1]), load_team_aliases(sys.argv[2]), load_player_aliases(sys.argv[3]))
+# Program entry point.  Expects two arguments - the path to the config file and the path to the team mapping file.
+update_all(get_files_to_update(sys.argv[1]), load_team_aliases(sys.argv[2]))

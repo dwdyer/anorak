@@ -2,17 +2,17 @@ from os.path import dirname, join
 from bs4 import BeautifulSoup
 
 def get_files_to_update(config_path):
-    """Parse the specified config XML and return a dictionary of URLs to scrape and the data files that should be updated."""
+    """Parse the specified config XML and return a list of 3-tuples (URL to scrape, data file to update, player mapping file)."""
     print "Reading configuration file: %s" % config_path
     with open(config_path) as config_file:
         xml = config_file.read()
     tags = BeautifulSoup(xml, features=["xml"])
     # Find all seasons that specify a source URL for scraping.
     tags = tags.findAll("season", src=True)
-    files = {}
+    files = []
     basedir = dirname(config_path)
     for tag in tags:
-        files[tag["src"]] = join(basedir, tag["input"])
+        files.append((tag["src"], join(basedir, tag["input"]), join(basedir, tag.parent["players"])))
     return files
 
 
