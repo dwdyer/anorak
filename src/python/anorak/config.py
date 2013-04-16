@@ -2,7 +2,7 @@ from os.path import dirname, join
 from bs4 import BeautifulSoup
 
 def get_files_to_update(config_path):
-    """Parse the specified config XML and return a list of 3-tuples (URL to scrape, data file to update, player mapping file)."""
+    """Parse config XML and return a list of 3-tuples (URL to scrape, data file to update, player mapping file)."""
     print "Reading configuration file: %s" % config_path
     with open(config_path) as config_file:
         xml = config_file.read()

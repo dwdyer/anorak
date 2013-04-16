@@ -4,7 +4,7 @@ from datetime import datetime
 import re
 
 class Result:
-    def __init__(self, date, home_team, home_score, away_team, away_score, home_goals = [], away_goals = []):
+    def __init__(self, date, home_team, home_score, away_team, away_score, home_goals, away_goals):
         self.date = date
         self.home_team = home_team
         self.home_score = home_score
@@ -33,14 +33,14 @@ class Result:
 
 
 class Goal:
-    def __init__(self, scorer, minute, type = None):
+    def __init__(self, scorer, minute, goal_type = None):
         self.scorer = scorer
         self.minute = minute
-        self.type = type
+        self.goal_type = goal_type
 
     def __str__(self):
         """Returns the name of the scorer, a space, the minute of the goal, and (optionally) the type ('p' for penalty, 'o' for own goal)."""
-        return "".join([self.scorer, str(self.minute), self.type if self.type else ""])
+        return "".join([self.scorer, str(self.minute), self.goal_type if self.goal_type else ""])
 
     def __cmp__(self, other):
         return cmp(self.minute, other.minute)
@@ -79,12 +79,11 @@ def parse_score(text, team, opposition, player_aliases = {}):
         items = scorers.split(",")
         for goal in items:
             match = goal_regex.match(goal)
-            type = match.group(3)
-            key = (opposition if type == "o" else team, match.group(1))
+            goal_type = match.group(3)
+            key = (opposition if goal_type == "o" else team, match.group(1))
             scorer = player_aliases.get(key, match.group(1))
-            goals.append(Goal(scorer, match.group(2), type))
+            goals.append(Goal(scorer, match.group(2), goal_type))
     return (score, goals)
-
 
 
 def write_rlt(rlt_path, results, metadata):
