@@ -1,4 +1,4 @@
-# Update RLT files by scraping the latest results from the web.
+""" Tool for updating RLT files by scraping the latest results from the web."""
 
 import re
 import sys

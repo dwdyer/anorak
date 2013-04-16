@@ -1,4 +1,4 @@
-# Data types for results plus functions for reading and writing RLT files.
+"""Data types for results plus functions for reading and writing RLT files."""
 
 from datetime import datetime
 import re
@@ -39,7 +39,7 @@ class Goal:
         self.goal_type = goal_type
 
     def __str__(self):
-        """Returns the name of the scorer, a space, the minute of the goal, and (optionally) the type ('p' for penalty, 'o' for own goal)."""
+        """Returns scorer name, a space, goal minute, and (optionally) the type ('p' for penalty, 'o' for own goal)."""
         return "".join([self.scorer, str(self.minute), self.goal_type if self.goal_type else ""])
 
     def __cmp__(self, other):
@@ -64,21 +64,23 @@ def parse_rlt(rlt_path, player_aliases = {}):
             line = rlt.readline()
     return (results, metadata)
 
+
 # Regex to separate score and scorers.
-score_regex = re.compile(r"(\d+)(?:\[(.+?)\])?")
+_score_regex = re.compile(r"(\d+)(?:\[(.+?)\])?")
 # Regex to match an RLT goal scorer entry.
-goal_regex = re.compile(r"(\D+)(\d+)([po]?)")
+_goal_regex = re.compile(r"(\D+)(\d+)([po]?)")
+
 
 def parse_score(text, team, opposition, player_aliases = {}):
     """Parse the score field of an RLT record and return a tuple containing the scorer and scorers."""
-    match = score_regex.match(text)
+    match = _score_regex.match(text)
     score = int(match.group(1))
     scorers = match.group(2)
     goals = []
     if scorers:
         items = scorers.split(",")
         for goal in items:
-            match = goal_regex.match(goal)
+            match = _goal_regex.match(goal)
             goal_type = match.group(3)
             key = (opposition if goal_type == "o" else team, match.group(1))
             scorer = player_aliases.get(key, match.group(1))

@@ -1,3 +1,6 @@
+"""Functions for reading Anorak XML configuration files and the mapping files
+used by the results scraper."""
+
 from os.path import dirname, join
 from bs4 import BeautifulSoup
 
