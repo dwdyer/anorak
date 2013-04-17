@@ -6,27 +6,31 @@ from .config import load_player_aliases
 from .results import parse_rlt, write_rlt
 
 def show_duplicate_names(results, aliases):
-    """Finds duplicate scorer names that aren't disambiguated in the player mapping file."""
+    """Finds duplicate scorer names that aren't already disambiguated in the
+    player mapping file."""
 
     # Determine which names have already been mapped.
     mapped = set([(team, canonical) for (team, name), canonical in aliases.items()])
 
-    # Create a mapping from player name to a set of teams that name is associated with.
+    # Create a mapping from a player name to a set of teams associated with it.
     players = {}
     for result in results:
         extract_scorer_teams(players, mapped, result, True)
         extract_scorer_teams(players, mapped, result, False)
 
-    # Filter to retain only previously unmapped names that are associated with more than one team.
+    # Filter to retain only names that were previously unmapped that occur for
+    # more than one team.
     duplicates = [(name, teams) for name, teams in players.items() if len(teams) > 1]
-    # Dump the information in a format that we can copy-and-paste into the mapping file.
+    # Dump the information in a format that we can copy-and-paste into the
+    # mapping file.
     for name, teams in duplicates:
         for team in teams:
             print "%s|%s=" % (team, name)
 
 
 def extract_scorer_teams(players, mapped, result, home):
-    """Extract unmapped scorer names from a result and add to 'players' dictionary provided."""
+    """Extract unmapped scorer names from the result and add to the 'players'
+    dictionary provided."""
     for_team = result.home_team if home else result.away_team
     against_team = result.away_team if home else result.home_team
     for goal in (result.home_goals if home else result.away_goals):

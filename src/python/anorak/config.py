@@ -5,7 +5,8 @@ from os.path import dirname, join
 from bs4 import BeautifulSoup
 
 def get_files_to_update(config_path):
-    """Parse config XML and return a list of 3-tuples (URL to scrape, data file to update, player mapping file)."""
+    """Parse config XML and return a list of 4-tuples (URL to scrape, data file
+    to update, team mapping file, player mapping file)."""
     print "Reading configuration file: %s" % config_path
     with open(config_path) as config_file:
         xml = config_file.read()
@@ -14,14 +15,19 @@ def get_files_to_update(config_path):
     tags = tags.findAll("season", src=True)
     files = []
     basedir = dirname(config_path)
-    for tag in tags:
-        files.append((tag["src"], join(basedir, tag["input"]), join(basedir, tag.parent["players"])))
+    for season_tag in tags:
+        division_tag = season_tag.parent
+        league_tag = division_tag.parent
+        files.append((season_tag["src"],
+                      join(basedir, season_tag["input"]),
+                      join(basedir, league_tag["teams"]),
+                      join(basedir, division_tag["players"])))
     return files
 
 
 # Maps common team name variants to the canonical form of that team's name.
 def load_team_aliases(mappings_path):
-    """Load mappings for team names.  Maps abbreviated forms to canonical names."""
+    """Load team name mappings.  Maps abbreviated forms to canonical names."""
     print "Reading team name mapping file: %s" % mappings_path
     with open(mappings_path) as mappings_file:
         mappings = {}
@@ -33,9 +39,10 @@ def load_team_aliases(mappings_path):
     return mappings
 
 
-# Maps short versions (i.e. just surname) and variations of a player's name to the canonical form.
+# Maps short versions (i.e. just surname) and variations of a player's name to
+# the canonical form.
 def load_player_aliases(mappings_path):
-    """Load mappings for player names.  Maps abbreviated forms to canonical names."""
+    """Load player name mappings.  Maps abbreviated forms to canonical names."""
     print "Reading player name mapping file: %s" % mappings_path
     with open(mappings_path) as mappings_file:
         mappings = {}
