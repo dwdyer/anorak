@@ -28,8 +28,8 @@ instance Show MatchFeatures where
     show (MatchFeatures (h, hh) (a, aa) o) = show h ++ "\t" ++ show hh ++ "\t" ++ show a ++ "\t" ++ show aa ++ "\t" ++ show o
 
 generateFeatures :: FilePath -> IO ()
-generateFeatures dataFile = do LeagueData _ results _ _ _ _ <- parseRLTFile dataFile
-                               let features = extractFeatures results Map.empty Map.empty Map.empty
+generateFeatures dataFile = do LeagueData _ res _ _ _ _ <- parseRLTFile dataFile
+                               let features = extractFeatures res Map.empty Map.empty Map.empty
                                mapM_ print features
 
 -- | Given a list of results, return a list of features and associated match outcomes.
