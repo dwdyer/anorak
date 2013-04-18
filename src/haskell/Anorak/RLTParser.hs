@@ -24,13 +24,15 @@ import System.FilePath(combine, takeDirectory)
 import System.IO.Unsafe(unsafePerformIO)
 
 -- | An RLT file consists of many items (results, metadata and comments).
-data Item = Fixture Result                   -- ^ The result of a single football match.
-          | Include FilePath                 -- ^ The path to another RLT file that should be parsed and included.
-          | Adjustment Team Int              -- ^ A number of points awarded to or deducted from an individual team.
-          | MiniLeague ByteString (Set Team) -- ^ A league within a league (e.g. The Big 4, London Clubs, North West Clubs, etc.)
-          | Rules Int Int Int                -- ^ Number of points for a win, points for a draw, and split point (zero for non-SPL-style leagues)
-          | Alias ByteString Team            -- ^ Maps a team name to an alias (used when teams change names, i.e. Wimbledon to MK Dons)
-          | Comment ByteString               -- ^ Comments about the data.
+data Item = Fixture Result                    -- ^ The result of a single football match.
+          | Include FilePath                  -- ^ The path to another RLT file that should be parsed and included.
+          | Adjustment Team Int               -- ^ A number of points awarded to or deducted from an individual team.
+          | MiniLeague ByteString (Set Team)  -- ^ A league within a league (e.g. The Big 4, London Clubs, North West Clubs, etc.)
+          | Rules Int Int Int                 -- ^ Number of points for a win, points for a draw, and split point (zero for non-SPL-style leagues)
+          | Alias ByteString Team             -- ^ Maps a team name to an alias (used when teams change names, i.e. Wimbledon to MK Dons)
+          | PrizeZone Int Int ByteString      -- ^ Promotion/play-off/cup qualification/other prize zone in a league table.
+          | RelegationZone Int Int ByteString -- ^ Relegation/relegation play-off zone in a league table.
+          | Comment ByteString                -- ^ Comments about the data.
     deriving (Show)
 
 -- | An RLTException is thrown when there is a problem parsing RLT input.
@@ -91,18 +93,18 @@ rules = do consume $ string "RULES|"
 -- | The PRIZE directive identifies zones at the top of a division, first field is start position, second is end, third is name.
 prize :: Parser Item
 prize = do consume $ string "PRIZE|"
-           _ <- decimal :: Parser Integer; pipe -- Start
-           _ <- decimal :: Parser Integer; pipe -- End
+           start <- decimal; pipe
+           end <- decimal; pipe
            name <- takeTill isNewLine;
-           return $ Comment name -- Treat as a comment, it's ignored for now.
+           return $ PrizeZone start end name
 
 -- | The RELEGATION directive identifies zones at the top of a division, first field is start position, second is end, third is name.
 relegation :: Parser Item
 relegation = do consume $ string "RELEGATION|"
-                _ <- decimal :: Parser Integer; pipe -- Start
-                _ <- decimal :: Parser Integer; pipe -- End
+                start <- decimal; pipe
+                end <- decimal; pipe
                 name <- takeTill isNewLine; 
-                return $ Comment name -- Treat as a comment, it's ignored for now.
+                return $ RelegationZone start end name
 
 -- | The ALIAS directive maps a team name to a team's previous name.
 alias :: Parser Item
