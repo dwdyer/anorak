@@ -24,6 +24,10 @@ body {padding-top: 60px;}
 .score {font-weight: bold; padding: 0 .75em; white-space: nowrap; text-align: center !important;}
 .scorers {padding-left: 1em;}
 .scorer {white-space: nowrap;}
+.prize1 {background-color: #dff0d8;}
+.prize2 {background-color: #d9edf7;}
+.prize3 {background-color: #fcf8e3;}
+.relegation1 {background-color: #f2dede;}
 
 /* Results/Records */
 #totals .number,.sequence .number, #scorers .number, #topscorers .number, #penalties .number {font-weight: bold; text-align: right;}

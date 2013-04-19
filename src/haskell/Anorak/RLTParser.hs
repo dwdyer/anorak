@@ -45,7 +45,8 @@ data LeagueData = LeagueData {teams :: Set Team,
                               adjustments :: Map Team Int,
                               miniLeagues :: [(ByteString, Set Team)],
                               split :: Int,
-                              aliases :: Map ByteString Team
+                              aliases :: Map ByteString Team,
+                              zones :: Map String String
                              }
 
 -- | Parse results, points adjustments, and meta-data, discard comments.  The function argument is
@@ -169,20 +170,20 @@ consume p = do _ <- p
 -- | Takes a list of parsed items and discards comments and meta-data.  The remaining items are separated into a list
 --   of results and a map of net points adjustments by team.
 extractData :: FilePath -> [Item] -> LeagueData
-extractData _ []                                      = LeagueData Set.empty [] Map.empty [] 0 Map.empty
-extractData dataDir (Fixture matchResult:records)     = LeagueData (addTeams matchResult t) (matchResult:r) a m s al
-                                                        where (LeagueData t r a m s al) = extractData dataDir records
-extractData dataDir (Include path:records)            = LeagueData (t `Set.union` t') (r' ++ r) (Map.unionWith (+) a a') m s al
-                                                        where (LeagueData t r a m s al) = extractData dataDir records
-                                                              (LeagueData t' r' a' _ _ _) = unsafePerformIO . parseRLTFile $ combine dataDir path
-extractData dataDir (Adjustment team amount:records)  = LeagueData t r (Map.insertWith (+) team amount a) m s al
-                                                        where (LeagueData t r a m s al) = extractData dataDir records
-extractData dataDir (MiniLeague name members:records) = LeagueData t r a ((name, members):m) s al
-                                                        where (LeagueData t r a m s al) = extractData dataDir records
-extractData dataDir (Rules _ _ sp:records)            = LeagueData t r a m sp al
-                                                        where (LeagueData t r a m _ al) = extractData dataDir records
-extractData dataDir (Alias name team:records)         = LeagueData t r a m s (Map.insert name team al)
-                                                        where (LeagueData t r a m s al) = extractData dataDir records
+extractData _ []                                      = LeagueData Set.empty [] Map.empty [] 0 Map.empty Map.empty
+extractData dataDir (Fixture matchResult:records)     = LeagueData (addTeams matchResult t) (matchResult:r) a m s al z
+                                                        where (LeagueData t r a m s al z) = extractData dataDir records
+extractData dataDir (Include path:records)            = LeagueData (t `Set.union` t') (r' ++ r) (Map.unionWith (+) a a') m s al z
+                                                        where (LeagueData t r a m s al z) = extractData dataDir records
+                                                              (LeagueData t' r' a' _ _ _ _) = unsafePerformIO . parseRLTFile $ combine dataDir path
+extractData dataDir (Adjustment team amount:records)  = LeagueData t r (Map.insertWith (+) team amount a) m s al z
+                                                        where (LeagueData t r a m s al z) = extractData dataDir records
+extractData dataDir (MiniLeague name members:records) = LeagueData t r a ((name, members):m) s al z
+                                                        where (LeagueData t r a m s al z) = extractData dataDir records
+extractData dataDir (Rules _ _ sp:records)            = LeagueData t r a m sp al z
+                                                        where (LeagueData t r a m _ al z) = extractData dataDir records
+extractData dataDir (Alias name team:records)         = LeagueData t r a m s (Map.insert name team al) z
+                                                        where (LeagueData t r a m s al z) = extractData dataDir records
 extractData dataDir (_:records)                       = extractData dataDir records -- Discard comments.
 
 -- | Adds the home team and away team from a match to the set of all teams (if they are not already present).

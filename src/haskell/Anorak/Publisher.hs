@@ -120,9 +120,9 @@ addGoalToScorers players goal = Map.alter (updateScorer goal) (scorer goal) play
 
 goalTypeString :: Goal -> String
 goalTypeString goal = case goalType goal of
-                          "p" -> "pen "
-                          "o" -> "o.g. "
-                          _   -> ""
+                           "p" -> "pen "
+                           "o" -> "o.g. "
+                           _   -> ""
 
 -- | Generates home, away and overall HTML league tables.
 leagueTablePages :: Results -> MetaData -> LeagueData -> [Page]
@@ -131,7 +131,10 @@ leagueTablePages res meta lgData = [Page "index.html" (tableAttrib byTeam (adjus
                                     OptionalPage "awaytable.html" (tableAttrib awayOnly Map.empty 0) (not $ isNeutral meta),
                                     OptionalPage "firsthalftable.html" (tableAttrib firstHalf Map.empty 0) (hasScorers meta),
                                     OptionalPage "secondhalftable.html" (tableAttrib secondHalf Map.empty 0) (hasScorers meta)]
-                                   where tableAttrib rf adj s = [("table", AV $ leagueTable (rf res) adj s), ("tableSelected", AV True), ("metaData", AV meta)]
+                                   where tableAttrib rf adj s = [("table", AV $ leagueTable (rf res) adj s),
+                                                                 ("tableSelected", AV True),
+                                                                 ("zones", AV $ zones lgData),
+                                                                 ("metaData", AV meta)]
 
 formTablePages :: Results -> MetaData -> [Page]
 formTablePages res meta = [OptionalPage "formtable.html" (formAttrib byTeam 6) (not $ isArchive meta),
@@ -258,10 +261,9 @@ mapTeamNames leagueData = foldl' insert Map.empty names
 -- | Generates all stats pages for a given season.
 seasonPages :: LeagueData -> MetaData -> [Page]
 seasonPages lgData meta = concat $ map args2 [formTablePages, resultsPages, sequencePages, aggregatePages, goalPages]
-                          ++ map args3 [leagueTablePages, miniLeaguePages, teamPages]
-                          where res = prepareResults (results lgData) (aliases lgData)
-                                args2 = ($meta).($res)
-                                args3 = ($lgData).args2
+                                ++ map args3 [leagueTablePages, miniLeaguePages, teamPages]
+                          where args2 = ($ meta).($ prepareResults (results lgData) (aliases lgData))
+                                args3 = ($ lgData).args2
 
 -- | Determine which file the "Mini-Leagues" tab should link to (derived from the name of the first mini-league).
 --   If there are no mini-leagues then this function returns nothing and the tab should not be shown.
@@ -311,5 +313,5 @@ publishPage _ _ _                                         = return ()
 
 publish :: STGroup ByteString -> FilePath -> [(String, AttributeValue)] -> FilePath -> String -> IO ()
 publish group dir attributes fileName templateName = case getStringTemplate templateName group of
-                                                         Nothing -> print $ "Could not find template for " ++ templateName
-                                                         Just template  -> BS.writeFile (dir </> fileName) . render $ setManyAttrib attributes template
+                                                          Nothing -> print $ "Could not find template for " ++ templateName
+                                                          Just template  -> BS.writeFile (dir </> fileName) . render $ setManyAttrib attributes template

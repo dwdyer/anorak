@@ -14,7 +14,7 @@
       <th title="Average Points Per Game">Pts/P</th></tr>
   </thead>
   <tbody>
-    $table:{<tr>
+    $table:{<tr$if(zones.(i))$ class="$zones.(i)$"$endif$>
       <td class="position">$i$.</td>
       <td><a href="$metaData.teamLinks.(it.team)$">$it.team$</a></td>
       <td class="number">$it.played$</td>
