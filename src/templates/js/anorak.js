@@ -11,9 +11,9 @@ function init()
 
 function configureSelector()
 {
-  leagues = elementById("leagues");
-  divisions = elementById("divisions");
-  seasons = elementById("seasons");
+  leagues = document.getElementById("leagues");
+  divisions = document.getElementById("divisions");
+  seasons = document.getElementById("seasons");
   for (var i = 0; i < config.leagues.length; i++)
   {
     var selected = leagueName == config.leagues[i].name;
@@ -53,25 +53,10 @@ function addEvent(obj, evType, fn)
   if (obj.addEventListener)
   { 
     obj.addEventListener(evType, fn, false); 
-    return true; 
   }
   else if (obj.attachEvent)
   { 
-    var r = obj.attachEvent("on"+evType, fn); 
-    return r; 
+    obj.attachEvent("on"+evType, fn); 
   }
-  return false; 
 }
 
-function elementById(id) 
-{ 
-  if (document.getElementById) 
-  {
-    return document.getElementById(id); 
-  }
-  else if (document.all)
-  {
-    return document.all[id]; 
-  }
-  return document.layers[id]; 
-}
