@@ -34,7 +34,7 @@ executable anorak
                         Util.List,
                         Util.Maths,
                         Util.Tuple
-    build-depends:      attoparsec, base, bytestring, containers, directory, filepath, HStringTemplate >= 0.6.3, old-locale, time, xml
+    build-depends:      attoparsec, base, bytestring, containers, directory, filepath, HStringTemplate >= 0.6.3, time, xml
     default-language:   Haskell2010
     hs-source-dirs:     src/haskell
     ghc-options:        -Wall -O2

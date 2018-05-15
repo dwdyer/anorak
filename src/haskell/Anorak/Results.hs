@@ -22,8 +22,7 @@ import Data.Map(Map)
 import qualified Data.Map as Map(empty, findWithDefault, insertWith, map, mapWithKey)
 import Data.Ord(comparing)
 import Data.Time.Calendar(Day(..))
-import Data.Time.Format(formatTime)
-import System.Locale(defaultTimeLocale)
+import Data.Time.Format(defaultTimeLocale, formatTime)
 import Util.List(equal, takeAtLeast)
 
 -- | A team is represented simply by its name.
@@ -94,7 +93,7 @@ data Results = Results {list :: ![Result],                -- ^ A list of all res
                         firstHalf :: Map Team [Result],   -- ^ Half-time scores by team.
                         secondHalf :: Map Team [Result]   -- ^ Second-half scores by team.
                        }
-                        
+
 -- | Convert a flat list of results into a mapping from team to list of results that that team was involved in.
 resultsByTeam :: [Result] -> Map ByteString Team -> Map Team [Result]
 resultsByTeam [] _                                    = Map.empty

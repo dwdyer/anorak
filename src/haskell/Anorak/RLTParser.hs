@@ -9,7 +9,7 @@ module Anorak.RLTParser (LeagueData(..),
 import Anorak.Results
 import Control.Applicative((<|>), (<*))
 import Control.Exception(Exception, throw)
-import Data.Attoparsec.Char8(char, digit, endOfLine, notInClass, parse, Parser, decimal, string, takeTill, takeWhile1, IResult(..))
+import Data.Attoparsec.ByteString.Char8(char, digit, endOfLine, notInClass, parse, Parser, decimal, string, takeTill, takeWhile1, IResult(..))
 import Data.Attoparsec.Combinator(count, option, sepBy, sepBy1)
 import Data.ByteString.Char8(ByteString)
 import qualified Data.ByteString.Char8 as BS(empty, readFile, unpack)
@@ -36,7 +36,7 @@ data Item = Fixture Result                    -- ^ The result of a single footba
 
 -- | An RLTException is thrown when there is a problem parsing RLT input.
 data RLTException = RLTException String deriving (Typeable, Show)
-instance Exception RLTException 
+instance Exception RLTException
 
 -- | League data is extracted from an RLT file.  It consists of a list of teams, a list of results,
 --   a (probably empty) map of points adjustments, a list of mini-leagues, and the SPL-style split point (zero for sane leagues).
@@ -160,7 +160,7 @@ pipe :: Parser ()
 pipe = consume $ char '|'
 
 isNewLine :: Char -> Bool
-isNewLine c = c `elem` "\n\r"
+isNewLine c = c `elem` ("\n\r"::String)
 
 -- | Discard the input matched by the specified parser.
 consume :: Parser a -> Parser ()
